@@ -27,6 +27,14 @@ class PokeApiService {
         return fetchNamedResults("https://pokeapi.co/api/v2/pokemon-habitat?limit=100")
     }
 
+    fun fetchPokemonRegions(): List<NamedResourceDto> {
+        return fetchNamedResults("https://pokeapi.co/api/v2/region?limit=100")
+    }
+
+    fun fetchPokemonShapes(): List<NamedResourceDto> {
+        return fetchNamedResults("https://pokeapi.co/api/v2/pokemon-shape?limit=100")
+    }
+
     fun fetchPokemonByType(typeName: String): List<NamedResourceDto> {
         val endpoint = "https://pokeapi.co/api/v2/type/$typeName"
         val root = fetchObject(endpoint)
@@ -76,6 +84,86 @@ class PokeApiService {
 
         return List(speciesArray.length()) { index ->
             val item = speciesArray.getJSONObject(index)
+            NamedResourceDto(
+                name = item.getString("name"),
+                url = item.getString("url")
+            )
+        }
+    }
+
+    fun fetchPokemonByShape(shapeName: String): List<NamedResourceDto> {
+        val endpoint = "https://pokeapi.co/api/v2/pokemon-shape/$shapeName"
+        val root = fetchObject(endpoint)
+        val speciesArray = root.getJSONArray("pokemon_species")
+
+        return List(speciesArray.length()) { index ->
+            val item = speciesArray.getJSONObject(index)
+            NamedResourceDto(
+                name = item.getString("name"),
+                url = item.getString("url")
+            )
+        }
+    }
+
+    fun fetchPokemonByRegion(regionName: String): List<NamedResourceDto> {
+        val endpoint = "https://pokeapi.co/api/v2/region/$regionName"
+        val root = fetchObject(endpoint)
+        val pokedexArray = root.getJSONArray("pokedexes")
+        val allSpecies = linkedMapOf<String, NamedResourceDto>()
+
+        for (i in 0 until pokedexArray.length()) {
+            val pokedexUrl = pokedexArray.getJSONObject(i).getString("url")
+            val pokedexRoot = fetchObject(pokedexUrl)
+            val entries = pokedexRoot.getJSONArray("pokemon_entries")
+
+            for (j in 0 until entries.length()) {
+                val speciesObj = entries.getJSONObject(j).getJSONObject("pokemon_species")
+                val name = speciesObj.getString("name")
+                allSpecies[name] = NamedResourceDto(
+                    name = name,
+                    url = speciesObj.getString("url")
+                )
+            }
+        }
+
+        return allSpecies.values.toList()
+    }
+
+    fun fetchLocationsByRegion(regionName: String): List<NamedResourceDto> {
+        val endpoint = "https://pokeapi.co/api/v2/region/$regionName"
+        val root = fetchObject(endpoint)
+        val locationsArray = root.getJSONArray("locations")
+
+        return List(locationsArray.length()) { index ->
+            val item = locationsArray.getJSONObject(index)
+            NamedResourceDto(
+                name = item.getString("name"),
+                url = item.getString("url")
+            )
+        }
+    }
+
+    fun fetchLocationAreasByLocation(locationName: String): List<NamedResourceDto> {
+        val endpoint = "https://pokeapi.co/api/v2/location/$locationName"
+        val root = fetchObject(endpoint)
+        val areasArray = root.getJSONArray("areas")
+
+        return List(areasArray.length()) { index ->
+            val item = areasArray.getJSONObject(index)
+            NamedResourceDto(
+                name = item.getString("name"),
+                url = item.getString("url")
+            )
+        }
+    }
+
+    fun fetchPokemonByLocationArea(locationAreaName: String): List<NamedResourceDto> {
+        val endpoint = "https://pokeapi.co/api/v2/location-area/$locationAreaName"
+        val root = fetchObject(endpoint)
+        val encountersArray = root.getJSONArray("pokemon_encounters")
+
+        return List(encountersArray.length()) { index ->
+            val item = encountersArray.getJSONObject(index).getJSONObject("pokemon")
             NamedResourceDto(
                 name = item.getString("name"),
                 url = item.getString("url")

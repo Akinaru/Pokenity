@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CatchingPokemon
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -25,17 +26,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import fr.pokenity.pokenity.presentation.detail.PokemonDetailScreen
 import fr.pokenity.pokenity.presentation.detail.PokemonDetailViewModel
+import fr.pokenity.pokenity.presentation.map.MapScreen
+import fr.pokenity.pokenity.presentation.map.MapViewModel
 import fr.pokenity.pokenity.presentation.pokedex.PokedexScreen
 import fr.pokenity.pokenity.presentation.pokedex.PokedexViewModel
 import fr.pokenity.pokenity.ui.theme.PokenityTheme
 
 private enum class MainDestination {
-    POKEMONS
+    POKEMONS,
+    MAP
 }
 
 class MainActivity : ComponentActivity() {
 
     private val pokedexViewModel: PokedexViewModel by viewModels { PokedexViewModel.factory }
+    private val mapViewModel: MapViewModel by viewModels { MapViewModel.factory }
     private val detailViewModel: PokemonDetailViewModel by viewModels { PokemonDetailViewModel.factory }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,6 +49,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val pokedexUiState by pokedexViewModel.uiState.collectAsState()
+            val mapUiState by mapViewModel.uiState.collectAsState()
             val detailUiState by detailViewModel.uiState.collectAsState()
             var selectedDestination by rememberSaveable { mutableStateOf(MainDestination.POKEMONS) }
             var selectedPokemonId by rememberSaveable { mutableStateOf<Int?>(null) }
@@ -82,10 +88,29 @@ class MainActivity : ComponentActivity() {
                                         onGenerationClicked = pokedexViewModel::onGenerationClicked,
                                         onAbilityClicked = pokedexViewModel::onAbilityClicked,
                                         onHabitatClicked = pokedexViewModel::onHabitatClicked,
+                                        onRegionClicked = pokedexViewModel::onRegionClicked,
+                                        onShapeClicked = pokedexViewModel::onShapeClicked,
                                         onClearTypeFilter = pokedexViewModel::clearTypeFilter,
                                         onClearGenerationFilter = pokedexViewModel::clearGenerationFilter,
                                         onClearAbilityFilter = pokedexViewModel::clearAbilityFilter,
                                         onClearHabitatFilter = pokedexViewModel::clearHabitatFilter,
+                                        onClearRegionFilter = pokedexViewModel::clearRegionFilter,
+                                        onClearShapeFilter = pokedexViewModel::clearShapeFilter,
+                                        modifier = Modifier.padding(innerPadding)
+                                    )
+                                }
+
+                                MainDestination.MAP -> {
+                                    MapScreen(
+                                        uiState = mapUiState,
+                                        onRetry = mapViewModel::loadRegions,
+                                        onPokemonClick = { id -> selectedPokemonId = id },
+                                        onRegionSelected = mapViewModel::onRegionSelected,
+                                        onLocationSelected = mapViewModel::onLocationSelected,
+                                        onAreaSelected = mapViewModel::onAreaSelected,
+                                        onBackToRegions = mapViewModel::backToRegions,
+                                        onBackToLocations = mapViewModel::backToLocations,
+                                        onBackToAreas = mapViewModel::backToAreas,
                                         modifier = Modifier.padding(innerPadding)
                                     )
                                 }
@@ -114,6 +139,17 @@ private fun MainBottomBar(
                 )
             },
             label = { Text("Pokemons") }
+        )
+        NavigationBarItem(
+            selected = selectedDestination == MainDestination.MAP,
+            onClick = { onSelected(MainDestination.MAP) },
+            icon = {
+                Icon(
+                    imageVector = Icons.Filled.Map,
+                    contentDescription = "Map"
+                )
+            },
+            label = { Text("Map") }
         )
     }
 }
