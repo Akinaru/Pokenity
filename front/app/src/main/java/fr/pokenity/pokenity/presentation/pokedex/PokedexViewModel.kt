@@ -6,9 +6,13 @@ import androidx.lifecycle.viewModelScope
 import fr.pokenity.pokenity.data.remote.PokeApiService
 import fr.pokenity.pokenity.data.repository.PokemonRepositoryImpl
 import fr.pokenity.pokenity.domain.model.PokemonFilterOption
+import fr.pokenity.pokenity.domain.usecase.GetPokemonAbilitiesUseCase
+import fr.pokenity.pokenity.domain.usecase.GetPokemonByAbilityUseCase
 import fr.pokenity.pokenity.domain.usecase.GetPokemonByGenerationUseCase
+import fr.pokenity.pokenity.domain.usecase.GetPokemonByHabitatUseCase
 import fr.pokenity.pokenity.domain.usecase.GetPokemonByTypeUseCase
 import fr.pokenity.pokenity.domain.usecase.GetPokemonGenerationsUseCase
+import fr.pokenity.pokenity.domain.usecase.GetPokemonHabitatsUseCase
 import fr.pokenity.pokenity.domain.usecase.GetPokemonListUseCase
 import fr.pokenity.pokenity.domain.usecase.GetPokemonTypesUseCase
 import kotlinx.coroutines.Dispatchers
@@ -22,8 +26,12 @@ class PokedexViewModel(
     private val getPokemonListUseCase: GetPokemonListUseCase,
     private val getPokemonTypesUseCase: GetPokemonTypesUseCase,
     private val getPokemonGenerationsUseCase: GetPokemonGenerationsUseCase,
+    private val getPokemonAbilitiesUseCase: GetPokemonAbilitiesUseCase,
+    private val getPokemonHabitatsUseCase: GetPokemonHabitatsUseCase,
     private val getPokemonByTypeUseCase: GetPokemonByTypeUseCase,
-    private val getPokemonByGenerationUseCase: GetPokemonByGenerationUseCase
+    private val getPokemonByGenerationUseCase: GetPokemonByGenerationUseCase,
+    private val getPokemonByAbilityUseCase: GetPokemonByAbilityUseCase,
+    private val getPokemonByHabitatUseCase: GetPokemonByHabitatUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PokedexUiState())
@@ -41,18 +49,24 @@ class PokedexViewModel(
                 val pokemonDeferred = async { getPokemonListUseCase(limit = 120) }
                 val typesDeferred = async { getPokemonTypesUseCase() }
                 val generationsDeferred = async { getPokemonGenerationsUseCase() }
+                val abilitiesDeferred = async { getPokemonAbilitiesUseCase() }
+                val habitatsDeferred = async { getPokemonHabitatsUseCase() }
 
-                Triple(
-                    pokemonDeferred.await(),
-                    typesDeferred.await(),
-                    generationsDeferred.await()
+                PokedexDataBundle(
+                    pokemon = pokemonDeferred.await(),
+                    types = typesDeferred.await(),
+                    generations = generationsDeferred.await(),
+                    abilities = abilitiesDeferred.await(),
+                    habitats = habitatsDeferred.await()
                 )
-            }.onSuccess { (pokemon, types, generations) ->
+            }.onSuccess { data ->
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    pokemon = pokemon,
-                    types = types,
-                    generations = generations
+                    pokemon = data.pokemon,
+                    types = data.types,
+                    generations = data.generations,
+                    abilities = data.abilities,
+                    habitats = data.habitats
                 )
             }.onFailure {
                 _uiState.value = _uiState.value.copy(
@@ -68,75 +82,98 @@ class PokedexViewModel(
             selectedSection = section,
             selectedTypeLabel = null,
             selectedGenerationLabel = null,
+            selectedAbilityLabel = null,
+            selectedHabitatLabel = null,
             filteredPokemon = emptyList(),
             errorMessage = null
         )
     }
 
     fun onTypeClicked(type: PokemonFilterOption) {
-        _uiState.value = _uiState.value.copy(
-            isLoading = true,
-            errorMessage = null,
-            selectedTypeLabel = type.label,
-            selectedGenerationLabel = null
+        loadFilteredPokemon(
+            selectedLabel = type.label,
+            clearOtherSelections = {
+                copy(selectedGenerationLabel = null, selectedAbilityLabel = null, selectedHabitatLabel = null)
+            },
+            loader = { getPokemonByTypeUseCase(type.apiName) },
+            error = "Impossible de charger les Pokemon de ce type.",
+            labelSetter = { state, label -> state.copy(selectedTypeLabel = label) }
         )
-
-        viewModelScope.launch(Dispatchers.IO) {
-            runCatching {
-                getPokemonByTypeUseCase(type.apiName)
-            }.onSuccess { pokemon ->
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    filteredPokemon = pokemon
-                )
-            }.onFailure {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Impossible de charger les Pokemon de ce type."
-                )
-            }
-        }
     }
 
     fun onGenerationClicked(generation: PokemonFilterOption) {
-        _uiState.value = _uiState.value.copy(
-            isLoading = true,
-            errorMessage = null,
-            selectedGenerationLabel = generation.label,
-            selectedTypeLabel = null
+        loadFilteredPokemon(
+            selectedLabel = generation.label,
+            clearOtherSelections = {
+                copy(selectedTypeLabel = null, selectedAbilityLabel = null, selectedHabitatLabel = null)
+            },
+            loader = { getPokemonByGenerationUseCase(generation.apiName) },
+            error = "Impossible de charger les Pokemon de cette generation.",
+            labelSetter = { state, label -> state.copy(selectedGenerationLabel = label) }
         )
+    }
 
-        viewModelScope.launch(Dispatchers.IO) {
-            runCatching {
-                getPokemonByGenerationUseCase(generation.apiName)
-            }.onSuccess { pokemon ->
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    filteredPokemon = pokemon
-                )
-            }.onFailure {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Impossible de charger les Pokemon de cette generation."
-                )
-            }
-        }
+    fun onAbilityClicked(ability: PokemonFilterOption) {
+        loadFilteredPokemon(
+            selectedLabel = ability.label,
+            clearOtherSelections = {
+                copy(selectedTypeLabel = null, selectedGenerationLabel = null, selectedHabitatLabel = null)
+            },
+            loader = { getPokemonByAbilityUseCase(ability.apiName) },
+            error = "Impossible de charger les Pokemon de cette capacite.",
+            labelSetter = { state, label -> state.copy(selectedAbilityLabel = label) }
+        )
+    }
+
+    fun onHabitatClicked(habitat: PokemonFilterOption) {
+        loadFilteredPokemon(
+            selectedLabel = habitat.label,
+            clearOtherSelections = {
+                copy(selectedTypeLabel = null, selectedGenerationLabel = null, selectedAbilityLabel = null)
+            },
+            loader = { getPokemonByHabitatUseCase(habitat.apiName) },
+            error = "Impossible de charger les Pokemon de cet habitat.",
+            labelSetter = { state, label -> state.copy(selectedHabitatLabel = label) }
+        )
     }
 
     fun clearTypeFilter() {
-        _uiState.value = _uiState.value.copy(
-            selectedTypeLabel = null,
-            filteredPokemon = emptyList(),
-            errorMessage = null
-        )
+        _uiState.value = _uiState.value.copy(selectedTypeLabel = null, filteredPokemon = emptyList(), errorMessage = null)
     }
 
     fun clearGenerationFilter() {
-        _uiState.value = _uiState.value.copy(
-            selectedGenerationLabel = null,
-            filteredPokemon = emptyList(),
-            errorMessage = null
-        )
+        _uiState.value = _uiState.value.copy(selectedGenerationLabel = null, filteredPokemon = emptyList(), errorMessage = null)
+    }
+
+    fun clearAbilityFilter() {
+        _uiState.value = _uiState.value.copy(selectedAbilityLabel = null, filteredPokemon = emptyList(), errorMessage = null)
+    }
+
+    fun clearHabitatFilter() {
+        _uiState.value = _uiState.value.copy(selectedHabitatLabel = null, filteredPokemon = emptyList(), errorMessage = null)
+    }
+
+    private fun loadFilteredPokemon(
+        selectedLabel: String,
+        clearOtherSelections: PokedexUiState.() -> PokedexUiState,
+        loader: suspend () -> List<fr.pokenity.pokenity.domain.model.PokemonSummary>,
+        error: String,
+        labelSetter: (PokedexUiState, String) -> PokedexUiState
+    ) {
+        var nextState = _uiState.value.copy(isLoading = true, errorMessage = null)
+        nextState = nextState.clearOtherSelections()
+        nextState = labelSetter(nextState, selectedLabel)
+        _uiState.value = nextState
+
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { loader() }
+                .onSuccess { pokemon ->
+                    _uiState.value = _uiState.value.copy(isLoading = false, filteredPokemon = pokemon)
+                }
+                .onFailure {
+                    _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = error)
+                }
+        }
     }
 
     companion object {
@@ -148,16 +185,32 @@ class PokedexViewModel(
                 val pokemonUseCase = GetPokemonListUseCase(repository)
                 val typesUseCase = GetPokemonTypesUseCase(repository)
                 val generationsUseCase = GetPokemonGenerationsUseCase(repository)
+                val abilitiesUseCase = GetPokemonAbilitiesUseCase(repository)
+                val habitatsUseCase = GetPokemonHabitatsUseCase(repository)
                 val pokemonByTypeUseCase = GetPokemonByTypeUseCase(repository)
                 val pokemonByGenerationUseCase = GetPokemonByGenerationUseCase(repository)
+                val pokemonByAbilityUseCase = GetPokemonByAbilityUseCase(repository)
+                val pokemonByHabitatUseCase = GetPokemonByHabitatUseCase(repository)
                 return PokedexViewModel(
                     pokemonUseCase,
                     typesUseCase,
                     generationsUseCase,
+                    abilitiesUseCase,
+                    habitatsUseCase,
                     pokemonByTypeUseCase,
-                    pokemonByGenerationUseCase
+                    pokemonByGenerationUseCase,
+                    pokemonByAbilityUseCase,
+                    pokemonByHabitatUseCase
                 ) as T
             }
         }
     }
 }
+
+private data class PokedexDataBundle(
+    val pokemon: List<fr.pokenity.pokenity.domain.model.PokemonSummary>,
+    val types: List<PokemonFilterOption>,
+    val generations: List<PokemonFilterOption>,
+    val abilities: List<PokemonFilterOption>,
+    val habitats: List<PokemonFilterOption>
+)

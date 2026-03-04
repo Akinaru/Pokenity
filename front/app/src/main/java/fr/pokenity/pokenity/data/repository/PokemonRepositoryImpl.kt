@@ -25,7 +25,18 @@ class PokemonRepositoryImpl(
     }
 
     override suspend fun getPokemonTypes(): List<PokemonFilterOption> {
-        return pokeApiService.fetchPokemonTypes().map { resource ->
+        return pokeApiService.fetchPokemonTypes().mapNotNull { resource ->
+            val typeId = resource.url.toResourceId() ?: return@mapNotNull null
+            PokemonFilterOption(
+                apiName = resource.name,
+                label = resource.name.asDisplayName(),
+                imageUrl = typeImageUrl(typeId)
+            )
+        }
+    }
+
+    override suspend fun getPokemonGenerations(): List<PokemonFilterOption> {
+        return pokeApiService.fetchPokemonGenerations().map { resource ->
             PokemonFilterOption(
                 apiName = resource.name,
                 label = resource.name.asDisplayName()
@@ -33,8 +44,17 @@ class PokemonRepositoryImpl(
         }
     }
 
-    override suspend fun getPokemonGenerations(): List<PokemonFilterOption> {
-        return pokeApiService.fetchPokemonGenerations().map { resource ->
+    override suspend fun getPokemonAbilities(): List<PokemonFilterOption> {
+        return pokeApiService.fetchPokemonAbilities().map { resource ->
+            PokemonFilterOption(
+                apiName = resource.name,
+                label = resource.name.asDisplayName()
+            )
+        }
+    }
+
+    override suspend fun getPokemonHabitats(): List<PokemonFilterOption> {
+        return pokeApiService.fetchPokemonHabitats().map { resource ->
             PokemonFilterOption(
                 apiName = resource.name,
                 label = resource.name.asDisplayName()
@@ -56,6 +76,20 @@ class PokemonRepositoryImpl(
             .sortedBy { it.id }
     }
 
+    override suspend fun getPokemonByAbility(abilityName: String): List<PokemonSummary> {
+        return pokeApiService
+            .fetchPokemonByAbility(abilityName)
+            .toPokemonSummaries()
+            .sortedBy { it.id }
+    }
+
+    override suspend fun getPokemonByHabitat(habitatName: String): List<PokemonSummary> {
+        return pokeApiService
+            .fetchPokemonByHabitat(habitatName)
+            .toPokemonSummaries()
+            .sortedBy { it.id }
+    }
+
     private fun List<NamedResourceDto>.toPokemonSummaries(): List<PokemonSummary> {
         return mapNotNull { resource ->
             val id = resource.url.toResourceId() ?: return@mapNotNull null
@@ -69,6 +103,10 @@ class PokemonRepositoryImpl(
 
     private fun artworkUrl(id: Int): String {
         return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/$id.png"
+    }
+
+    private fun typeImageUrl(typeId: Int): String {
+        return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/types/generation-viii/sword-shield/$typeId.png"
     }
 
     private fun String.toResourceId(): Int? {
