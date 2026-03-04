@@ -83,8 +83,7 @@ fun PokedexScreen(
 
     val displayedPokemon by remember(sourcePokemon, query) {
         mutableStateOf(
-            if (query.isBlank()) sourcePokemon
-            else sourcePokemon.filter {
+            if (query.isBlank()) sourcePokemon else sourcePokemon.filter {
                 it.name.contains(query.trim(), ignoreCase = true) || it.id.toString().contains(query.trim())
             }
         )
@@ -112,14 +111,9 @@ fun PokedexScreen(
                     item {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                            horizontalArrangement = Arrangement.End,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "${displayedPokemon.size} elements",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
                             OutlinedButton(
                                 onClick = { PokemonImageSettings.toggleShiny() },
                                 enabled = spriteType.supportsShiny
