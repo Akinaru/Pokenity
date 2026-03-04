@@ -9,12 +9,14 @@ const catalogRoutes = require("./routes/catalogRoutes");
 const inventoryRoutes = require("./routes/inventoryRoutes");
 const pokemonRoutes = require("./routes/pokemonRoutes");
 const userManagementRoutes = require("./routes/userManagementRoutes");
+const characterRoutes = require("./routes/characterRoutes");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 app.use("/admin", express.static(path.join(__dirname, "public")));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.get("/", (req, res) => {
   return res.redirect("/admin");
@@ -43,6 +45,7 @@ app.use("/api/catalog", catalogRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/pokemon", pokemonRoutes);
 app.use("/api/users", userManagementRoutes);
+app.use("/api/characters", characterRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: "Route not found." });
