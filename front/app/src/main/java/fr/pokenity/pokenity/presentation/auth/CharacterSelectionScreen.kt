@@ -75,8 +75,6 @@ fun CharacterSelectionScreen(
         BoxWithConstraints(
             modifier = Modifier.fillMaxSize()
         ) {
-            val imageBottomOverflow = maxHeight * 0.15f
-
             if (uiState.isLoading && selectedCharacter == null) {
                 Box(
                     modifier = Modifier
@@ -123,9 +121,8 @@ fun CharacterSelectionScreen(
                 AnimatedContent(
                     targetState = uiState.selectedCharacterIndex,
                     modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxSize()
-                        .offset(y = imageBottomOverflow),
+                        .align(Alignment.Center)
+                        .fillMaxSize(),
                     transitionSpec = {
                         val moveForward = when {
                             characterCount <= 1 -> true
@@ -164,29 +161,17 @@ fun CharacterSelectionScreen(
                         AsyncImage(
                             model = character.preferredMediaModel(),
                             contentDescription = character.name,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .fillMaxHeight(1.15f)
-                                .graphicsLayer(
-                                    scaleX = 1.28f,
-                                    scaleY = 1.28f
-                                ),
-                            contentScale = ContentScale.Fit,
-                            alignment = Alignment.BottomCenter
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.FillBounds,
+                            alignment = Alignment.Center
                         )
                     } else {
                         AsyncImage(
                             model = selectedModel,
                             contentDescription = selectedCharacter.name,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .fillMaxHeight(1.15f)
-                                .graphicsLayer(
-                                    scaleX = 1.28f,
-                                    scaleY = 1.28f
-                                ),
-                            contentScale = ContentScale.Fit,
-                            alignment = Alignment.BottomCenter
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.FillBounds,
+                            alignment = Alignment.Center
                         )
                     }
                 }
@@ -321,6 +306,16 @@ fun CharacterSelectionScreen(
 
                         Spacer(Modifier.height(10.dp))
 
+                        if (!uiState.errorMessage.isNullOrBlank()) {
+                            Text(
+                                text = uiState.errorMessage,
+                                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily),
+                                color = Color(0xFFFF8A80),
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(Modifier.height(8.dp))
+                        }
+
                         Button(
                             onClick = onValidate,
                             enabled = !uiState.isLoading,
@@ -332,10 +327,18 @@ fun CharacterSelectionScreen(
                                 contentColor = Color.Black
                             )
                         ) {
-                            Text(
-                                text = "Valider",
-                                style = MaterialTheme.typography.titleMedium.copy(fontFamily = AuthFontFamily)
-                            )
+                            if (uiState.isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    color = Color.Black,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text(
+                                    text = "Valider",
+                                    style = MaterialTheme.typography.titleMedium.copy(fontFamily = AuthFontFamily)
+                                )
+                            }
                         }
                     }
                 }
