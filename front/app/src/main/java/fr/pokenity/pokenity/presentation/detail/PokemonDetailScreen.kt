@@ -123,7 +123,6 @@ fun PokemonDetailScreen(
     val imageType by PokemonImageSettings.imageType.collectAsState()
     val shinyEnabled by PokemonImageSettings.isShiny.collectAsState()
     var visualPresetKey by rememberSaveable { mutableStateOf("default") }
-    var presetMenuExpanded by rememberSaveable { mutableStateOf(false) }
     val selectedPreset = remember(visualPresetKey) {
         PokemonVisualPresets.firstOrNull { it.key == visualPresetKey } ?: PokemonVisualPresets.first()
     }
@@ -177,49 +176,6 @@ fun PokemonDetailScreen(
                         },
                     contentPadding = PaddingValues(bottom = 32.dp)
                 ) {
-                    item {
-                        val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = statusBarTop + 8.dp, bottom = 8.dp, start = 16.dp, end = 16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Swipe gauche/droite pour naviguer",
-                                style = MaterialTheme.typography.labelLarge
-                            )
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Box {
-                                    OutlinedButton(onClick = { presetMenuExpanded = true }) {
-                                        Text(selectedPreset.label)
-                                    }
-                                    DropdownMenu(
-                                        expanded = presetMenuExpanded,
-                                        onDismissRequest = { presetMenuExpanded = false }
-                                    ) {
-                                        PokemonVisualPresets.forEach { preset ->
-                                            DropdownMenuItem(
-                                                text = { Text(preset.label) },
-                                                onClick = {
-                                                    visualPresetKey = preset.key
-                                                    presetMenuExpanded = false
-                                                }
-                                            )
-                                        }
-                                    }
-                                }
-                                OutlinedButton(
-                                    onClick = { PokemonImageSettings.toggleShiny() },
-                                    enabled = imageType.supportsShiny && selectedPreset.supportsShiny
-                                ) {
-                                    Text(if (effectiveShiny) "Shiny ON" else "Shiny OFF")
-                                }
-                            }
-                        }
-                    }
-
                     // Header with image and gradient background
                     item {
                         DetailHeader(
@@ -228,6 +184,9 @@ fun PokemonDetailScreen(
                             imageType = imageType,
                             shinyEnabled = effectiveShiny,
                             visualPreset = selectedPreset,
+                            canUseShiny = imageType.supportsShiny && selectedPreset.supportsShiny,
+                            onToggleShiny = { PokemonImageSettings.toggleShiny() },
+                            onPresetSelected = { preset -> visualPresetKey = preset.key },
                             onBack = onBack
                         )
                     }
@@ -291,14 +250,18 @@ private fun DetailHeader(
     imageType: PokemonImageType,
     shinyEnabled: Boolean,
     visualPreset: PokemonVisualPreset,
+    canUseShiny: Boolean,
+    onToggleShiny: () -> Unit,
+    onPresetSelected: (PokemonVisualPreset) -> Unit,
     onBack: () -> Unit
 ) {
     val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    var presetMenuExpanded by rememberSaveable(pokemon.id) { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(320.dp + statusBarPadding)
+            .height(360.dp + statusBarPadding)
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
@@ -322,40 +285,60 @@ private fun DetailHeader(
             )
         }
 
-        // Pokemon ID top right
-        Text(
-            text = "#${pokemon.id.toString().padStart(3, '0')}",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = Color.White.copy(alpha = 0.7f),
+        OutlinedButton(
+            onClick = onToggleShiny,
+            enabled = canUseShiny,
             modifier = Modifier
-                .padding(top = statusBarPadding + 16.dp, end = 20.dp)
+                .padding(top = statusBarPadding + 12.dp, end = 14.dp)
                 .align(Alignment.TopEnd)
-        )
+        ) { Text(if (shinyEnabled) "Shiny ON" else "Shiny OFF") }
 
-        // Pokemon image centered
-        PokemonSpriteImage(
-            pokemonId = pokemon.id,
-            contentDescription = pokemon.name,
-            imageType = imageType,
-            shiny = shinyEnabled,
-            visualPreset = visualPreset,
-            contentScale = ContentScale.Fit,
+        Column(
             modifier = Modifier
-                .size(200.dp)
-                .align(Alignment.Center)
-        )
+                .fillMaxSize()
+                .padding(top = statusBarPadding + 56.dp, bottom = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                PokemonSpriteImage(
+                    pokemonId = pokemon.id,
+                    contentDescription = pokemon.name,
+                    imageType = imageType,
+                    shiny = shinyEnabled,
+                    visualPreset = visualPreset,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.size(190.dp)
+                )
 
-        // Pokemon name at bottom
-        Text(
-            text = pokemon.name,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.ExtraBold,
-            color = Color.White,
-            modifier = Modifier
-                .padding(bottom = 16.dp)
-                .align(Alignment.BottomCenter)
-        )
+                Box {
+                    OutlinedButton(onClick = { presetMenuExpanded = true }) {
+                        Text(visualPreset.label)
+                    }
+                    DropdownMenu(
+                        expanded = presetMenuExpanded,
+                        onDismissRequest = { presetMenuExpanded = false }
+                    ) {
+                        PokemonVisualPresets.forEach { preset ->
+                            DropdownMenuItem(
+                                text = { Text(preset.label) },
+                                onClick = {
+                                    onPresetSelected(preset)
+                                    presetMenuExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
+            Text(
+                text = pokemon.name,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color.White
+            )
+        }
     }
 }
 
