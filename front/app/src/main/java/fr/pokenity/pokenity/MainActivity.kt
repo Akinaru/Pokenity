@@ -83,8 +83,7 @@ class MainActivity : ComponentActivity() {
 
         // Determine start destination based on session state
         val startDest = when {
-            AuthSessionState.isFirstLaunch.value -> "welcome"
-            AuthSessionState.token.value == null -> "login"
+            AuthSessionState.token.value == null -> "welcome"
             AuthSessionState.isNewAccount.value -> "profile-setup"
             else -> "home"
         }
