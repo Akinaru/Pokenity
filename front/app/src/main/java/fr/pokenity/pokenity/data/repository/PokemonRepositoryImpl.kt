@@ -13,6 +13,9 @@ import fr.pokenity.pokenity.domain.model.PokemonSummary
 import fr.pokenity.pokenity.domain.model.PokemonType
 import fr.pokenity.pokenity.domain.repository.PokemonRepository
 import java.util.Locale
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 
 class PokemonRepositoryImpl(
     private val pokeApiService: PokeApiService
@@ -173,44 +176,44 @@ class PokemonRepositoryImpl(
         val language = currentLanguage()
         val dto = pokeApiService.fetchPokemonDetail(id)
 
-        val evolutionChain = try {
-            pokeApiService.fetchEvolutionChain(id).map { stage ->
-                EvolutionStage(
-                    id = stage.id,
-                    name = pokeApiService.fetchPokemonSpeciesNameById(stage.id, language, stage.name.asDisplayName()),
-                    imageUrl = artworkUrl(stage.id),
-                    isCurrent = stage.id == id
-                )
+        val (evolutionChain, moves) = coroutineScope {
+            val evolutionDeferred = async {
+                runCatching {
+                    pokeApiService.fetchEvolutionChain(id).map { stage ->
+                        EvolutionStage(
+                            id = stage.id,
+                            name = localizedPokemonName(stage.id, stage.name.asDisplayName(), language),
+                            imageUrl = artworkUrl(stage.id),
+                            isCurrent = stage.id == id
+                        )
+                    }
+                }.getOrElse { emptyList() }
             }
-        } catch (_: Exception) {
-            emptyList()
-        }
 
-        val moves = try {
-            dto.moveNames.mapNotNull { moveName ->
-                try {
-                    val moveDto = pokeApiService.fetchMoveDetail(moveName, language)
-                    PokemonMove(
-                        name = moveDto.name,
-                        type = PokemonType(
-                            name = pokeApiService.fetchLocalizedName(
-                                resourceUrl = "https://pokeapi.co/api/v2/type/${moveDto.typeId}",
-                                languageCode = language,
-                                fallbackName = moveDto.typeName.asDisplayName()
-                            ),
-                            imageUrl = typeImageUrl(moveDto.typeId)
-                        ),
-                        description = moveDto.description,
-                        power = moveDto.power,
-                        accuracy = moveDto.accuracy,
-                        pp = moveDto.pp
-                    )
-                } catch (_: Exception) {
-                    null
-                }
+            val movesDeferred = async {
+                runCatching {
+                    dto.moveNames.take(3).map { moveName ->
+                        async {
+                            runCatching {
+                                val moveDto = pokeApiService.fetchMoveDetail(moveName, language)
+                                PokemonMove(
+                                    name = moveDto.name,
+                                    type = PokemonType(
+                                        name = localizedTypeName(moveDto.typeId, moveDto.typeName.asDisplayName(), language),
+                                        imageUrl = typeImageUrl(moveDto.typeId)
+                                    ),
+                                    description = moveDto.description,
+                                    power = moveDto.power,
+                                    accuracy = moveDto.accuracy,
+                                    pp = moveDto.pp
+                                )
+                            }.getOrNull()
+                        }
+                    }.awaitAll().filterNotNull()
+                }.getOrElse { emptyList() }
             }
-        } catch (_: Exception) {
-            emptyList()
+
+            evolutionDeferred.await() to movesDeferred.await()
         }
 
         return PokemonDetail(
@@ -256,6 +259,7 @@ class PokemonRepositoryImpl(
 
     private fun localizedResourceName(resource: NamedResourceDto, language: String): String {
         val fallback = resource.name.asDisplayName()
+        if (language == "en") return fallback
         return runCatching {
             pokeApiService.fetchLocalizedName(resource.url, language, fallback)
         }.getOrElse { fallback }
@@ -265,6 +269,17 @@ class PokemonRepositoryImpl(
         if (language == "en") return fallback
         return runCatching {
             pokeApiService.fetchPokemonSpeciesNameById(id, language, fallback)
+        }.getOrElse { fallback }
+    }
+
+    private fun localizedTypeName(typeId: Int, fallback: String, language: String): String {
+        if (language == "en") return fallback
+        return runCatching {
+            pokeApiService.fetchLocalizedName(
+                resourceUrl = "https://pokeapi.co/api/v2/type/$typeId",
+                languageCode = language,
+                fallbackName = fallback
+            )
         }.getOrElse { fallback }
     }
 

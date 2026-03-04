@@ -3,9 +3,8 @@ package fr.pokenity.pokenity.presentation.pokedex
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import fr.pokenity.pokenity.core.AppContainer
 import fr.pokenity.pokenity.core.AppLanguageState
-import fr.pokenity.pokenity.data.remote.PokeApiService
-import fr.pokenity.pokenity.data.repository.PokemonRepositoryImpl
 import fr.pokenity.pokenity.domain.model.PokemonFilterOption
 import fr.pokenity.pokenity.domain.model.PokemonSummary
 import fr.pokenity.pokenity.domain.usecase.GetPokemonAbilitiesUseCase
@@ -22,7 +21,6 @@ import fr.pokenity.pokenity.domain.usecase.GetPokemonRegionsUseCase
 import fr.pokenity.pokenity.domain.usecase.GetPokemonShapesUseCase
 import fr.pokenity.pokenity.domain.usecase.GetPokemonTypesUseCase
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -44,6 +42,8 @@ class PokedexViewModel(
     private val getPokemonByRegionUseCase: GetPokemonByRegionUseCase,
     private val getPokemonByShapeUseCase: GetPokemonByShapeUseCase
 ) : ViewModel() {
+    private val pageSize = 30
+    private var currentOffset = 0
 
     private val _uiState = MutableStateFlow(PokedexUiState())
     val uiState: StateFlow<PokedexUiState> = _uiState.asStateFlow()
@@ -54,42 +54,63 @@ class PokedexViewModel(
     }
 
     fun loadPokedexData() {
-        _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+        currentOffset = 0
+        _uiState.value = _uiState.value.copy(
+            isLoading = true,
+            isLoadingMore = false,
+            hasMorePokemon = true,
+            pokemon = emptyList(),
+            filteredPokemon = emptyList(),
+            selectedTypeLabel = null,
+            selectedGenerationLabel = null,
+            selectedAbilityLabel = null,
+            selectedHabitatLabel = null,
+            selectedRegionLabel = null,
+            selectedShapeLabel = null,
+            errorMessage = null
+        )
 
         viewModelScope.launch(Dispatchers.IO) {
             runCatching {
-                val pokemonDeferred = async { getPokemonListUseCase(limit = 120) }
-                val typesDeferred = async { getPokemonTypesUseCase() }
-                val generationsDeferred = async { getPokemonGenerationsUseCase() }
-                val abilitiesDeferred = async { getPokemonAbilitiesUseCase() }
-                val habitatsDeferred = async { getPokemonHabitatsUseCase() }
-                val regionsDeferred = async { getPokemonRegionsUseCase() }
-                val shapesDeferred = async { getPokemonShapesUseCase() }
-
-                PokedexDataBundle(
-                    pokemon = pokemonDeferred.await(),
-                    types = typesDeferred.await(),
-                    generations = generationsDeferred.await(),
-                    abilities = abilitiesDeferred.await(),
-                    habitats = habitatsDeferred.await(),
-                    regions = regionsDeferred.await(),
-                    shapes = shapesDeferred.await()
-                )
-            }.onSuccess { data ->
+                getPokemonListUseCase(limit = pageSize, offset = 0)
+            }.onSuccess { pokemon ->
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    pokemon = data.pokemon,
-                    types = data.types,
-                    generations = data.generations,
-                    abilities = data.abilities,
-                    habitats = data.habitats,
-                    regions = data.regions,
-                    shapes = data.shapes
+                    pokemon = pokemon,
+                    hasMorePokemon = pokemon.size == pageSize
                 )
+                currentOffset = pokemon.size
             }.onFailure {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = "Impossible de charger les donnees. Verifie ta connexion puis reessaie."
+                    errorMessage = "Impossible de charger les Pokemon. Verifie ta connexion puis reessaie."
+                )
+            }
+        }
+    }
+
+    fun loadMorePokemonIfNeeded() {
+        val state = _uiState.value
+        if (state.selectedSection != PokedexSection.ALL) return
+        if (state.isLoading || state.isLoadingMore || !state.hasMorePokemon) return
+
+        _uiState.value = state.copy(isLoadingMore = true)
+
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                getPokemonListUseCase(limit = pageSize, offset = currentOffset)
+            }.onSuccess { nextPage ->
+                val updatedList = _uiState.value.pokemon + nextPage
+                _uiState.value = _uiState.value.copy(
+                    isLoadingMore = false,
+                    pokemon = updatedList,
+                    hasMorePokemon = nextPage.size == pageSize
+                )
+                currentOffset += nextPage.size
+            }.onFailure {
+                _uiState.value = _uiState.value.copy(
+                    isLoadingMore = false,
+                    errorMessage = "Impossible de charger plus de Pokemon."
                 )
             }
         }
@@ -107,6 +128,7 @@ class PokedexViewModel(
             filteredPokemon = emptyList(),
             errorMessage = null
         )
+        ensureSectionOptionsLoaded(section)
     }
 
     fun onTypeClicked(type: PokemonFilterOption) {
@@ -241,6 +263,32 @@ class PokedexViewModel(
         _uiState.value = _uiState.value.copy(selectedShapeLabel = null, filteredPokemon = emptyList(), errorMessage = null)
     }
 
+    private fun ensureSectionOptionsLoaded(section: PokedexSection) {
+        when (section) {
+            PokedexSection.ALL -> Unit
+            PokedexSection.TYPE -> if (_uiState.value.types.isEmpty()) loadOptions { copy(types = getPokemonTypesUseCase()) }
+            PokedexSection.GENERATION -> if (_uiState.value.generations.isEmpty()) loadOptions { copy(generations = getPokemonGenerationsUseCase()) }
+            PokedexSection.ABILITY -> if (_uiState.value.abilities.isEmpty()) loadOptions { copy(abilities = getPokemonAbilitiesUseCase()) }
+            PokedexSection.HABITAT -> if (_uiState.value.habitats.isEmpty()) loadOptions { copy(habitats = getPokemonHabitatsUseCase()) }
+            PokedexSection.REGION -> if (_uiState.value.regions.isEmpty()) loadOptions { copy(regions = getPokemonRegionsUseCase()) }
+            PokedexSection.SHAPE -> if (_uiState.value.shapes.isEmpty()) loadOptions { copy(shapes = getPokemonShapesUseCase()) }
+        }
+    }
+
+    private fun loadOptions(transform: suspend PokedexUiState.() -> PokedexUiState) {
+        _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { _uiState.value.transform() }
+                .onSuccess { next -> _uiState.value = next.copy(isLoading = false) }
+                .onFailure {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = "Impossible de charger cette liste."
+                    )
+                }
+        }
+    }
+
     private fun loadFilteredPokemon(
         selectedLabel: String,
         clearOtherSelections: PokedexUiState.() -> PokedexUiState,
@@ -276,8 +324,7 @@ class PokedexViewModel(
         val factory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                val pokeApiService = PokeApiService()
-                val repository = PokemonRepositoryImpl(pokeApiService)
+                val repository = AppContainer.pokemonRepository
                 val pokemonUseCase = GetPokemonListUseCase(repository)
                 val typesUseCase = GetPokemonTypesUseCase(repository)
                 val generationsUseCase = GetPokemonGenerationsUseCase(repository)
@@ -310,13 +357,3 @@ class PokedexViewModel(
         }
     }
 }
-
-private data class PokedexDataBundle(
-    val pokemon: List<PokemonSummary>,
-    val types: List<PokemonFilterOption>,
-    val generations: List<PokemonFilterOption>,
-    val abilities: List<PokemonFilterOption>,
-    val habitats: List<PokemonFilterOption>,
-    val regions: List<PokemonFilterOption>,
-    val shapes: List<PokemonFilterOption>
-)

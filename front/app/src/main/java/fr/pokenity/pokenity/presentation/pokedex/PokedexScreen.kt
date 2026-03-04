@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,11 +26,13 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,6 +50,7 @@ fun PokedexScreen(
     uiState: PokedexUiState,
     onRetry: () -> Unit,
     onSectionSelected: (PokedexSection) -> Unit,
+    onLoadMore: () -> Unit,
     onPokemonClick: (Int) -> Unit,
     onTypeClicked: (PokemonFilterOption) -> Unit,
     onGenerationClicked: (PokemonFilterOption) -> Unit,
@@ -63,6 +67,7 @@ fun PokedexScreen(
     modifier: Modifier = Modifier
 ) {
     var query by rememberSaveable { mutableStateOf("") }
+    val listState = rememberLazyListState()
 
     val allFilteredPokemon by remember(uiState.pokemon, query) {
         mutableStateOf(
@@ -90,6 +95,7 @@ fun PokedexScreen(
 
             else -> {
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -119,6 +125,18 @@ fun PokedexScreen(
                                 )
                             }
                             PokemonListItems(allFilteredPokemon, onPokemonClick)
+                            if (uiState.isLoadingMore) {
+                                item {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 12.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator()
+                                    }
+                                }
+                            }
                         }
 
                         PokedexSection.TYPE -> {
@@ -184,6 +202,18 @@ fun PokedexScreen(
 
                     if (uiState.selectedSection != PokedexSection.ALL && selectedLabelForSection(uiState) != null) {
                         PokemonListItems(uiState.filteredPokemon, onPokemonClick)
+                    }
+                }
+
+                if (uiState.selectedSection == PokedexSection.ALL) {
+                    LaunchedEffect(listState, allFilteredPokemon.size, uiState.hasMorePokemon, uiState.isLoadingMore) {
+                        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
+                            .collect { lastVisibleIndex ->
+                                val threshold = (allFilteredPokemon.size - 4).coerceAtLeast(0)
+                                if (lastVisibleIndex >= threshold && uiState.hasMorePokemon && !uiState.isLoadingMore) {
+                                    onLoadMore()
+                                }
+                            }
                     }
                 }
             }

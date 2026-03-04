@@ -4,8 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import fr.pokenity.pokenity.core.AppLanguageState
-import fr.pokenity.pokenity.data.remote.PokeApiService
-import fr.pokenity.pokenity.data.repository.PokemonRepositoryImpl
+import fr.pokenity.pokenity.core.AppContainer
 import fr.pokenity.pokenity.domain.model.PokemonFilterOption
 import fr.pokenity.pokenity.domain.usecase.GetLocationAreasByLocationUseCase
 import fr.pokenity.pokenity.domain.usecase.GetLocationsByRegionUseCase
@@ -179,7 +178,7 @@ class MapViewModel(
         val factory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                val repository = PokemonRepositoryImpl(PokeApiService())
+                val repository = AppContainer.pokemonRepository
                 return MapViewModel(
                     getPokemonRegionsUseCase = GetPokemonRegionsUseCase(repository),
                     getLocationsByRegionUseCase = GetLocationsByRegionUseCase(repository),

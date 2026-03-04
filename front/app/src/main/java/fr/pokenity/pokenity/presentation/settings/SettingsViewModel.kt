@@ -4,8 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import fr.pokenity.pokenity.core.AppLanguageState
-import fr.pokenity.pokenity.data.remote.PokeApiService
-import fr.pokenity.pokenity.data.repository.PokemonRepositoryImpl
+import fr.pokenity.pokenity.core.AppContainer
 import fr.pokenity.pokenity.domain.usecase.GetAvailableLanguagesUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -62,9 +61,8 @@ class SettingsViewModel(
         val factory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                val repository = PokemonRepositoryImpl(PokeApiService())
                 return SettingsViewModel(
-                    getAvailableLanguagesUseCase = GetAvailableLanguagesUseCase(repository)
+                    getAvailableLanguagesUseCase = GetAvailableLanguagesUseCase(AppContainer.pokemonRepository)
                 ) as T
             }
         }

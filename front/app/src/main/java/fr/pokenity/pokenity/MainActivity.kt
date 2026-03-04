@@ -89,6 +89,7 @@ class MainActivity : ComponentActivity() {
                                         uiState = pokedexUiState,
                                         onRetry = pokedexViewModel::loadPokedexData,
                                         onSectionSelected = pokedexViewModel::onSectionSelected,
+                                        onLoadMore = pokedexViewModel::loadMorePokemonIfNeeded,
                                         onPokemonClick = { id -> selectedPokemonId = id },
                                         onTypeClicked = pokedexViewModel::onTypeClicked,
                                         onGenerationClicked = pokedexViewModel::onGenerationClicked,

@@ -15,6 +15,8 @@ enum class PokedexSection {
 
 data class PokedexUiState(
     val isLoading: Boolean = true,
+    val isLoadingMore: Boolean = false,
+    val hasMorePokemon: Boolean = true,
     val pokemon: List<PokemonSummary> = emptyList(),
     val filteredPokemon: List<PokemonSummary> = emptyList(),
     val types: List<PokemonFilterOption> = emptyList(),
