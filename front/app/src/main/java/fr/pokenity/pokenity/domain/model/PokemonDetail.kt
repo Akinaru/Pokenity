@@ -16,6 +16,7 @@ data class PokemonDetail(
 )
 
 data class PokemonType(
+    val id: Int,
     val name: String,
     val imageUrl: String
 )

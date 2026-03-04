@@ -28,6 +28,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +42,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,6 +59,8 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import fr.pokenity.pokenity.core.PokemonImageSettings
 import fr.pokenity.pokenity.core.PokemonImageType
+import fr.pokenity.pokenity.core.PokemonVisualPreset
+import fr.pokenity.pokenity.core.PokemonVisualPresets
 import fr.pokenity.pokenity.domain.model.EvolutionStage
 import fr.pokenity.pokenity.domain.model.MegaEvolution
 import fr.pokenity.pokenity.domain.model.PokemonAbility
@@ -64,6 +69,7 @@ import fr.pokenity.pokenity.domain.model.PokemonMove
 import fr.pokenity.pokenity.domain.model.PokemonStat
 import fr.pokenity.pokenity.domain.model.PokemonType
 import fr.pokenity.pokenity.ui.components.PokemonSpriteImage
+import fr.pokenity.pokenity.ui.components.TypeSpriteImage
 
 private val TypeColors = mapOf(
     "Normal" to Color(0xFFA8A77A),
@@ -116,6 +122,12 @@ fun PokemonDetailScreen(
 ) {
     val imageType by PokemonImageSettings.imageType.collectAsState()
     val shinyEnabled by PokemonImageSettings.isShiny.collectAsState()
+    var visualPresetKey by rememberSaveable { mutableStateOf("default") }
+    var presetMenuExpanded by rememberSaveable { mutableStateOf(false) }
+    val selectedPreset = remember(visualPresetKey) {
+        PokemonVisualPresets.firstOrNull { it.key == visualPresetKey } ?: PokemonVisualPresets.first()
+    }
+    val effectiveShiny = shinyEnabled && imageType.supportsShiny && selectedPreset.supportsShiny
 
     Surface(modifier = modifier.fillMaxSize()) {
         when {
@@ -178,11 +190,32 @@ fun PokemonDetailScreen(
                                 text = "Swipe gauche/droite pour naviguer",
                                 style = MaterialTheme.typography.labelLarge
                             )
-                            OutlinedButton(
-                                onClick = { PokemonImageSettings.toggleShiny() },
-                                enabled = imageType.supportsShiny
-                            ) {
-                                Text(if (shinyEnabled) "Shiny ON" else "Shiny OFF")
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Box {
+                                    OutlinedButton(onClick = { presetMenuExpanded = true }) {
+                                        Text(selectedPreset.label)
+                                    }
+                                    DropdownMenu(
+                                        expanded = presetMenuExpanded,
+                                        onDismissRequest = { presetMenuExpanded = false }
+                                    ) {
+                                        PokemonVisualPresets.forEach { preset ->
+                                            DropdownMenuItem(
+                                                text = { Text(preset.label) },
+                                                onClick = {
+                                                    visualPresetKey = preset.key
+                                                    presetMenuExpanded = false
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                                OutlinedButton(
+                                    onClick = { PokemonImageSettings.toggleShiny() },
+                                    enabled = imageType.supportsShiny && selectedPreset.supportsShiny
+                                ) {
+                                    Text(if (effectiveShiny) "Shiny ON" else "Shiny OFF")
+                                }
                             }
                         }
                     }
@@ -193,14 +226,15 @@ fun PokemonDetailScreen(
                             pokemon = pokemon,
                             primaryTypeColor = primaryTypeColor,
                             imageType = imageType,
-                            shinyEnabled = shinyEnabled,
+                            shinyEnabled = effectiveShiny,
+                            visualPreset = selectedPreset,
                             onBack = onBack
                         )
                     }
 
                     // Info card (types, height, weight)
                     item {
-                        InfoSection(pokemon = pokemon)
+                        InfoSection(pokemon = pokemon, visualPreset = selectedPreset)
                     }
 
                     // Stats section
@@ -215,7 +249,8 @@ fun PokemonDetailScreen(
                                 evolutionChain = pokemon.evolutionChain,
                                 primaryTypeColor = primaryTypeColor,
                                 imageType = imageType,
-                                shinyEnabled = shinyEnabled,
+                                shinyEnabled = effectiveShiny,
+                                visualPreset = selectedPreset,
                                 onPokemonClick = onPokemonClick
                             )
                         }
@@ -235,7 +270,7 @@ fun PokemonDetailScreen(
                     // Moves section
                     if (pokemon.moves.isNotEmpty()) {
                         item {
-                            MovesSection(moves = pokemon.moves)
+                            MovesSection(moves = pokemon.moves, visualPreset = selectedPreset)
                         }
                     }
 
@@ -255,6 +290,7 @@ private fun DetailHeader(
     primaryTypeColor: Color,
     imageType: PokemonImageType,
     shinyEnabled: Boolean,
+    visualPreset: PokemonVisualPreset,
     onBack: () -> Unit
 ) {
     val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -303,6 +339,7 @@ private fun DetailHeader(
             contentDescription = pokemon.name,
             imageType = imageType,
             shiny = shinyEnabled,
+            visualPreset = visualPreset,
             contentScale = ContentScale.Fit,
             modifier = Modifier
                 .size(200.dp)
@@ -323,7 +360,7 @@ private fun DetailHeader(
 }
 
 @Composable
-private fun InfoSection(pokemon: PokemonDetail) {
+private fun InfoSection(pokemon: PokemonDetail, visualPreset: PokemonVisualPreset) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -335,7 +372,7 @@ private fun InfoSection(pokemon: PokemonDetail) {
             horizontalArrangement = Arrangement.Center
         ) {
             pokemon.types.forEachIndexed { index, type ->
-                TypeImageChip(type = type)
+                TypeImageChip(type = type, visualPreset = visualPreset)
                 if (index < pokemon.types.lastIndex) {
                     Spacer(modifier = Modifier.width(12.dp))
                 }
@@ -394,7 +431,7 @@ private fun InfoItem(label: String, value: String) {
 }
 
 @Composable
-private fun TypeImageChip(type: PokemonType) {
+private fun TypeImageChip(type: PokemonType, visualPreset: PokemonVisualPreset) {
     val color = TypeColors[type.name] ?: MaterialTheme.colorScheme.primary
 
     Surface(
@@ -402,9 +439,10 @@ private fun TypeImageChip(type: PokemonType) {
         color = color,
         modifier = Modifier
     ) {
-        AsyncImage(
-            model = type.imageUrl,
+        TypeSpriteImage(
+            typeId = type.id,
             contentDescription = type.name,
+            visualPreset = visualPreset,
             contentScale = ContentScale.Fit,
             modifier = Modifier
                 .height(34.dp)
@@ -541,6 +579,7 @@ private fun EvolutionSection(
     primaryTypeColor: Color,
     imageType: PokemonImageType,
     shinyEnabled: Boolean,
+    visualPreset: PokemonVisualPreset,
     onPokemonClick: (Int) -> Unit
 ) {
     Column(
@@ -573,6 +612,7 @@ private fun EvolutionSection(
                         primaryTypeColor = primaryTypeColor,
                         imageType = imageType,
                         shinyEnabled = shinyEnabled,
+                        visualPreset = visualPreset,
                         onClick = { if (!stage.isCurrent) onPokemonClick(stage.id) },
                         modifier = Modifier.weight(1f)
                     )
@@ -596,6 +636,7 @@ private fun EvolutionStageItem(
     primaryTypeColor: Color,
     imageType: PokemonImageType,
     shinyEnabled: Boolean,
+    visualPreset: PokemonVisualPreset,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -623,6 +664,7 @@ private fun EvolutionStageItem(
                 contentDescription = stage.name,
                 imageType = imageType,
                 shiny = shinyEnabled,
+                visualPreset = visualPreset,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.size(64.dp)
             )
@@ -653,7 +695,7 @@ private fun EvolutionStageItem(
 }
 
 @Composable
-private fun MovesSection(moves: List<PokemonMove>) {
+private fun MovesSection(moves: List<PokemonMove>, visualPreset: PokemonVisualPreset) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -668,14 +710,14 @@ private fun MovesSection(moves: List<PokemonMove>) {
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             moves.forEach { move ->
-                MoveCard(move = move)
+                MoveCard(move = move, visualPreset = visualPreset)
             }
         }
     }
 }
 
 @Composable
-private fun MoveCard(move: PokemonMove) {
+private fun MoveCard(move: PokemonMove, visualPreset: PokemonVisualPreset) {
     val typeColor = TypeColors[move.type.name] ?: MaterialTheme.colorScheme.primary
 
     Surface(
@@ -701,9 +743,10 @@ private fun MoveCard(move: PokemonMove) {
                     color = typeColor,
                     modifier = Modifier
                 ) {
-                    AsyncImage(
-                        model = move.type.imageUrl,
+                    TypeSpriteImage(
+                        typeId = move.type.id,
                         contentDescription = move.type.name,
+                        visualPreset = visualPreset,
                         contentScale = ContentScale.Fit,
                         modifier = Modifier
                             .height(24.dp)

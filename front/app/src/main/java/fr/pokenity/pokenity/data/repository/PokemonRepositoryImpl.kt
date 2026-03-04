@@ -194,6 +194,7 @@ class PokemonRepositoryImpl(
                                 PokemonMove(
                                     name = moveDto.name,
                                     type = PokemonType(
+                                        id = moveDto.typeId,
                                         name = localizedTypeName(moveDto.typeId, moveDto.typeName.asDisplayName(), language),
                                         imageUrl = typeImageUrl(moveDto.typeId)
                                     ),
@@ -263,6 +264,7 @@ class PokemonRepositoryImpl(
             shinyImageUrl = shinyArtworkUrl(dto.id),
             types = dto.types.map { typeDto ->
                 PokemonType(
+                    id = typeDto.id,
                     name = localizedResourceName(
                         resource = NamedResourceDto(typeDto.name, typeDto.url),
                         language = language
