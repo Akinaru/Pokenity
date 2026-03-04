@@ -43,7 +43,7 @@ import fr.pokenity.pokenity.domain.model.PokemonSummary
 fun MapScreen(
     uiState: MapUiState,
     onRetry: () -> Unit,
-    onPokemonClick: (Int) -> Unit,
+    onPokemonClick: (Int, List<Int>) -> Unit,
     onRegionSelected: (PokemonFilterOption) -> Unit,
     onLocationSelected: (PokemonFilterOption) -> Unit,
     onAreaSelected: (PokemonFilterOption) -> Unit,
@@ -150,11 +150,12 @@ fun MapScreen(
                                     )
                                 }
                             } else {
+                                val ids = uiState.pokemons.map { it.id }
                                 items(uiState.pokemons, key = { it.id }) { pokemon ->
                                     PokemonRow(
                                         pokemon = pokemon,
                                         imageUrl = pokemonImageUrl(pokemon.id, spriteType, shinyEnabled),
-                                        onClick = { onPokemonClick(pokemon.id) }
+                                        onClick = { onPokemonClick(pokemon.id, ids) }
                                     )
                                 }
                             }

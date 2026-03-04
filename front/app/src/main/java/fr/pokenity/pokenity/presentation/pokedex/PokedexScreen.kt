@@ -50,7 +50,7 @@ fun PokedexScreen(
     onRetry: () -> Unit,
     onSectionSelected: (PokedexSection) -> Unit,
     onLoadMore: () -> Unit,
-    onPokemonClick: (Int) -> Unit,
+    onPokemonClick: (Int, List<Int>) -> Unit,
     onTypeClicked: (PokemonFilterOption) -> Unit,
     onGenerationClicked: (PokemonFilterOption) -> Unit,
     onAbilityClicked: (PokemonFilterOption) -> Unit,
@@ -271,7 +271,7 @@ private fun selectedLabelForSection(uiState: PokedexUiState): String? {
 
 private fun androidx.compose.foundation.lazy.LazyListScope.PokemonListItems(
     pokemon: List<PokemonSummary>,
-    onPokemonClick: (Int) -> Unit,
+    onPokemonClick: (Int, List<Int>) -> Unit,
     spriteType: fr.pokenity.pokenity.core.PokemonImageType,
     shinyEnabled: Boolean
 ) {
@@ -284,11 +284,12 @@ private fun androidx.compose.foundation.lazy.LazyListScope.PokemonListItems(
             )
         }
     } else {
+        val ids = pokemon.map { it.id }
         items(items = pokemon, key = { it.id }) { item ->
             PokemonRow(
                 pokemon = item,
                 imageUrl = pokemonImageUrl(item.id, spriteType, shinyEnabled),
-                onClick = { onPokemonClick(item.id) }
+                onClick = { onPokemonClick(item.id, ids) }
             )
         }
     }

@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -43,6 +44,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -102,6 +104,8 @@ fun PokemonDetailScreen(
     uiState: PokemonDetailUiState,
     onBack: () -> Unit,
     onRetry: () -> Unit,
+    onPreviousPokemon: (() -> Unit)? = null,
+    onNextPokemon: (() -> Unit)? = null,
     onPokemonClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -137,7 +141,23 @@ fun PokemonDetailScreen(
                 val primaryTypeColor = TypeColors[pokemon.types.firstOrNull()?.name] ?: MaterialTheme.colorScheme.primary
 
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(pokemon.id, onPreviousPokemon, onNextPokemon) {
+                            var dragOffset = 0f
+                            detectHorizontalDragGestures(
+                                onHorizontalDrag = { _, dragAmount ->
+                                    dragOffset += dragAmount
+                                },
+                                onDragEnd = {
+                                    when {
+                                        dragOffset > 120f && onPreviousPokemon != null -> onPreviousPokemon()
+                                        dragOffset < -120f && onNextPokemon != null -> onNextPokemon()
+                                    }
+                                    dragOffset = 0f
+                                }
+                            )
+                        },
                     contentPadding = PaddingValues(bottom = 32.dp)
                 ) {
                     item {
@@ -145,8 +165,12 @@ fun PokemonDetailScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.End
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
+                            Text(
+                                text = "Swipe gauche/droite pour naviguer",
+                                style = MaterialTheme.typography.labelLarge
+                            )
                             OutlinedButton(
                                 onClick = { PokemonImageSettings.toggleShiny() },
                                 enabled = imageType.supportsShiny

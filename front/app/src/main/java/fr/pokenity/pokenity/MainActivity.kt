@@ -29,6 +29,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import fr.pokenity.pokenity.core.PokemonBrowseState
 import fr.pokenity.pokenity.presentation.detail.PokemonDetailScreen
 import fr.pokenity.pokenity.presentation.detail.PokemonDetailViewModel
 import fr.pokenity.pokenity.presentation.map.MapScreen
@@ -91,7 +92,8 @@ class MainActivity : ComponentActivity() {
                                         onRetry = pokedexViewModel::loadPokedexData,
                                         onSectionSelected = pokedexViewModel::onSectionSelected,
                                         onLoadMore = pokedexViewModel::loadMorePokemonIfNeeded,
-                                        onPokemonClick = { id ->
+                                        onPokemonClick = { id, ids ->
+                                            PokemonBrowseState.setList(ids)
                                             navController.navigate("detail/$id")
                                         },
                                         onTypeClicked = pokedexViewModel::onTypeClicked,
@@ -114,7 +116,8 @@ class MainActivity : ComponentActivity() {
                                     MapScreen(
                                         uiState = mapUiState,
                                         onRetry = mapViewModel::loadRegions,
-                                        onPokemonClick = { id ->
+                                        onPokemonClick = { id, ids ->
+                                            PokemonBrowseState.setList(ids)
                                             navController.navigate("detail/$id")
                                         },
                                         onRegionSelected = mapViewModel::onRegionSelected,
@@ -148,6 +151,8 @@ class MainActivity : ComponentActivity() {
                         )
                     ) { backStackEntry ->
                         val pokemonId = backStackEntry.arguments?.getInt("pokemonId") ?: return@composable
+                        val previousId = PokemonBrowseState.previousOf(pokemonId)
+                        val nextId = PokemonBrowseState.nextOf(pokemonId)
 
                         LaunchedEffect(pokemonId) {
                             detailViewModel.loadPokemon(pokemonId)
@@ -157,6 +162,12 @@ class MainActivity : ComponentActivity() {
                             uiState = detailUiState,
                             onBack = { navController.popBackStack() },
                             onRetry = { detailViewModel.loadPokemon(pokemonId) },
+                            onPreviousPokemon = if (previousId != null) {
+                                { navController.navigate("detail/$previousId") }
+                            } else null,
+                            onNextPokemon = if (nextId != null) {
+                                { navController.navigate("detail/$nextId") }
+                            } else null,
                             onPokemonClick = { id ->
                                 navController.navigate("detail/$id")
                             }
