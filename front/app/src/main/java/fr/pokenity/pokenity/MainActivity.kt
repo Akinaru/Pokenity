@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -15,12 +16,15 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import fr.pokenity.pokenity.presentation.detail.PokemonDetailScreen
+import fr.pokenity.pokenity.presentation.detail.PokemonDetailViewModel
 import fr.pokenity.pokenity.presentation.pokedex.PokedexScreen
 import fr.pokenity.pokenity.presentation.pokedex.PokedexViewModel
 import fr.pokenity.pokenity.ui.theme.PokenityTheme
@@ -31,34 +35,52 @@ private enum class MainDestination {
 
 class MainActivity : ComponentActivity() {
 
-    private val viewModel: PokedexViewModel by viewModels { PokedexViewModel.factory }
+    private val pokedexViewModel: PokedexViewModel by viewModels { PokedexViewModel.factory }
+    private val detailViewModel: PokemonDetailViewModel by viewModels { PokemonDetailViewModel.factory }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
         setContent {
-            val uiState by viewModel.uiState.collectAsState()
+            val pokedexUiState by pokedexViewModel.uiState.collectAsState()
+            val detailUiState by detailViewModel.uiState.collectAsState()
             var selectedDestination by rememberSaveable { mutableStateOf(MainDestination.POKEMONS) }
+            var selectedPokemonId by rememberSaveable { mutableStateOf<Int?>(null) }
 
             PokenityTheme {
-                Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    bottomBar = {
-                        MainBottomBar(
-                            selectedDestination = selectedDestination,
-                            onSelected = { selectedDestination = it }
+                Crossfade(targetState = selectedPokemonId, label = "nav") { pokemonId ->
+                    if (pokemonId != null) {
+                        LaunchedEffect(pokemonId) {
+                            detailViewModel.loadPokemon(pokemonId)
+                        }
+
+                        PokemonDetailScreen(
+                            uiState = detailUiState,
+                            onBack = { selectedPokemonId = null },
+                            onRetry = { detailViewModel.loadPokemon(pokemonId) }
                         )
-                    }
-                ) { innerPadding ->
-                    when (selectedDestination) {
-                        MainDestination.POKEMONS -> {
-                            PokedexScreen(
-                                uiState = uiState,
-                                onRetry = viewModel::loadPokedexData,
-                                onSectionSelected = viewModel::onSectionSelected,
-                                modifier = Modifier.padding(innerPadding)
-                            )
+                    } else {
+                        Scaffold(
+                            modifier = Modifier.fillMaxSize(),
+                            bottomBar = {
+                                MainBottomBar(
+                                    selectedDestination = selectedDestination,
+                                    onSelected = { selectedDestination = it }
+                                )
+                            }
+                        ) { innerPadding ->
+                            when (selectedDestination) {
+                                MainDestination.POKEMONS -> {
+                                    PokedexScreen(
+                                        uiState = pokedexUiState,
+                                        onRetry = pokedexViewModel::loadPokedexData,
+                                        onSectionSelected = pokedexViewModel::onSectionSelected,
+                                        onPokemonClick = { id -> selectedPokemonId = id },
+                                        modifier = Modifier.padding(innerPadding)
+                                    )
+                                }
+                            }
                         }
                     }
                 }

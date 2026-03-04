@@ -1,0 +1,597 @@
+package fr.pokenity.pokenity.presentation.detail
+
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import fr.pokenity.pokenity.domain.model.EvolutionStage
+import fr.pokenity.pokenity.domain.model.PokemonDetail
+import fr.pokenity.pokenity.domain.model.PokemonStat
+
+private val TypeColors = mapOf(
+    "Normal" to Color(0xFFA8A77A),
+    "Fire" to Color(0xFFEE8130),
+    "Water" to Color(0xFF6390F0),
+    "Electric" to Color(0xFFF7D02C),
+    "Grass" to Color(0xFF7AC74C),
+    "Ice" to Color(0xFF96D9D6),
+    "Fighting" to Color(0xFFC22E28),
+    "Poison" to Color(0xFFA33EA1),
+    "Ground" to Color(0xFFE2BF65),
+    "Flying" to Color(0xFFA98FF3),
+    "Psychic" to Color(0xFFF95587),
+    "Bug" to Color(0xFFA6B91A),
+    "Rock" to Color(0xFFB6A136),
+    "Ghost" to Color(0xFF735797),
+    "Dragon" to Color(0xFF6F35FC),
+    "Dark" to Color(0xFF705746),
+    "Steel" to Color(0xFFB7B7CE),
+    "Fairy" to Color(0xFFD685AD)
+)
+
+private val StatColors = mapOf(
+    "Hp" to Color(0xFFFF5252),
+    "Attack" to Color(0xFFFF7043),
+    "Defense" to Color(0xFFFFCA28),
+    "Special attack" to Color(0xFF42A5F5),
+    "Special defense" to Color(0xFF66BB6A),
+    "Speed" to Color(0xFFAB47BC)
+)
+
+private val StatLabels = mapOf(
+    "Hp" to "HP",
+    "Attack" to "ATK",
+    "Defense" to "DEF",
+    "Special attack" to "SP.ATK",
+    "Special defense" to "SP.DEF",
+    "Speed" to "SPD"
+)
+
+@Composable
+fun PokemonDetailScreen(
+    uiState: PokemonDetailUiState,
+    onBack: () -> Unit,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(modifier = modifier.fillMaxSize()) {
+        when {
+            uiState.isLoading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+
+            uiState.errorMessage != null -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(text = uiState.errorMessage, style = MaterialTheme.typography.bodyLarge)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(onClick = onRetry) {
+                        Text("Reessayer")
+                    }
+                }
+            }
+
+            uiState.pokemon != null -> {
+                val pokemon = uiState.pokemon
+                val primaryTypeColor = TypeColors[pokemon.types.firstOrNull()] ?: MaterialTheme.colorScheme.primary
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 32.dp)
+                ) {
+                    // Header with image and gradient background
+                    item {
+                        DetailHeader(
+                            pokemon = pokemon,
+                            primaryTypeColor = primaryTypeColor,
+                            onBack = onBack
+                        )
+                    }
+
+                    // Info card (types, height, weight)
+                    item {
+                        InfoSection(pokemon = pokemon)
+                    }
+
+                    // Stats section
+                    item {
+                        StatsSection(stats = pokemon.stats)
+                    }
+
+                    // Evolution chain section
+                    if (pokemon.evolutionChain.size > 1) {
+                        item {
+                            EvolutionSection(
+                                evolutionChain = pokemon.evolutionChain,
+                                primaryTypeColor = primaryTypeColor
+                            )
+                        }
+                    }
+
+                    // Abilities section
+                    item {
+                        AbilitiesSection(abilities = pokemon.abilities)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailHeader(
+    pokemon: PokemonDetail,
+    primaryTypeColor: Color,
+    onBack: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(320.dp)
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        primaryTypeColor,
+                        primaryTypeColor.copy(alpha = 0.6f)
+                    )
+                )
+            )
+    ) {
+        // Back button
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier
+                .padding(top = 40.dp, start = 8.dp)
+                .align(Alignment.TopStart)
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Retour",
+                tint = Color.White
+            )
+        }
+
+        // Pokemon ID top right
+        Text(
+            text = "#${pokemon.id.toString().padStart(3, '0')}",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = Color.White.copy(alpha = 0.7f),
+            modifier = Modifier
+                .padding(top = 48.dp, end = 20.dp)
+                .align(Alignment.TopEnd)
+        )
+
+        // Pokemon image centered
+        AsyncImage(
+            model = pokemon.imageUrl,
+            contentDescription = pokemon.name,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier
+                .size(200.dp)
+                .align(Alignment.Center)
+        )
+
+        // Pokemon name at bottom
+        Text(
+            text = pokemon.name,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.ExtraBold,
+            color = Color.White,
+            modifier = Modifier
+                .padding(bottom = 16.dp)
+                .align(Alignment.BottomCenter)
+        )
+    }
+}
+
+@Composable
+private fun InfoSection(pokemon: PokemonDetail) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 16.dp)
+    ) {
+        // Types row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            pokemon.types.forEachIndexed { index, type ->
+                TypeChip(type = type)
+                if (index < pokemon.types.lastIndex) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Height / Weight row
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            tonalElevation = 2.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                InfoItem(
+                    label = "Taille",
+                    value = "${pokemon.height / 10.0} m"
+                )
+                // Vertical divider
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(40.dp)
+                        .background(MaterialTheme.colorScheme.outlineVariant)
+                )
+                InfoItem(
+                    label = "Poids",
+                    value = "${pokemon.weight / 10.0} kg"
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun InfoItem(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun TypeChip(type: String) {
+    val color = TypeColors[type] ?: MaterialTheme.colorScheme.primary
+
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = color,
+        modifier = Modifier
+    ) {
+        Text(
+            text = type,
+            color = Color.White,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+        )
+    }
+}
+
+@Composable
+private fun StatsSection(stats: List<PokemonStat>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    ) {
+        Text(
+            text = "Statistiques",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            tonalElevation = 2.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                stats.forEach { stat ->
+                    StatBar(stat = stat)
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Total
+                val total = stats.sumOf { it.baseStat }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "TOTAL",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.width(64.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = total.toString(),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        modifier = Modifier.width(40.dp),
+                        textAlign = TextAlign.End
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatBar(stat: PokemonStat) {
+    val label = StatLabels[stat.name] ?: stat.name.uppercase()
+    val color = StatColors[stat.name] ?: MaterialTheme.colorScheme.primary
+    val maxStat = 255f
+    val fraction = (stat.baseStat / maxStat).coerceIn(0f, 1f)
+
+    var animationPlayed by remember { mutableStateOf(false) }
+    val animatedFraction by animateFloatAsState(
+        targetValue = if (animationPlayed) fraction else 0f,
+        animationSpec = tween(durationMillis = 800),
+        label = "stat_anim"
+    )
+
+    LaunchedEffect(Unit) {
+        animationPlayed = true
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Stat label
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.width(64.dp),
+            color = color
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // Stat value
+        Text(
+            text = stat.baseStat.toString(),
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.width(40.dp),
+            textAlign = TextAlign.End
+        )
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // Progress bar
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(10.dp)
+                .clip(RoundedCornerShape(5.dp))
+                .background(color.copy(alpha = 0.15f))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(animatedFraction)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(5.dp))
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(color, color.copy(alpha = 0.7f))
+                        )
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+private fun EvolutionSection(
+    evolutionChain: List<EvolutionStage>,
+    primaryTypeColor: Color
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 16.dp)
+    ) {
+        Text(
+            text = "Evolutions",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            tonalElevation = 2.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp, horizontal = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                evolutionChain.forEachIndexed { index, stage ->
+                    EvolutionStageItem(
+                        stage = stage,
+                        primaryTypeColor = primaryTypeColor,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (index < evolutionChain.lastIndex) {
+                        Text(
+                            text = "\u2192", // →
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EvolutionStageItem(
+    stage: EvolutionStage,
+    primaryTypeColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Image with highlight ring for current stage
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(80.dp)
+                .then(
+                    if (stage.isCurrent) {
+                        Modifier
+                            .clip(CircleShape)
+                            .background(primaryTypeColor.copy(alpha = 0.15f))
+                    } else {
+                        Modifier
+                    }
+                )
+        ) {
+            AsyncImage(
+                model = stage.imageUrl,
+                contentDescription = stage.name,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.size(64.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        Text(
+            text = stage.name,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = if (stage.isCurrent) FontWeight.ExtraBold else FontWeight.Normal,
+            color = if (stage.isCurrent) primaryTypeColor else MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+            maxLines = 1
+        )
+
+        // Small indicator dot for current
+        if (stage.isCurrent) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(primaryTypeColor)
+            )
+        }
+    }
+}
+
+@Composable
+private fun AbilitiesSection(abilities: List<String>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 16.dp)
+    ) {
+        Text(
+            text = "Talents",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            tonalElevation = 2.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                abilities.forEach { ability ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                        )
+                        Text(
+                            text = ability,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

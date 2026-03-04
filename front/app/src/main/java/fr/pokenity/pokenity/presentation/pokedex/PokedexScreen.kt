@@ -1,6 +1,7 @@
 package fr.pokenity.pokenity.presentation.pokedex
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,6 +45,7 @@ fun PokedexScreen(
     uiState: PokedexUiState,
     onRetry: () -> Unit,
     onSectionSelected: (PokedexSection) -> Unit,
+    onPokemonClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var query by rememberSaveable { mutableStateOf("") }
@@ -117,7 +119,10 @@ fun PokedexScreen(
                             }
 
                             items(items = filteredPokemon, key = { it.id }) { pokemon ->
-                                PokemonRow(pokemon = pokemon)
+                                PokemonRow(
+                                    pokemon = pokemon,
+                                    onClick = { onPokemonClick(pokemon.id) }
+                                )
                             }
                         }
 
@@ -218,11 +223,13 @@ private fun HeaderCard(total: Int) {
 }
 
 @Composable
-private fun PokemonRow(pokemon: PokemonSummary) {
+private fun PokemonRow(pokemon: PokemonSummary, onClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(20.dp),
         tonalElevation = 3.dp,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
     ) {
         Row(
             modifier = Modifier

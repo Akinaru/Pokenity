@@ -1,6 +1,9 @@
 package fr.pokenity.pokenity.data.repository
 
 import fr.pokenity.pokenity.data.remote.PokeApiService
+import fr.pokenity.pokenity.domain.model.EvolutionStage
+import fr.pokenity.pokenity.domain.model.PokemonDetail
+import fr.pokenity.pokenity.domain.model.PokemonStat
 import fr.pokenity.pokenity.domain.model.PokemonSummary
 import fr.pokenity.pokenity.domain.repository.PokemonRepository
 import java.util.Locale
@@ -28,6 +31,41 @@ class PokemonRepositoryImpl(
 
     override suspend fun getPokemonGenerations(): List<String> {
         return pokeApiService.fetchPokemonGenerations().map { it.name.asDisplayName() }
+    }
+
+    override suspend fun getPokemonDetail(id: Int): PokemonDetail {
+        val dto = pokeApiService.fetchPokemonDetail(id)
+
+        // Fetch evolution chain (gracefully fallback to empty if it fails)
+        val evolutionChain = try {
+            pokeApiService.fetchEvolutionChain(id).map { stage ->
+                EvolutionStage(
+                    id = stage.id,
+                    name = stage.name.asDisplayName(),
+                    imageUrl = artworkUrl(stage.id),
+                    isCurrent = stage.id == id
+                )
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+
+        return PokemonDetail(
+            id = dto.id,
+            name = dto.name.asDisplayName(),
+            imageUrl = artworkUrl(dto.id),
+            types = dto.types.map { it.asDisplayName() },
+            height = dto.height,
+            weight = dto.weight,
+            stats = dto.stats.map { stat ->
+                PokemonStat(
+                    name = stat.name.asDisplayName(),
+                    baseStat = stat.baseStat
+                )
+            },
+            abilities = dto.abilities.map { it.asDisplayName() },
+            evolutionChain = evolutionChain
+        )
     }
 
     private fun artworkUrl(id: Int): String {
