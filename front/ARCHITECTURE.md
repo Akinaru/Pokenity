@@ -10,7 +10,7 @@
 ```
 app/src/main/java/fr/pokenity/pokenity/
   data/
-    remote/      // appels PokeAPI + DTO
+    remote/      // appels PokeAPI + backend + DTO
     repository/  // implementation des repositories
   domain/
     model/       // modeles metier purs
@@ -33,6 +33,13 @@ app/src/main/java/fr/pokenity/pokenity/
 - `presentation/auth/`, `presentation/collection/`, `presentation/trade/`
 - Navigation Compose pour gerer les ecrans
 - Systeme de traduction via `strings.xml` par locale
+
+## Auth (architecture unifiee)
+- `data/remote/auth/AuthApiService`: appels HTTP bruts backend auth
+- `data/repository/AuthRepositoryImpl`: mapping DTO -> domaine + session token
+- `domain/repository/AuthRepository`: contrat reutilisable
+- `domain/usecase/Auth*UseCase`: cas d'usage (login/register/me/logout/token flow)
+- `presentation/account/AccountViewModel`: depend uniquement des usecases (pas d'appel HTTP direct)
 
 ## Decoupage fonctionnel cible
 - Public (sans login):

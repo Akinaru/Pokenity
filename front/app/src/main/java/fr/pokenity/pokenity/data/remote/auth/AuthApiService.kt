@@ -5,7 +5,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 class AuthApiService(
-    private val baseUrl: String = "http://10.0.2.2:3000/api"
+    private val baseUrl: String = "https://apipoke.cloud.akinaru.fr/api"
 ) {
 
     fun register(username: String, email: String, password: String): AuthSessionDto {
@@ -47,7 +47,8 @@ class AuthApiService(
             AuthUserDto(
                 id = root.getString("id"),
                 username = root.getString("username"),
-                email = root.getString("email")
+                email = root.getString("email"),
+                createdAt = root.optString("createdAt")
             )
         } finally {
             connection.disconnect()
@@ -86,7 +87,8 @@ class AuthApiService(
                 user = AuthUserDto(
                     id = user.getString("id"),
                     username = user.getString("username"),
-                    email = user.getString("email")
+                    email = user.getString("email"),
+                    createdAt = user.optString("createdAt")
                 )
             )
         } finally {
@@ -109,5 +111,6 @@ data class AuthSessionDto(
 data class AuthUserDto(
     val id: String,
     val username: String,
-    val email: String
+    val email: String,
+    val createdAt: String? = null
 )

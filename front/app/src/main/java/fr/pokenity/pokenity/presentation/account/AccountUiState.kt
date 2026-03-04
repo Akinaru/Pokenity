@@ -3,7 +3,8 @@ package fr.pokenity.pokenity.presentation.account
 data class AccountUser(
     val id: String,
     val username: String,
-    val email: String
+    val email: String,
+    val createdAt: String? = null
 )
 
 enum class AuthMode {

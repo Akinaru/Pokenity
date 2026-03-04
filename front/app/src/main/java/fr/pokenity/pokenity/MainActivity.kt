@@ -35,6 +35,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import fr.pokenity.pokenity.core.AuthSessionState
 import fr.pokenity.pokenity.core.PokemonBrowseState
 import fr.pokenity.pokenity.presentation.detail.PokemonDetailScreen
 import fr.pokenity.pokenity.presentation.detail.PokemonDetailViewModel
@@ -69,6 +70,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        AuthSessionState.initialize(applicationContext)
 
         setContent {
             val pokedexUiState by pokedexViewModel.uiState.collectAsState()

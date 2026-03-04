@@ -44,7 +44,11 @@ fun AccountScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Compte", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
+            Text(
+                text = uiState.user?.username ?: "Compte",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold
+            )
 
             if (uiState.errorMessage != null) {
                 Text(uiState.errorMessage, color = MaterialTheme.colorScheme.error)
@@ -55,8 +59,12 @@ fun AccountScreen(
 
             if (uiState.user != null) {
                 Text("Connecte en tant que:", style = MaterialTheme.typography.titleMedium)
+                Text("Id: ${uiState.user.id}")
                 Text("Username: ${uiState.user.username}")
                 Text("Email: ${uiState.user.email}")
+                if (!uiState.user.createdAt.isNullOrBlank()) {
+                    Text("Compte cree le: ${uiState.user.createdAt}")
+                }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = onFetchMe) { Text("Rafraichir profil") }
@@ -124,12 +132,6 @@ fun AccountScreen(
                 Spacer(Modifier.height(8.dp))
                 CircularProgressIndicator()
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "API auth utilisee: http://10.0.2.2:3000/api/auth (emulateur)",
-                style = MaterialTheme.typography.labelLarge
-            )
         }
     }
 }
