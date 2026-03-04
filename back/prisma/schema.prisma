@@ -14,6 +14,56 @@ model User {
   passwordHash String   @map("password_hash") @db.VarChar(255)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
+  inventory    InventoryItem[]
 
   @@map("users")
+}
+
+enum DropResourceType {
+  POKEMON
+  ITEM
+  MACHINE
+}
+
+model Box {
+  id              String    @id @default(uuid()) @db.Char(36)
+  name            String    @db.VarChar(100)
+  pokeballImage   String    @map("pokeball_image") @db.VarChar(512)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  entries         BoxEntry[]
+
+  @@map("boxes")
+}
+
+model BoxEntry {
+  id           String           @id @default(uuid()) @db.Char(36)
+  boxId        String           @map("box_id") @db.Char(36)
+  resourceType DropResourceType @map("resource_type")
+  resourceId   Int              @map("resource_id")
+  resourceName String           @map("resource_name") @db.VarChar(120)
+  dropRate     Float            @map("drop_rate")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+  box          Box              @relation(fields: [boxId], references: [id], onDelete: Cascade)
+
+  @@unique([boxId, resourceType, resourceId])
+  @@map("box_entries")
+}
+
+model InventoryItem {
+  id             String           @id @default(uuid()) @db.Char(36)
+  userId         String           @map("user_id") @db.Char(36)
+  resourceType   DropResourceType @map("resource_type")
+  resourceId     Int              @map("resource_id")
+  resourceName   String           @map("resource_name") @db.VarChar(120)
+  quantity       Int              @default(1)
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+  firstObtainedAt DateTime        @default(now()) @map("first_obtained_at")
+  lastObtainedAt DateTime         @default(now()) @map("last_obtained_at")
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, resourceType, resourceId])
+  @@map("inventory_items")
 }

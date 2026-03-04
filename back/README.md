@@ -2,10 +2,14 @@
 
 API backend pour l'app Android Pokenity.
 
-V1 actuelle:
-- Auth: inscription, connexion, profil courant
-- Endpoint Pokémon (proxy vers PokéAPI)
-- Persistance MySQL avec migrations Prisma
+Fonctionnalites actuelles:
+- Auth (register/login/me)
+- Proxy Pokemon vers PokeAPI
+- Inventaire par utilisateur (Pokemon + Items)
+- Systeme de box (pokeball + drops avec pourcentage)
+- Ouverture de box (tirage aleatoire pondere)
+- Back-office public multi-pages `/admin` (dashboard, users, boxes)
+- Catalogue visuel (pokeballs, recherche pokemon/items)
 
 ## Stack
 
@@ -16,8 +20,6 @@ V1 actuelle:
 - Hash mot de passe (`bcryptjs`)
 
 ## Configuration
-
-Copier le fichier d'env:
 
 ```bash
 cd /Users/maximegallotta/Documents/Developpement/Pokenity/back
@@ -42,28 +44,34 @@ npm install
 
 ## Migrations
 
-Créer la base si besoin:
+Creer la base si besoin:
 
 ```bash
 docker exec db_docker_pokenity mariadb -uroot -e "CREATE DATABASE IF NOT EXISTS pokenity CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 ```
 
-Appliquer/générer les migrations en dev:
+Appliquer les migrations:
 
 ```bash
-npm run prisma:migrate -- --name init_auth
+npm run prisma:deploy
 ```
 
-Regénérer le client Prisma:
+En dev, pour creer de nouvelles migrations:
+
+```bash
+npm run prisma:migrate -- --name your_migration_name
+```
+
+Regenerer le client Prisma:
 
 ```bash
 npm run prisma:generate
 ```
 
-En environnement non-dev (CI/prod):
+Seeder des boxes preconfigurees (40 boxes, 12 pokemons par box, max 1 legendaire a 1% par box):
 
 ```bash
-npm run prisma:deploy
+npm run seed:boxes
 ```
 
 ## Lancer l'API
@@ -72,20 +80,31 @@ npm run prisma:deploy
 npm run dev
 ```
 
-API dispo sur: `http://localhost:3000`
+- API: `http://localhost:3000`
+- Back-office: `http://localhost:3000/admin/`
+- Pages BO:
+  - `http://localhost:3000/admin/` (dashboard)
+  - `http://localhost:3000/admin/users.html`
+  - `http://localhost:3000/admin/boxes.html`
 
-## Entités (Prisma)
+## Entites Prisma
+
+Schema: [schema.prisma](/Users/maximegallotta/Documents/Developpement/Pokenity/back/prisma/schema.prisma)
 
 ### `User` (`users`)
+- `id`, `username`, `email`, `passwordHash`, `createdAt`, `updatedAt`
 
-- `id` (UUID, PK)
-- `username` (unique)
-- `email` (unique)
-- `passwordHash`
-- `createdAt`
-- `updatedAt`
+### `Box` (`boxes`)
+- `id`, `name`, `pokeballImage`, `createdAt`, `updatedAt`
 
-Schéma: [schema.prisma](/Users/maximegallotta/Documents/Developpement/Pokenity/back/prisma/schema.prisma)
+### `BoxEntry` (`box_entries`)
+- `id`, `boxId`, `resourceType` (`POKEMON`, `ITEM` ou `MACHINE`), `resourceId`, `resourceName`, `dropRate`
+- contrainte: somme des `dropRate` d'une box = `100`
+
+### `InventoryItem` (`inventory_items`)
+- `id`, `userId`, `resourceType`, `resourceId`, `resourceName`, `quantity`
+- `firstObtainedAt`, `lastObtainedAt`
+- unique: `(userId, resourceType, resourceId)`
 
 ## Documentation Endpoints
 
@@ -95,18 +114,7 @@ Base URL: `http://localhost:3000/api`
 
 `GET /health`
 
-Exemple réponse:
-
-```json
-{
-  "status": "ok",
-  "service": "pokenity-back",
-  "db": "up",
-  "now": "2026-03-04T08:00:00.000Z"
-}
-```
-
-### 2) Register
+### 2) Auth
 
 `POST /auth/register`
 
@@ -120,26 +128,6 @@ Body:
 }
 ```
 
-Réponse `201`:
-
-```json
-{
-  "token": "<jwt>",
-  "user": {
-    "id": "uuid",
-    "username": "ash",
-    "email": "ash@kanto.com",
-    "createdAt": "2026-03-04T08:00:00.000Z"
-  }
-}
-```
-
-Erreurs:
-- `400` données invalides
-- `409` email/username déjà pris
-
-### 3) Login
-
 `POST /auth/login`
 
 Body:
@@ -151,62 +139,17 @@ Body:
 }
 ```
 
-`identifier` accepte email ou username.
+`GET /auth/me` (Bearer token requis)
 
-Réponse `200`:
-
-```json
-{
-  "token": "<jwt>",
-  "user": {
-    "id": "uuid",
-    "username": "ash",
-    "email": "ash@kanto.com",
-    "createdAt": "2026-03-04T08:00:00.000Z"
-  }
-}
-```
-
-Erreurs:
-- `400` données manquantes
-- `401` credentials invalides
-
-### 4) Me (protégé JWT)
-
-`GET /auth/me`
-
-Headers:
+Header:
 
 ```http
 Authorization: Bearer <token>
 ```
 
-Réponse `200`:
+### 3) Pokemon (PokeAPI proxy)
 
-```json
-{
-  "user": {
-    "id": "uuid",
-    "username": "ash",
-    "email": "ash@kanto.com",
-    "createdAt": "2026-03-04T08:00:00.000Z"
-  }
-}
-```
-
-Erreurs:
-- `401` token manquant/invalide/expiré
-- `404` user introuvable
-
-### 5) Pokémon (protégé JWT)
-
-`GET /pokemon/:name`
-
-Headers:
-
-```http
-Authorization: Bearer <token>
-```
+`GET /pokemon/:name` (Bearer token requis)
 
 Exemple:
 
@@ -214,38 +157,140 @@ Exemple:
 GET /pokemon/pikachu
 ```
 
-Réponse `200`:
+### 4) Users CRUD (public, pour back-office)
+
+`GET /users`
+
+`GET /users/:id`
+
+`POST /users`
+
+Body:
 
 ```json
 {
-  "id": 25,
-  "name": "pikachu",
-  "height": 4,
-  "weight": 60,
-  "types": ["electric"],
-  "stats": [
-    { "name": "hp", "value": 35 }
-  ],
-  "sprites": {
-    "frontDefault": "https://...",
-    "officialArtwork": "https://..."
+  "username": "misty",
+  "email": "misty@kanto.com",
+  "password": "togepi123"
+}
+```
+
+`PATCH /users/:id`
+
+Body (au moins un champ):
+
+```json
+{
+  "username": "misty-new",
+  "email": "misty-new@kanto.com",
+  "password": "newpass123"
+}
+```
+
+`DELETE /users/:id`
+
+### 5) Boxes CRUD
+
+`GET /boxes`
+
+`GET /boxes/:boxId`
+
+`POST /boxes`
+
+Body:
+
+```json
+{
+  "name": "kanto-box",
+  "pokeballImage": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png",
+  "entries": [
+    { "resourceType": "POKEMON", "resourceId": 25, "dropRate": 70 },
+    { "resourceType": "ITEM", "resourceId": 4, "dropRate": 30 }
+  ]
+}
+```
+
+Regles:
+- `resourceType` doit etre `POKEMON`, `ITEM` ou `MACHINE`
+- `resourceId` doit exister sur PokeAPI
+- somme des `dropRate` doit etre exactement `100`
+
+`PATCH /boxes/:boxId`
+
+Body (un ou plusieurs champs):
+
+```json
+{
+  "name": "kanto-box-v2",
+  "pokeballImage": "https://...",
+  "entries": [
+    { "resourceType": "POKEMON", "resourceId": 1, "dropRate": 50 },
+    { "resourceType": "ITEM", "resourceId": 5, "dropRate": 50 }
+  ]
+}
+```
+
+`DELETE /boxes/:boxId`
+
+### 6) Ouvrir une box
+
+`POST /boxes/:boxId/open` (Bearer token requis)
+
+Effet:
+- tire 1 drop selon `dropRate`
+- ajoute/incremente l'item dans l'inventaire du user connecte
+
+Exemple reponse:
+
+```json
+{
+  "box": {
+    "id": "uuid",
+    "name": "kanto-box",
+    "pokeballImage": "https://..."
+  },
+  "reward": {
+    "resourceType": "POKEMON",
+    "resourceId": 25,
+    "resourceName": "pikachu",
+    "dropRate": 70
+  },
+  "inventoryItem": {
+    "id": "uuid",
+    "quantity": 3,
+    "lastObtainedAt": "2026-03-04T10:00:00.000Z"
   }
 }
 ```
 
-Erreurs:
-- `400` nom manquant
-- `401` token manquant/invalide
-- `404` Pokémon introuvable
-- `502` PokéAPI indisponible
+### 7) Inventaires
+
+`GET /inventory/me` (Bearer token requis)
+
+`GET /inventory/users/:userId` (public pour back-office)
+
+### 8) Catalogue visuel (pour BO)
+
+`GET /catalog/pokeballs?search=ultra&limit=48`
+
+`GET /catalog/pokemon?search=pika&limit=12`
+
+`GET /catalog/items?search=potion&limit=12`
 
 ## Commandes utiles
 
-Extraire un JWT depuis le login:
+Recuperer un JWT:
 
 ```bash
 curl -sS -X POST http://127.0.0.1:3000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"identifier":"ash@kanto.com","password":"pikachu123"}' \
 | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>console.log(JSON.parse(d).token))"
+```
+
+Ouvrir une box en CLI:
+
+```bash
+curl -sS -X POST http://127.0.0.1:3000/api/boxes/<box_id>/open \
+  -H "Authorization: Bearer <token>"
 ```

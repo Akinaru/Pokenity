@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pokenity BO - Boxes</title>
+    <link rel="stylesheet" href="/admin/assets/admin.css" />
+    <script defer src="/admin/assets/common.js"></script>
+    <script defer src="/admin/assets/boxes.js"></script>
+  </head>
+  <body data-page="boxes">
+    <div class="bo-layout">
+      <aside class="bo-sidebar">
+        <h2 class="bo-brand">Pokenity BO</h2>
+        <p class="bo-subtitle">Gestion interne API</p>
+        <nav class="bo-nav">
+          <a class="bo-nav-link" data-page="dashboard" href="/admin/">Dashboard</a>
+          <a class="bo-nav-link" data-page="users" href="/admin/users.html">Users</a>
+          <a class="bo-nav-link" data-page="boxes" href="/admin/boxes.html">Boxes</a>
+        </nav>
+      </aside>
+
+      <main class="bo-main">
+        <header class="bo-top">
+          <div>
+            <h1>Boxes</h1>
+            <p>Create visual boxes with pokeballs and searchable drops.</p>
+          </div>
+          <span class="bo-badge" id="boxesBadge">0 boxes</span>
+        </header>
+
+        <section class="bo-grid two">
+          <article class="bo-panel">
+            <h2>Create box</h2>
+            <form id="createBoxForm" class="bo-form-grid">
+              <div class="bo-field">
+                <label for="boxName">Box name</label>
+                <input id="boxName" name="name" required placeholder="ex: legendary-box" />
+              </div>
+
+              <div class="bo-field">
+                <label for="pokeballSearch">Search pokeball</label>
+                <input id="pokeballSearch" type="text" placeholder="ex: ultra, master..." />
+              </div>
+              <div class="bo-pokeball-grid" id="pokeballGrid"></div>
+              <input id="pokeballImageInput" name="pokeballImage" type="hidden" required />
+              <p class="bo-help" id="selectedPokeballText">No pokeball selected.</p>
+
+              <hr class="bo-separator" />
+
+              <h3>Drops</h3>
+              <p class="bo-help">Search and pick Pokemon or Items for each row.</p>
+              <div id="dropRows" class="bo-grid"></div>
+              <p class="bo-help" id="dropRateTotal">Total drop rate: 0%</p>
+              <div class="bo-actions">
+                <button class="bo-btn soft" id="addDropBtn" type="button">Add drop</button>
+                <button class="bo-btn primary" type="submit">Create box</button>
+              </div>
+            </form>
+          </article>
+
+          <article class="bo-panel">
+            <div class="bo-panel-head">
+              <h2>Box list</h2>
+              <span class="bo-counter" id="boxesCount">0</span>
+            </div>
+            <p class="bo-help" style="margin-bottom: 10px">
+              Chaque box affiche ses drops en visuel, tries du plus rare au plus commun.
+            </p>
+            <div class="bo-table-wrap" id="boxesTableWrap"></div>
+          </article>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

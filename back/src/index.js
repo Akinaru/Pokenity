@@ -1,14 +1,24 @@
+const path = require("path");
 const cors = require("cors");
 const express = require("express");
 const { PORT } = require("./config/env");
 const { prisma } = require("./lib/prisma");
 const authRoutes = require("./routes/authRoutes");
+const boxRoutes = require("./routes/boxRoutes");
+const catalogRoutes = require("./routes/catalogRoutes");
+const inventoryRoutes = require("./routes/inventoryRoutes");
 const pokemonRoutes = require("./routes/pokemonRoutes");
+const userManagementRoutes = require("./routes/userManagementRoutes");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use("/admin", express.static(path.join(__dirname, "public")));
+
+app.get("/", (req, res) => {
+  return res.redirect("/admin");
+});
 
 app.get("/api/health", async (req, res) => {
   let db = "up";
@@ -28,7 +38,11 @@ app.get("/api/health", async (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/boxes", boxRoutes);
+app.use("/api/catalog", catalogRoutes);
+app.use("/api/inventory", inventoryRoutes);
 app.use("/api/pokemon", pokemonRoutes);
+app.use("/api/users", userManagementRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: "Route not found." });
@@ -36,6 +50,11 @@ app.use((req, res) => {
 
 app.use((err, req, res, _next) => {
   console.error(err);
+
+  if (typeof err.status === "number" && err.message) {
+    return res.status(err.status).json({ error: err.message });
+  }
+
   res.status(500).json({ error: "Internal server error." });
 });
 
