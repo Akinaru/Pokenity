@@ -33,11 +33,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import fr.pokenity.pokenity.core.PokemonImageSettings
-import fr.pokenity.pokenity.core.pokemonImageUrl
 import fr.pokenity.pokenity.domain.model.PokemonFilterOption
 import fr.pokenity.pokenity.domain.model.PokemonSummary
+import fr.pokenity.pokenity.ui.components.PokemonSpriteImage
 
 @Composable
 fun MapScreen(
@@ -154,7 +153,8 @@ fun MapScreen(
                                 items(uiState.pokemons, key = { it.id }) { pokemon ->
                                     PokemonRow(
                                         pokemon = pokemon,
-                                        imageUrl = pokemonImageUrl(pokemon.id, spriteType, shinyEnabled),
+                                        imageType = spriteType,
+                                        shinyEnabled = shinyEnabled,
                                         onClick = { onPokemonClick(pokemon.id, ids) }
                                     )
                                 }
@@ -222,7 +222,12 @@ private fun ChoiceCard(title: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun PokemonRow(pokemon: PokemonSummary, imageUrl: String, onClick: () -> Unit) {
+private fun PokemonRow(
+    pokemon: PokemonSummary,
+    imageType: fr.pokenity.pokenity.core.PokemonImageType,
+    shinyEnabled: Boolean,
+    onClick: () -> Unit
+) {
     Surface(
         shape = RoundedCornerShape(20.dp),
         tonalElevation = 3.dp,
@@ -237,9 +242,11 @@ private fun PokemonRow(pokemon: PokemonSummary, imageUrl: String, onClick: () ->
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            AsyncImage(
-                model = imageUrl,
+            PokemonSpriteImage(
+                pokemonId = pokemon.id,
                 contentDescription = pokemon.name,
+                imageType = imageType,
+                shiny = shinyEnabled,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.size(84.dp)
             )

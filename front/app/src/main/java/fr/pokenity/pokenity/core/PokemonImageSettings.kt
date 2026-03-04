@@ -64,3 +64,15 @@ fun pokemonImageUrl(id: Int, imageType: PokemonImageType, shiny: Boolean): Strin
 
     return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/${imageType.folder}/$shinySegment$id.${imageType.extension}"
 }
+
+fun pokemonImageUrlCandidates(id: Int, imageType: PokemonImageType, shiny: Boolean): List<String> {
+    val isShiny = shiny && imageType.supportsShiny
+    val shinySegment = if (isShiny) "shiny/" else ""
+
+    val selected = pokemonImageUrl(id, imageType, shiny)
+    val official = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/$shinySegment$id.png"
+    val home = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/$shinySegment$id.png"
+    val basic = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${shinySegment}$id.png"
+
+    return linkedSetOf(selected, official, home, basic).toList()
+}
