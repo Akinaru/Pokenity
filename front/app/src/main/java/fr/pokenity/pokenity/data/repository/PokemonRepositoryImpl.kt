@@ -5,6 +5,8 @@ import fr.pokenity.pokenity.data.remote.NamedResourceDto
 import fr.pokenity.pokenity.data.remote.PokeApiService
 import fr.pokenity.pokenity.domain.model.EvolutionStage
 import fr.pokenity.pokenity.domain.model.LanguageOption
+import fr.pokenity.pokenity.domain.model.MegaEvolution
+import fr.pokenity.pokenity.domain.model.PokemonAbility
 import fr.pokenity.pokenity.domain.model.PokemonDetail
 import fr.pokenity.pokenity.domain.model.PokemonFilterOption
 import fr.pokenity.pokenity.domain.model.PokemonMove
@@ -176,18 +178,11 @@ class PokemonRepositoryImpl(
         val language = currentLanguage()
         val dto = pokeApiService.fetchPokemonDetail(id)
 
-        val (evolutionChain, moves) = coroutineScope {
-            val evolutionDeferred = async {
+        val (evolutionChain, moves, megaEvolutions, abilities) = coroutineScope {
+            val evolutionAndVarietiesDeferred = async {
                 runCatching {
-                    pokeApiService.fetchEvolutionChain(id).map { stage ->
-                        EvolutionStage(
-                            id = stage.id,
-                            name = localizedPokemonName(stage.id, stage.name.asDisplayName(), language),
-                            imageUrl = artworkUrl(stage.id),
-                            isCurrent = stage.id == id
-                        )
-                    }
-                }.getOrElse { emptyList() }
+                    pokeApiService.fetchEvolutionChainAndVarieties(id)
+                }.getOrNull()
             }
 
             val movesDeferred = async {
@@ -213,13 +208,59 @@ class PokemonRepositoryImpl(
                 }.getOrElse { emptyList() }
             }
 
-            evolutionDeferred.await() to movesDeferred.await()
+            val abilitiesDeferred = async {
+                dto.abilities.map { ability ->
+                    async {
+                        runCatching {
+                            pokeApiService.fetchAbilityDetail(ability.url, language)
+                        }.getOrNull()
+                    }
+                }.awaitAll().filterNotNull().map { abilityDto ->
+                    PokemonAbility(
+                        name = abilityDto.name,
+                        description = abilityDto.description
+                    )
+                }
+            }
+
+            val evoResult = evolutionAndVarietiesDeferred.await()
+
+            val evolutionStages = evoResult?.evolutionStages?.map { stage ->
+                EvolutionStage(
+                    id = stage.id,
+                    name = localizedPokemonName(stage.id, stage.name.asDisplayName(), language),
+                    imageUrl = artworkUrl(stage.id),
+                    isCurrent = stage.id == id
+                )
+            } ?: emptyList()
+
+            val megas = evoResult?.megaVarieties?.map { variety ->
+                MegaEvolution(
+                    name = variety.name.asDisplayName(),
+                    imageUrl = artworkUrl(variety.id)
+                )
+            } ?: emptyList()
+
+            data class DetailResults(
+                val evolution: List<EvolutionStage>,
+                val moves: List<PokemonMove>,
+                val megas: List<MegaEvolution>,
+                val abilities: List<PokemonAbility>
+            )
+
+            DetailResults(
+                evolution = evolutionStages,
+                moves = movesDeferred.await(),
+                megas = megas,
+                abilities = abilitiesDeferred.await()
+            )
         }
 
         return PokemonDetail(
             id = dto.id,
             name = localizedPokemonName(id = dto.id, fallback = dto.name.asDisplayName(), language = language),
             imageUrl = artworkUrl(dto.id),
+            shinyImageUrl = shinyArtworkUrl(dto.id),
             types = dto.types.map { typeDto ->
                 PokemonType(
                     name = localizedResourceName(
@@ -237,11 +278,10 @@ class PokemonRepositoryImpl(
                     baseStat = stat.baseStat
                 )
             },
-            abilities = dto.abilities.map { ability ->
-                localizedResourceName(ability, language)
-            },
+            abilities = abilities,
             moves = moves,
-            evolutionChain = evolutionChain
+            evolutionChain = evolutionChain,
+            megaEvolutions = megaEvolutions
         )
     }
 
@@ -287,6 +327,10 @@ class PokemonRepositoryImpl(
 
     private fun artworkUrl(id: Int): String {
         return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/$id.png"
+    }
+
+    private fun shinyArtworkUrl(id: Int): String {
+        return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/$id.png"
     }
 
     private fun typeImageUrl(typeId: Int): String {

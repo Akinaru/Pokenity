@@ -24,9 +24,33 @@ async function createUser(newUser) {
   });
 }
 
+async function listUsers() {
+  return prisma.user.findMany({
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+}
+
+async function updateUser(id, data) {
+  return prisma.user.update({
+    where: { id },
+    data,
+  });
+}
+
+async function deleteUser(id) {
+  return prisma.user.delete({
+    where: { id },
+  });
+}
+
 module.exports = {
   createUser,
+  deleteUser,
   findUserByEmail,
   findUserById,
   findUserByUsername,
+  listUsers,
+  updateUser,
 };

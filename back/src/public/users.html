@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pokenity BO - Users</title>
+    <link rel="stylesheet" href="/admin/assets/admin.css" />
+    <script defer src="/admin/assets/common.js"></script>
+    <script defer src="/admin/assets/users.js"></script>
+  </head>
+  <body data-page="users">
+    <div class="bo-layout">
+      <aside class="bo-sidebar">
+        <h2 class="bo-brand">Pokenity BO</h2>
+        <p class="bo-subtitle">Gestion interne API</p>
+        <nav class="bo-nav">
+          <a class="bo-nav-link" data-page="dashboard" href="/admin/">Dashboard</a>
+          <a class="bo-nav-link" data-page="users" href="/admin/users.html">Users</a>
+          <a class="bo-nav-link" data-page="boxes" href="/admin/boxes.html">Boxes</a>
+        </nav>
+      </aside>
+
+      <main class="bo-main">
+        <header class="bo-top">
+          <div>
+            <h1>Users</h1>
+            <p>CRUD utilisateurs et lecture des inventaires.</p>
+          </div>
+          <span class="bo-badge" id="usersBadge">0 users</span>
+        </header>
+
+        <section class="bo-grid two">
+          <article class="bo-panel">
+            <h2>Create user</h2>
+            <form id="createUserForm" class="bo-form-grid">
+              <div class="bo-field">
+                <label for="cUsername">Username</label>
+                <input id="cUsername" name="username" required placeholder="ex: red" />
+              </div>
+              <div class="bo-field">
+                <label for="cEmail">Email</label>
+                <input id="cEmail" name="email" type="email" required placeholder="red@kanto.com" />
+              </div>
+              <div class="bo-field">
+                <label for="cPassword">Password</label>
+                <input id="cPassword" name="password" type="password" minlength="6" required />
+              </div>
+              <div class="bo-actions">
+                <button class="bo-btn primary" type="submit">Create</button>
+              </div>
+            </form>
+
+            <hr class="bo-separator" />
+
+            <h2>Edit user</h2>
+            <p class="bo-meta" id="editMeta">No user selected.</p>
+            <form id="editUserForm" class="bo-form-grid">
+              <div class="bo-field">
+                <label for="eUsername">Username</label>
+                <input id="eUsername" name="username" placeholder="leave empty to keep current value" />
+              </div>
+              <div class="bo-field">
+                <label for="eEmail">Email</label>
+                <input id="eEmail" name="email" type="email" placeholder="leave empty to keep current value" />
+              </div>
+              <div class="bo-field">
+                <label for="ePassword">Password</label>
+                <input id="ePassword" name="password" type="password" minlength="6" placeholder="leave empty to keep current value" />
+              </div>
+              <div class="bo-actions">
+                <button class="bo-btn primary" type="submit">Save</button>
+                <button class="bo-btn soft" id="cancelEditBtn" type="button">Cancel</button>
+              </div>
+            </form>
+          </article>
+
+          <article class="bo-panel">
+            <div class="bo-panel-head">
+              <h2>User list</h2>
+              <span class="bo-counter" id="usersCount">0</span>
+            </div>
+            <div class="bo-table-wrap" id="usersTableWrap"></div>
+
+            <hr class="bo-separator" />
+
+            <h3>User inventory</h3>
+            <p class="bo-help">Select a user and click Inventory to load the table.</p>
+            <div class="bo-table-wrap" id="inventoryTableWrap"></div>
+          </article>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

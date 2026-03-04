@@ -4,13 +4,15 @@ data class PokemonDetail(
     val id: Int,
     val name: String,
     val imageUrl: String,
+    val shinyImageUrl: String,
     val types: List<PokemonType>,
     val height: Int,
     val weight: Int,
     val stats: List<PokemonStat>,
-    val abilities: List<String>,
+    val abilities: List<PokemonAbility>,
     val moves: List<PokemonMove> = emptyList(),
-    val evolutionChain: List<EvolutionStage> = emptyList()
+    val evolutionChain: List<EvolutionStage> = emptyList(),
+    val megaEvolutions: List<MegaEvolution> = emptyList()
 )
 
 data class PokemonType(
@@ -21,6 +23,11 @@ data class PokemonType(
 data class PokemonStat(
     val name: String,
     val baseStat: Int
+)
+
+data class PokemonAbility(
+    val name: String,
+    val description: String
 )
 
 data class PokemonMove(
@@ -37,4 +44,9 @@ data class EvolutionStage(
     val name: String,
     val imageUrl: String,
     val isCurrent: Boolean
+)
+
+data class MegaEvolution(
+    val name: String,
+    val imageUrl: String
 )

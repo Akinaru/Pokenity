@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pokenity Back Office</title>
+    <link rel="stylesheet" href="/admin/assets/admin.css" />
+    <script defer src="/admin/assets/common.js"></script>
+  </head>
+  <body data-page="dashboard">
+    <div class="bo-layout">
+      <aside class="bo-sidebar">
+        <h2 class="bo-brand">Pokenity BO</h2>
+        <p class="bo-subtitle">Gestion interne API</p>
+        <nav class="bo-nav">
+          <a class="bo-nav-link" data-page="dashboard" href="/admin/">Dashboard</a>
+          <a class="bo-nav-link" data-page="users" href="/admin/users.html">Users</a>
+          <a class="bo-nav-link" data-page="boxes" href="/admin/boxes.html">Boxes</a>
+        </nav>
+      </aside>
+
+      <main class="bo-main">
+        <header class="bo-top">
+          <div>
+            <h1>Back Office Dashboard</h1>
+            <p>Navigation rapide vers les ecrans de gestion.</p>
+          </div>
+          <span class="bo-badge">Public (temporaire)</span>
+        </header>
+
+        <section class="bo-card-grid">
+          <article class="bo-card">
+            <h3>Gestion utilisateurs</h3>
+            <p>Creation, edition, suppression et consultation des inventaires.</p>
+            <a href="/admin/users.html">Ouvrir la page users</a>
+          </article>
+          <article class="bo-card">
+            <h3>Gestion boxes</h3>
+            <p>Creation de box visuelles avec pokeballs, drops et probabilites.</p>
+            <a href="/admin/boxes.html">Ouvrir la page boxes</a>
+          </article>
+          <article class="bo-card">
+            <h3>API base URL</h3>
+            <p><code>http://localhost:3000/api</code></p>
+            <a href="/api/health" target="_blank" rel="noreferrer">Voir healthcheck</a>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      window.AdminCommon.activateNav();
+    </script>
+  </body>
+</html>

@@ -332,13 +332,32 @@ class PokeApiService {
 
     /**
      * Fetches the evolution chain for a given Pokémon.
-     * 1) GET /pokemon-species/{id} → extract evolution_chain.url
+     * 1) GET /pokemon-species/{id} → extract evolution_chain.url + varieties
      * 2) GET that URL → parse the recursive chain into a flat list
+     * Returns both the evolution stages and the mega-evolution varieties.
      */
-    fun fetchEvolutionChain(pokemonId: Int): List<EvolutionStageDto> {
-        // Step 1: get species to find evolution chain URL
+    fun fetchEvolutionChainAndVarieties(pokemonId: Int): EvolutionAndVarietiesDto {
+        // Step 1: get species to find evolution chain URL + varieties
         val speciesJson = fetchJson("https://pokeapi.co/api/v2/pokemon-species/$pokemonId")
         val chainUrl = speciesJson.getJSONObject("evolution_chain").getString("url")
+
+        // Extract varieties (mega evolutions, gmax, etc.)
+        val varietiesArray = speciesJson.getJSONArray("varieties")
+        val megaVarieties = mutableListOf<VarietyDto>()
+        for (i in 0 until varietiesArray.length()) {
+            val variety = varietiesArray.getJSONObject(i)
+            val isDefault = variety.getBoolean("is_default")
+            if (!isDefault) {
+                val pokemonObj = variety.getJSONObject("pokemon")
+                val name = pokemonObj.getString("name")
+                val url = pokemonObj.getString("url")
+                val varId = url.trimEnd('/').substringAfterLast('/').toInt()
+                // Only include mega evolutions (not gmax or other forms)
+                if (name.contains("-mega")) {
+                    megaVarieties.add(VarietyDto(id = varId, name = name))
+                }
+            }
+        }
 
         // Step 2: get evolution chain
         val chainJson = fetchJson(chainUrl)
@@ -347,7 +366,91 @@ class PokeApiService {
         // Step 3: flatten the recursive structure
         val stages = mutableListOf<EvolutionStageDto>()
         flattenChain(chain, stages)
-        return stages
+
+        return EvolutionAndVarietiesDto(
+            evolutionStages = stages,
+            megaVarieties = megaVarieties
+        )
+    }
+
+    /**
+     * Fetches the description (flavor text) for a given ability.
+     */
+    fun fetchAbilityDetail(abilityUrl: String, languageCode: String): AbilityDetailDto {
+        val root = fetchJson(abilityUrl)
+
+        // Get localized name
+        var localizedName = root.getString("name")
+        val namesArray = root.optJSONArray("names")
+        if (namesArray != null) {
+            for (i in 0 until namesArray.length()) {
+                val entry = namesArray.getJSONObject(i)
+                if (entry.getJSONObject("language").getString("name") == languageCode) {
+                    localizedName = entry.getString("name")
+                    break
+                }
+            }
+            // Fallback to english if not found
+            if (localizedName == root.getString("name")) {
+                for (i in 0 until namesArray.length()) {
+                    val entry = namesArray.getJSONObject(i)
+                    if (entry.getJSONObject("language").getString("name") == "en") {
+                        localizedName = entry.getString("name")
+                        break
+                    }
+                }
+            }
+        }
+
+        // Get localized flavor text (fallback to english)
+        val flavorEntries = root.optJSONArray("flavor_text_entries")
+        var description = ""
+        if (flavorEntries != null) {
+            for (i in 0 until flavorEntries.length()) {
+                val entry = flavorEntries.getJSONObject(i)
+                if (entry.getJSONObject("language").getString("name") == languageCode) {
+                    description = entry.getString("flavor_text").replace("\n", " ").replace("\u000c", " ")
+                    break
+                }
+            }
+            if (description.isBlank()) {
+                for (i in 0 until flavorEntries.length()) {
+                    val entry = flavorEntries.getJSONObject(i)
+                    if (entry.getJSONObject("language").getString("name") == "en") {
+                        description = entry.getString("flavor_text").replace("\n", " ").replace("\u000c", " ")
+                        break
+                    }
+                }
+            }
+        }
+
+        // Fallback: use effect_entries short_effect if no flavor text
+        if (description.isBlank()) {
+            val effectEntries = root.optJSONArray("effect_entries")
+            if (effectEntries != null) {
+                for (i in 0 until effectEntries.length()) {
+                    val entry = effectEntries.getJSONObject(i)
+                    if (entry.getJSONObject("language").getString("name") == languageCode) {
+                        description = entry.getString("short_effect")
+                        break
+                    }
+                }
+                if (description.isBlank()) {
+                    for (i in 0 until effectEntries.length()) {
+                        val entry = effectEntries.getJSONObject(i)
+                        if (entry.getJSONObject("language").getString("name") == "en") {
+                            description = entry.getString("short_effect")
+                            break
+                        }
+                    }
+                }
+            }
+        }
+
+        return AbilityDetailDto(
+            name = localizedName,
+            description = description
+        )
     }
 
     private fun flattenChain(node: JSONObject, out: MutableList<EvolutionStageDto>) {
@@ -504,4 +607,19 @@ data class MoveDetailDto(
 data class EvolutionStageDto(
     val id: Int,
     val name: String
+)
+
+data class EvolutionAndVarietiesDto(
+    val evolutionStages: List<EvolutionStageDto>,
+    val megaVarieties: List<VarietyDto>
+)
+
+data class VarietyDto(
+    val id: Int,
+    val name: String
+)
+
+data class AbilityDetailDto(
+    val name: String,
+    val description: String
 )
