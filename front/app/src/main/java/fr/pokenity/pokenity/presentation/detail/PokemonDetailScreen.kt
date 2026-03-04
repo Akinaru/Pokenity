@@ -10,12 +10,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -55,6 +58,8 @@ import fr.pokenity.pokenity.core.PokemonImageSettings
 import fr.pokenity.pokenity.core.PokemonImageType
 import fr.pokenity.pokenity.core.pokemonImageUrl
 import fr.pokenity.pokenity.domain.model.EvolutionStage
+import fr.pokenity.pokenity.domain.model.MegaEvolution
+import fr.pokenity.pokenity.domain.model.PokemonAbility
 import fr.pokenity.pokenity.domain.model.PokemonDetail
 import fr.pokenity.pokenity.domain.model.PokemonMove
 import fr.pokenity.pokenity.domain.model.PokemonStat
@@ -161,11 +166,13 @@ fun PokemonDetailScreen(
                     contentPadding = PaddingValues(bottom = 32.dp)
                 ) {
                     item {
+                        val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                                .padding(top = statusBarTop + 8.dp, bottom = 8.dp, start = 16.dp, end = 16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
                                 text = "Swipe gauche/droite pour naviguer",
@@ -214,6 +221,17 @@ fun PokemonDetailScreen(
                         }
                     }
 
+                    // Gallery section (mega evolutions + shiny)
+                    if (pokemon.megaEvolutions.isNotEmpty() || pokemon.shinyImageUrl.isNotBlank()) {
+                        item {
+                            GallerySection(
+                                shinyImageUrl = pokemon.shinyImageUrl,
+                                megaEvolutions = pokemon.megaEvolutions,
+                                pokemonName = pokemon.name
+                            )
+                        }
+                    }
+
                     // Moves section
                     if (pokemon.moves.isNotEmpty()) {
                         item {
@@ -239,10 +257,12 @@ private fun DetailHeader(
     shinyEnabled: Boolean,
     onBack: () -> Unit
 ) {
+    val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(320.dp)
+            .height(320.dp + statusBarPadding)
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
@@ -256,7 +276,7 @@ private fun DetailHeader(
         IconButton(
             onClick = onBack,
             modifier = Modifier
-                .padding(top = 40.dp, start = 8.dp)
+                .padding(top = statusBarPadding + 8.dp, start = 8.dp)
                 .align(Alignment.TopStart)
         ) {
             Icon(
@@ -273,7 +293,7 @@ private fun DetailHeader(
             fontWeight = FontWeight.Bold,
             color = Color.White.copy(alpha = 0.7f),
             modifier = Modifier
-                .padding(top = 48.dp, end = 20.dp)
+                .padding(top = statusBarPadding + 16.dp, end = 20.dp)
                 .align(Alignment.TopEnd)
         )
 
@@ -738,7 +758,7 @@ private fun MoveStatLabel(label: String, value: String, color: Color) {
 }
 
 @Composable
-private fun AbilitiesSection(abilities: List<String>) {
+private fun AbilitiesSection(abilities: List<PokemonAbility>) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -751,6 +771,65 @@ private fun AbilitiesSection(abilities: List<String>) {
             modifier = Modifier.padding(bottom = 12.dp)
         )
 
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            abilities.forEach { ability ->
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    tonalElevation = 2.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary)
+                            )
+                            Text(
+                                text = ability.name,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                        if (ability.description.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = ability.description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 4,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GallerySection(
+    shinyImageUrl: String,
+    megaEvolutions: List<MegaEvolution>,
+    pokemonName: String
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 16.dp)
+    ) {
+        Text(
+            text = "Galerie",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+
         Surface(
             shape = RoundedCornerShape(20.dp),
             tonalElevation = 2.dp,
@@ -758,24 +837,39 @@ private fun AbilitiesSection(abilities: List<String>) {
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                abilities.forEach { ability ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary)
-                        )
-                        Text(
-                            text = ability,
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
+                // Shiny image
+                if (shinyImageUrl.isNotBlank()) {
+                    Text(
+                        text = "Shiny",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    AsyncImage(
+                        model = shinyImageUrl,
+                        contentDescription = "$pokemonName Shiny",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.size(140.dp)
+                    )
+                }
+
+                // Mega evolutions
+                megaEvolutions.forEach { mega ->
+                    Text(
+                        text = mega.name,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    AsyncImage(
+                        model = mega.imageUrl,
+                        contentDescription = mega.name,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.size(140.dp)
+                    )
                 }
             }
         }
