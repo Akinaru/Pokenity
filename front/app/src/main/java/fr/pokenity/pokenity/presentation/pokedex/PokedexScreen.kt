@@ -17,8 +17,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -39,11 +39,11 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import fr.pokenity.pokenity.domain.model.PokemonSummary
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PokedexScreen(
     uiState: PokedexUiState,
     onRetry: () -> Unit,
+    onSectionSelected: (PokedexSection) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var query by rememberSaveable { mutableStateOf("") }
@@ -84,33 +84,105 @@ fun PokedexScreen(
                     item {
                         HeaderCard(total = filteredPokemon.size)
                     }
+
                     item {
-                        OutlinedTextField(
-                            value = query,
-                            onValueChange = { query = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            singleLine = true,
-                            label = { Text("Rechercher un Pokémon") },
-                            placeholder = { Text("Nom ou numéro") }
+                        SectionSelector(
+                            selectedSection = uiState.selectedSection,
+                            onSectionSelected = onSectionSelected
                         )
                     }
 
-                    if (filteredPokemon.isEmpty()) {
-                        item {
-                            Text(
-                                text = "Aucun Pokémon ne correspond à ta recherche.",
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.padding(vertical = 12.dp)
-                            )
-                        }
-                    }
+                    when (uiState.selectedSection) {
+                        PokedexSection.ALL -> {
+                            item {
+                                OutlinedTextField(
+                                    value = query,
+                                    onValueChange = { query = it },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(16.dp),
+                                    singleLine = true,
+                                    label = { Text("Rechercher un Pokemon") },
+                                    placeholder = { Text("Nom ou numero") }
+                                )
+                            }
 
-                    items(items = filteredPokemon, key = { it.id }) { pokemon ->
-                        PokemonRow(pokemon = pokemon)
+                            if (filteredPokemon.isEmpty()) {
+                                item {
+                                    Text(
+                                        text = "Aucun Pokemon ne correspond a ta recherche.",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        modifier = Modifier.padding(vertical = 12.dp)
+                                    )
+                                }
+                            }
+
+                            items(items = filteredPokemon, key = { it.id }) { pokemon ->
+                                PokemonRow(pokemon = pokemon)
+                            }
+                        }
+
+                        PokedexSection.TYPE -> {
+                            items(uiState.types, key = { it }) { type ->
+                                NameCard(title = type)
+                            }
+                        }
+
+                        PokedexSection.GENERATION -> {
+                            items(uiState.generations, key = { it }) { generation ->
+                                NameCard(title = generation)
+                            }
+                        }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun SectionSelector(
+    selectedSection: PokedexSection,
+    onSectionSelected: (PokedexSection) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        SectionButton(
+            label = "All",
+            selected = selectedSection == PokedexSection.ALL,
+            onClick = { onSectionSelected(PokedexSection.ALL) },
+            modifier = Modifier.weight(1f)
+        )
+        SectionButton(
+            label = "Type",
+            selected = selectedSection == PokedexSection.TYPE,
+            onClick = { onSectionSelected(PokedexSection.TYPE) },
+            modifier = Modifier.weight(1f)
+        )
+        SectionButton(
+            label = "Generation",
+            selected = selectedSection == PokedexSection.GENERATION,
+            onClick = { onSectionSelected(PokedexSection.GENERATION) },
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun SectionButton(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (selected) {
+        Button(onClick = onClick, modifier = modifier) {
+            Text(label)
+        }
+    } else {
+        OutlinedButton(onClick = onClick, modifier = modifier) {
+            Text(label)
         }
     }
 }
@@ -130,14 +202,14 @@ private fun HeaderCard(total: Int) {
     ) {
         Column {
             Text(
-                text = "Pokenity Pokédex",
+                text = "Pokenity Pokedex",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color.White
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "$total Pokémon affichés",
+                text = "$total Pokemon charges",
                 style = MaterialTheme.typography.bodyLarge,
                 color = Color.White
             )
@@ -184,6 +256,21 @@ private fun PokemonRow(pokemon: PokemonSummary) {
 }
 
 @Composable
+private fun NameCard(title: String) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        tonalElevation = 2.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)
+        )
+    }
+}
+
+@Composable
 private fun ErrorState(message: String, onRetry: () -> Unit) {
     Column(
         modifier = Modifier
@@ -195,7 +282,7 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
         Text(text = message, style = MaterialTheme.typography.bodyLarge)
         Spacer(modifier = Modifier.height(12.dp))
         Button(onClick = onRetry) {
-            Text("Réessayer")
+            Text("Reessayer")
         }
     }
 }
