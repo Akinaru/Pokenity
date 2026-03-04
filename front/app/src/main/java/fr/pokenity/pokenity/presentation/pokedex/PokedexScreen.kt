@@ -19,6 +19,9 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -38,7 +41,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import fr.pokenity.pokenity.core.PokemonImageSettings
 import fr.pokenity.pokenity.domain.model.PokemonFilterOption
 import fr.pokenity.pokenity.domain.model.PokemonSummary
@@ -48,7 +50,7 @@ import fr.pokenity.pokenity.ui.components.PokemonSpriteImage
 fun PokedexScreen(
     uiState: PokedexUiState,
     onRetry: () -> Unit,
-    onSectionSelected: (PokedexSection) -> Unit,
+    onFilterCategorySelected: (PokedexSection) -> Unit,
     onLoadMore: () -> Unit,
     onPokemonClick: (Int, List<Int>) -> Unit,
     onTypeClicked: (PokemonFilterOption) -> Unit,
@@ -66,19 +68,24 @@ fun PokedexScreen(
     modifier: Modifier = Modifier
 ) {
     var query by rememberSaveable { mutableStateOf("") }
+    var typeExpanded by rememberSaveable { mutableStateOf(false) }
+    var generationExpanded by rememberSaveable { mutableStateOf(false) }
+    var abilityExpanded by rememberSaveable { mutableStateOf(false) }
+    var habitatExpanded by rememberSaveable { mutableStateOf(false) }
+    var regionExpanded by rememberSaveable { mutableStateOf(false) }
+    var shapeExpanded by rememberSaveable { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
     val spriteType by PokemonImageSettings.imageType.collectAsState()
     val shinyEnabled by PokemonImageSettings.isShiny.collectAsState()
 
-    val allFilteredPokemon by remember(uiState.pokemon, query) {
+    val sourcePokemon = if (uiState.hasActiveFilters) uiState.filteredPokemon else uiState.pokemon
+
+    val displayedPokemon by remember(sourcePokemon, query) {
         mutableStateOf(
-            if (query.isBlank()) {
-                uiState.pokemon
-            } else {
-                uiState.pokemon.filter {
-                    it.name.contains(query.trim(), ignoreCase = true) || it.id.toString().contains(query.trim())
-                }
+            if (query.isBlank()) sourcePokemon
+            else sourcePokemon.filter {
+                it.name.contains(query.trim(), ignoreCase = true) || it.id.toString().contains(query.trim())
             }
         )
     }
@@ -109,7 +116,7 @@ fun PokedexScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "${currentTotal(uiState = uiState, allPokemonCount = allFilteredPokemon.size)} elements",
+                                text = "${displayedPokemon.size} elements",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
@@ -123,111 +130,98 @@ fun PokedexScreen(
                     }
 
                     item {
-                        SectionSelector(
-                            selectedSection = uiState.selectedSection,
-                            onSectionSelected = onSectionSelected
+                        OutlinedTextField(
+                            value = query,
+                            onValueChange = { query = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            singleLine = true,
+                            label = { Text("Recherche") },
+                            placeholder = { Text("Nom ou numero") }
                         )
                     }
 
-                    when (uiState.selectedSection) {
-                        PokedexSection.ALL -> {
-                            item {
-                                OutlinedTextField(
-                                    value = query,
-                                    onValueChange = { query = it },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(16.dp),
-                                    singleLine = true,
-                                    label = { Text("Rechercher un Pokemon") },
-                                    placeholder = { Text("Nom ou numero") }
-                                )
-                            }
-                            PokemonListItems(allFilteredPokemon, onPokemonClick, spriteType, shinyEnabled)
-                            if (uiState.isLoadingMore) {
-                                item {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 12.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        CircularProgressIndicator()
-                                    }
-                                }
-                            }
-                        }
-
-                        PokedexSection.TYPE -> {
-                            FilterSectionContent(
-                                selectedLabel = uiState.selectedTypeLabel,
-                                headerPrefix = "Type",
-                                options = uiState.types,
-                                onOptionClicked = onTypeClicked,
-                                onBack = onClearTypeFilter
-                            )
-                        }
-
-                        PokedexSection.GENERATION -> {
-                            FilterSectionContent(
-                                selectedLabel = uiState.selectedGenerationLabel,
-                                headerPrefix = "Generation",
-                                options = uiState.generations,
-                                onOptionClicked = onGenerationClicked,
-                                onBack = onClearGenerationFilter
-                            )
-                        }
-
-                        PokedexSection.ABILITY -> {
-                            FilterSectionContent(
-                                selectedLabel = uiState.selectedAbilityLabel,
-                                headerPrefix = "Ability",
-                                options = uiState.abilities,
-                                onOptionClicked = onAbilityClicked,
-                                onBack = onClearAbilityFilter
-                            )
-                        }
-
-                        PokedexSection.HABITAT -> {
-                            FilterSectionContent(
-                                selectedLabel = uiState.selectedHabitatLabel,
-                                headerPrefix = "Habitat",
-                                options = uiState.habitats,
-                                onOptionClicked = onHabitatClicked,
-                                onBack = onClearHabitatFilter
-                            )
-                        }
-
-                        PokedexSection.REGION -> {
-                            FilterSectionContent(
-                                selectedLabel = uiState.selectedRegionLabel,
-                                headerPrefix = "Region",
-                                options = uiState.regions,
-                                onOptionClicked = onRegionClicked,
-                                onBack = onClearRegionFilter
-                            )
-                        }
-
-                        PokedexSection.SHAPE -> {
-                            FilterSectionContent(
-                                selectedLabel = uiState.selectedShapeLabel,
-                                headerPrefix = "Shape",
-                                options = uiState.shapes,
-                                onOptionClicked = onShapeClicked,
-                                onBack = onClearShapeFilter
-                            )
-                        }
+                    item {
+                        FiltersSection(
+                            uiState = uiState,
+                            typeExpanded = typeExpanded,
+                            onTypeExpandedChange = { expanded ->
+                                typeExpanded = expanded
+                                if (expanded) onFilterCategorySelected(PokedexSection.TYPE)
+                            },
+                            onTypeClicked = onTypeClicked,
+                            onClearTypeFilter = onClearTypeFilter,
+                            generationExpanded = generationExpanded,
+                            onGenerationExpandedChange = { expanded ->
+                                generationExpanded = expanded
+                                if (expanded) onFilterCategorySelected(PokedexSection.GENERATION)
+                            },
+                            onGenerationClicked = onGenerationClicked,
+                            onClearGenerationFilter = onClearGenerationFilter,
+                            abilityExpanded = abilityExpanded,
+                            onAbilityExpandedChange = { expanded ->
+                                abilityExpanded = expanded
+                                if (expanded) onFilterCategorySelected(PokedexSection.ABILITY)
+                            },
+                            onAbilityClicked = onAbilityClicked,
+                            onClearAbilityFilter = onClearAbilityFilter,
+                            habitatExpanded = habitatExpanded,
+                            onHabitatExpandedChange = { expanded ->
+                                habitatExpanded = expanded
+                                if (expanded) onFilterCategorySelected(PokedexSection.HABITAT)
+                            },
+                            onHabitatClicked = onHabitatClicked,
+                            onClearHabitatFilter = onClearHabitatFilter,
+                            regionExpanded = regionExpanded,
+                            onRegionExpandedChange = { expanded ->
+                                regionExpanded = expanded
+                                if (expanded) onFilterCategorySelected(PokedexSection.REGION)
+                            },
+                            onRegionClicked = onRegionClicked,
+                            onClearRegionFilter = onClearRegionFilter,
+                            shapeExpanded = shapeExpanded,
+                            onShapeExpandedChange = { expanded ->
+                                shapeExpanded = expanded
+                                if (expanded) onFilterCategorySelected(PokedexSection.SHAPE)
+                            },
+                            onShapeClicked = onShapeClicked,
+                            onClearShapeFilter = onClearShapeFilter
+                        )
                     }
 
-                    if (uiState.selectedSection != PokedexSection.ALL && selectedLabelForSection(uiState) != null) {
-                        PokemonListItems(uiState.filteredPokemon, onPokemonClick, spriteType, shinyEnabled)
+                    item {
+                        ActiveFilterBar(
+                            uiState = uiState,
+                            onClearTypeFilter = onClearTypeFilter,
+                            onClearGenerationFilter = onClearGenerationFilter,
+                            onClearAbilityFilter = onClearAbilityFilter,
+                            onClearHabitatFilter = onClearHabitatFilter,
+                            onClearRegionFilter = onClearRegionFilter,
+                            onClearShapeFilter = onClearShapeFilter
+                        )
+                    }
+
+                    PokemonListItems(displayedPokemon, onPokemonClick, spriteType, shinyEnabled)
+
+                    if (uiState.isLoadingMore) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 12.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        }
                     }
                 }
 
-                if (uiState.selectedSection == PokedexSection.ALL) {
-                    LaunchedEffect(listState, allFilteredPokemon.size, uiState.hasMorePokemon, uiState.isLoadingMore) {
+                if (!uiState.hasActiveFilters) {
+                    LaunchedEffect(listState, displayedPokemon.size, uiState.hasMorePokemon, uiState.isLoadingMore) {
                         snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
                             .collect { lastVisibleIndex ->
-                                val threshold = (allFilteredPokemon.size - 4).coerceAtLeast(0)
+                                val threshold = (displayedPokemon.size - 4).coerceAtLeast(0)
                                 if (lastVisibleIndex >= threshold && uiState.hasMorePokemon && !uiState.isLoadingMore) {
                                     onLoadMore()
                                 }
@@ -239,33 +233,197 @@ fun PokedexScreen(
     }
 }
 
-private fun androidx.compose.foundation.lazy.LazyListScope.FilterSectionContent(
-    selectedLabel: String?,
-    headerPrefix: String,
-    options: List<PokemonFilterOption>,
-    onOptionClicked: (PokemonFilterOption) -> Unit,
-    onBack: () -> Unit
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FiltersSection(
+    uiState: PokedexUiState,
+    typeExpanded: Boolean,
+    onTypeExpandedChange: (Boolean) -> Unit,
+    onTypeClicked: (PokemonFilterOption) -> Unit,
+    onClearTypeFilter: () -> Unit,
+    generationExpanded: Boolean,
+    onGenerationExpandedChange: (Boolean) -> Unit,
+    onGenerationClicked: (PokemonFilterOption) -> Unit,
+    onClearGenerationFilter: () -> Unit,
+    abilityExpanded: Boolean,
+    onAbilityExpandedChange: (Boolean) -> Unit,
+    onAbilityClicked: (PokemonFilterOption) -> Unit,
+    onClearAbilityFilter: () -> Unit,
+    habitatExpanded: Boolean,
+    onHabitatExpandedChange: (Boolean) -> Unit,
+    onHabitatClicked: (PokemonFilterOption) -> Unit,
+    onClearHabitatFilter: () -> Unit,
+    regionExpanded: Boolean,
+    onRegionExpandedChange: (Boolean) -> Unit,
+    onRegionClicked: (PokemonFilterOption) -> Unit,
+    onClearRegionFilter: () -> Unit,
+    shapeExpanded: Boolean,
+    onShapeExpandedChange: (Boolean) -> Unit,
+    onShapeClicked: (PokemonFilterOption) -> Unit,
+    onClearShapeFilter: () -> Unit
 ) {
-    if (selectedLabel == null) {
-        items(options, key = { it.apiName }) { option ->
-            NameCard(title = option.label, imageUrl = option.imageUrl, onClick = { onOptionClicked(option) })
-        }
-    } else {
-        item {
-            FilterHeader(title = "$headerPrefix: $selectedLabel", onBack = onBack)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "Filtres",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            item {
+                FilterSelect(
+                    label = "Generation",
+                    selected = uiState.selectedGenerationLabel,
+                    options = uiState.generations,
+                    expanded = generationExpanded,
+                    onExpandedChange = onGenerationExpandedChange,
+                    onSelected = onGenerationClicked,
+                    onClear = onClearGenerationFilter,
+                    modifier = Modifier.size(width = 180.dp, height = 84.dp)
+                )
+            }
+            item {
+                FilterSelect(
+                    label = "Type",
+                    selected = uiState.selectedTypeLabel,
+                    options = uiState.types,
+                    expanded = typeExpanded,
+                    onExpandedChange = onTypeExpandedChange,
+                    onSelected = onTypeClicked,
+                    onClear = onClearTypeFilter,
+                    modifier = Modifier.size(width = 180.dp, height = 84.dp)
+                )
+            }
+            item {
+                FilterSelect(
+                    label = "Ability",
+                    selected = uiState.selectedAbilityLabel,
+                    options = uiState.abilities,
+                    expanded = abilityExpanded,
+                    onExpandedChange = onAbilityExpandedChange,
+                    onSelected = onAbilityClicked,
+                    onClear = onClearAbilityFilter,
+                    modifier = Modifier.size(width = 180.dp, height = 84.dp)
+                )
+            }
+            item {
+                FilterSelect(
+                    label = "Habitat",
+                    selected = uiState.selectedHabitatLabel,
+                    options = uiState.habitats,
+                    expanded = habitatExpanded,
+                    onExpandedChange = onHabitatExpandedChange,
+                    onSelected = onHabitatClicked,
+                    onClear = onClearHabitatFilter,
+                    modifier = Modifier.size(width = 180.dp, height = 84.dp)
+                )
+            }
+            item {
+                FilterSelect(
+                    label = "Region",
+                    selected = uiState.selectedRegionLabel,
+                    options = uiState.regions,
+                    expanded = regionExpanded,
+                    onExpandedChange = onRegionExpandedChange,
+                    onSelected = onRegionClicked,
+                    onClear = onClearRegionFilter,
+                    modifier = Modifier.size(width = 180.dp, height = 84.dp)
+                )
+            }
+            item {
+                FilterSelect(
+                    label = "Shape",
+                    selected = uiState.selectedShapeLabel,
+                    options = uiState.shapes,
+                    expanded = shapeExpanded,
+                    onExpandedChange = onShapeExpandedChange,
+                    onSelected = onShapeClicked,
+                    onClear = onClearShapeFilter,
+                    modifier = Modifier.size(width = 180.dp, height = 84.dp)
+                )
+            }
         }
     }
 }
 
-private fun selectedLabelForSection(uiState: PokedexUiState): String? {
-    return when (uiState.selectedSection) {
-        PokedexSection.ALL -> null
-        PokedexSection.TYPE -> uiState.selectedTypeLabel
-        PokedexSection.GENERATION -> uiState.selectedGenerationLabel
-        PokedexSection.ABILITY -> uiState.selectedAbilityLabel
-        PokedexSection.HABITAT -> uiState.selectedHabitatLabel
-        PokedexSection.REGION -> uiState.selectedRegionLabel
-        PokedexSection.SHAPE -> uiState.selectedShapeLabel
+@Composable
+private fun FilterSelect(
+    label: String,
+    selected: String?,
+    options: List<PokemonFilterOption>,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    onSelected: (PokemonFilterOption) -> Unit,
+    onClear: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(text = label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+        Box(modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(
+                onClick = { onExpandedChange(true) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(selected ?: "Tous")
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { onExpandedChange(false) }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Tous") },
+                    onClick = {
+                        onClear()
+                        onExpandedChange(false)
+                    }
+                )
+                options.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option.label) },
+                        onClick = {
+                            onSelected(option)
+                            onExpandedChange(false)
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActiveFilterBar(
+    uiState: PokedexUiState,
+    onClearTypeFilter: () -> Unit,
+    onClearGenerationFilter: () -> Unit,
+    onClearAbilityFilter: () -> Unit,
+    onClearHabitatFilter: () -> Unit,
+    onClearRegionFilter: () -> Unit,
+    onClearShapeFilter: () -> Unit
+) {
+    val activeFilters = buildList<Pair<String, () -> Unit>> {
+        uiState.selectedGenerationLabel?.let { add("Generation: $it" to onClearGenerationFilter) }
+        uiState.selectedTypeLabel?.let { add("Type: $it" to onClearTypeFilter) }
+        uiState.selectedAbilityLabel?.let { add("Ability: $it" to onClearAbilityFilter) }
+        uiState.selectedHabitatLabel?.let { add("Habitat: $it" to onClearHabitatFilter) }
+        uiState.selectedRegionLabel?.let { add("Region: $it" to onClearRegionFilter) }
+        uiState.selectedShapeLabel?.let { add("Shape: $it" to onClearShapeFilter) }
+    }
+
+    if (activeFilters.isNotEmpty()) {
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            items(activeFilters) { (label, clear) ->
+                OutlinedButton(onClick = clear) {
+                    Text("$label x")
+                }
+            }
+        }
     }
 }
 
@@ -292,116 +450,6 @@ private fun androidx.compose.foundation.lazy.LazyListScope.PokemonListItems(
                 shinyEnabled = shinyEnabled,
                 onClick = { onPokemonClick(item.id, ids) }
             )
-        }
-    }
-}
-
-private fun currentTotal(uiState: PokedexUiState, allPokemonCount: Int): Int {
-    val selectedLabel = selectedLabelForSection(uiState)
-    if (uiState.selectedSection == PokedexSection.ALL) {
-        return allPokemonCount
-    }
-
-    return if (selectedLabel == null) {
-        when (uiState.selectedSection) {
-            PokedexSection.TYPE -> uiState.types.size
-            PokedexSection.GENERATION -> uiState.generations.size
-            PokedexSection.ABILITY -> uiState.abilities.size
-            PokedexSection.HABITAT -> uiState.habitats.size
-            PokedexSection.REGION -> uiState.regions.size
-            PokedexSection.SHAPE -> uiState.shapes.size
-            PokedexSection.ALL -> allPokemonCount
-        }
-    } else {
-        uiState.filteredPokemon.size
-    }
-}
-
-@Composable
-private fun FilterHeader(title: String, onBack: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(text = title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        OutlinedButton(onClick = onBack) {
-            Text("Retour")
-        }
-    }
-}
-
-@Composable
-private fun SectionSelector(
-    selectedSection: PokedexSection,
-    onSectionSelected: (PokedexSection) -> Unit
-) {
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        item {
-            SectionButton(
-                label = "All",
-                selected = selectedSection == PokedexSection.ALL,
-                onClick = { onSectionSelected(PokedexSection.ALL) }
-            )
-        }
-        item {
-            SectionButton(
-                label = "Type",
-                selected = selectedSection == PokedexSection.TYPE,
-                onClick = { onSectionSelected(PokedexSection.TYPE) }
-            )
-        }
-        item {
-            SectionButton(
-                label = "Generation",
-                selected = selectedSection == PokedexSection.GENERATION,
-                onClick = { onSectionSelected(PokedexSection.GENERATION) }
-            )
-        }
-        item {
-            SectionButton(
-                label = "Ability",
-                selected = selectedSection == PokedexSection.ABILITY,
-                onClick = { onSectionSelected(PokedexSection.ABILITY) }
-            )
-        }
-        item {
-            SectionButton(
-                label = "Habitat",
-                selected = selectedSection == PokedexSection.HABITAT,
-                onClick = { onSectionSelected(PokedexSection.HABITAT) }
-            )
-        }
-        item {
-            SectionButton(
-                label = "Region",
-                selected = selectedSection == PokedexSection.REGION,
-                onClick = { onSectionSelected(PokedexSection.REGION) }
-            )
-        }
-        item {
-            SectionButton(
-                label = "Shape",
-                selected = selectedSection == PokedexSection.SHAPE,
-                onClick = { onSectionSelected(PokedexSection.SHAPE) }
-            )
-        }
-    }
-}
-
-@Composable
-private fun SectionButton(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    if (selected) {
-        Button(onClick = onClick) {
-            Text(label)
-        }
-    } else {
-        OutlinedButton(onClick = onClick) {
-            Text(label)
         }
     }
 }
@@ -449,33 +497,6 @@ private fun PokemonRow(
                     fontWeight = FontWeight.Bold
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun NameCard(title: String, imageUrl: String?, onClick: () -> Unit) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        tonalElevation = 2.dp,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            if (imageUrl != null) {
-                AsyncImage(
-                    model = imageUrl,
-                    contentDescription = title,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.size(40.dp)
-                )
-            }
-            Text(text = title, style = MaterialTheme.typography.titleMedium)
         }
     }
 }

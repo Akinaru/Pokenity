@@ -4,7 +4,6 @@ import fr.pokenity.pokenity.domain.model.PokemonFilterOption
 import fr.pokenity.pokenity.domain.model.PokemonSummary
 
 enum class PokedexSection {
-    ALL,
     TYPE,
     GENERATION,
     ABILITY,
@@ -25,12 +24,31 @@ data class PokedexUiState(
     val habitats: List<PokemonFilterOption> = emptyList(),
     val regions: List<PokemonFilterOption> = emptyList(),
     val shapes: List<PokemonFilterOption> = emptyList(),
-    val selectedSection: PokedexSection = PokedexSection.ALL,
-    val selectedTypeLabel: String? = null,
-    val selectedGenerationLabel: String? = null,
-    val selectedAbilityLabel: String? = null,
-    val selectedHabitatLabel: String? = null,
-    val selectedRegionLabel: String? = null,
-    val selectedShapeLabel: String? = null,
+    val selectedType: PokemonFilterOption? = null,
+    val selectedGeneration: PokemonFilterOption? = null,
+    val selectedAbility: PokemonFilterOption? = null,
+    val selectedHabitat: PokemonFilterOption? = null,
+    val selectedRegion: PokemonFilterOption? = null,
+    val selectedShape: PokemonFilterOption? = null,
     val errorMessage: String? = null
-)
+) {
+    val selectedTypeLabel: String?
+        get() = selectedType?.label
+    val selectedGenerationLabel: String?
+        get() = selectedGeneration?.label
+    val selectedAbilityLabel: String?
+        get() = selectedAbility?.label
+    val selectedHabitatLabel: String?
+        get() = selectedHabitat?.label
+    val selectedRegionLabel: String?
+        get() = selectedRegion?.label
+    val selectedShapeLabel: String?
+        get() = selectedShape?.label
+    val hasActiveFilters: Boolean
+        get() = selectedType != null ||
+            selectedGeneration != null ||
+            selectedAbility != null ||
+            selectedHabitat != null ||
+            selectedRegion != null ||
+            selectedShape != null
+}

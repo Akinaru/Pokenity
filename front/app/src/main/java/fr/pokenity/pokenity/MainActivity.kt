@@ -96,7 +96,7 @@ class MainActivity : ComponentActivity() {
                                     PokedexScreen(
                                         uiState = pokedexUiState,
                                         onRetry = pokedexViewModel::loadPokedexData,
-                                        onSectionSelected = pokedexViewModel::onSectionSelected,
+                                        onFilterCategorySelected = pokedexViewModel::onFilterCategorySelected,
                                         onLoadMore = pokedexViewModel::loadMorePokemonIfNeeded,
                                         onPokemonClick = { id, ids ->
                                             PokemonBrowseState.setList(ids)

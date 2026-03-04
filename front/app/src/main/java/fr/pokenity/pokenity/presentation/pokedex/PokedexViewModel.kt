@@ -21,6 +21,8 @@ import fr.pokenity.pokenity.domain.usecase.GetPokemonRegionsUseCase
 import fr.pokenity.pokenity.domain.usecase.GetPokemonShapesUseCase
 import fr.pokenity.pokenity.domain.usecase.GetPokemonTypesUseCase
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -61,211 +63,185 @@ class PokedexViewModel(
             hasMorePokemon = true,
             pokemon = emptyList(),
             filteredPokemon = emptyList(),
-            selectedTypeLabel = null,
-            selectedGenerationLabel = null,
-            selectedAbilityLabel = null,
-            selectedHabitatLabel = null,
-            selectedRegionLabel = null,
-            selectedShapeLabel = null,
+            selectedType = null,
+            selectedGeneration = null,
+            selectedAbility = null,
+            selectedHabitat = null,
+            selectedRegion = null,
+            selectedShape = null,
             errorMessage = null
         )
 
         viewModelScope.launch(Dispatchers.IO) {
-            runCatching {
-                getPokemonListUseCase(limit = pageSize, offset = 0)
-            }.onSuccess { pokemon ->
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    pokemon = pokemon,
-                    hasMorePokemon = pokemon.size == pageSize
-                )
-                currentOffset = pokemon.size
-            }.onFailure {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Impossible de charger les Pokemon. Verifie ta connexion puis reessaie."
-                )
-            }
+            runCatching { getPokemonListUseCase(limit = pageSize, offset = 0) }
+                .onSuccess { pokemon ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        pokemon = pokemon,
+                        hasMorePokemon = pokemon.size == pageSize
+                    )
+                    currentOffset = pokemon.size
+                }
+                .onFailure {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = "Impossible de charger les Pokemon."
+                    )
+                }
         }
     }
 
     fun loadMorePokemonIfNeeded() {
         val state = _uiState.value
-        if (state.selectedSection != PokedexSection.ALL) return
         if (state.isLoading || state.isLoadingMore || !state.hasMorePokemon) return
+        if (hasActiveFilters(state)) return
 
         _uiState.value = state.copy(isLoadingMore = true)
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { getPokemonListUseCase(limit = pageSize, offset = currentOffset) }
+                .onSuccess { nextPage ->
+                    val updated = _uiState.value.pokemon + nextPage
+                    _uiState.value = _uiState.value.copy(
+                        isLoadingMore = false,
+                        pokemon = updated,
+                        hasMorePokemon = nextPage.size == pageSize
+                    )
+                    currentOffset += nextPage.size
+                }
+                .onFailure {
+                    _uiState.value = _uiState.value.copy(
+                        isLoadingMore = false,
+                        errorMessage = "Impossible de charger plus de Pokemon."
+                    )
+                }
+        }
+    }
 
+    fun onFilterCategorySelected(category: PokedexSection) {
+        ensureOptionsLoaded(category)
+    }
+
+    fun onTypeClicked(type: PokemonFilterOption) {
+        _uiState.value = _uiState.value.copy(selectedType = type)
+        applyCombinedFilters()
+    }
+
+    fun onGenerationClicked(generation: PokemonFilterOption) {
+        _uiState.value = _uiState.value.copy(selectedGeneration = generation)
+        applyCombinedFilters()
+    }
+
+    fun onAbilityClicked(ability: PokemonFilterOption) {
+        _uiState.value = _uiState.value.copy(selectedAbility = ability)
+        applyCombinedFilters()
+    }
+
+    fun onHabitatClicked(habitat: PokemonFilterOption) {
+        _uiState.value = _uiState.value.copy(selectedHabitat = habitat)
+        applyCombinedFilters()
+    }
+
+    fun onRegionClicked(region: PokemonFilterOption) {
+        _uiState.value = _uiState.value.copy(selectedRegion = region)
+        applyCombinedFilters()
+    }
+
+    fun onShapeClicked(shape: PokemonFilterOption) {
+        _uiState.value = _uiState.value.copy(selectedShape = shape)
+        applyCombinedFilters()
+    }
+
+    fun clearTypeFilter() {
+        _uiState.value = _uiState.value.copy(selectedType = null)
+        applyCombinedFilters()
+    }
+
+    fun clearGenerationFilter() {
+        _uiState.value = _uiState.value.copy(selectedGeneration = null)
+        applyCombinedFilters()
+    }
+
+    fun clearAbilityFilter() {
+        _uiState.value = _uiState.value.copy(selectedAbility = null)
+        applyCombinedFilters()
+    }
+
+    fun clearHabitatFilter() {
+        _uiState.value = _uiState.value.copy(selectedHabitat = null)
+        applyCombinedFilters()
+    }
+
+    fun clearRegionFilter() {
+        _uiState.value = _uiState.value.copy(selectedRegion = null)
+        applyCombinedFilters()
+    }
+
+    fun clearShapeFilter() {
+        _uiState.value = _uiState.value.copy(selectedShape = null)
+        applyCombinedFilters()
+    }
+
+    private fun applyCombinedFilters() {
+        val state = _uiState.value
+        if (!hasActiveFilters(state)) {
+            _uiState.value = state.copy(filteredPokemon = emptyList(), errorMessage = null)
+            return
+        }
+
+        _uiState.value = state.copy(isLoading = true, errorMessage = null)
         viewModelScope.launch(Dispatchers.IO) {
             runCatching {
-                getPokemonListUseCase(limit = pageSize, offset = currentOffset)
-            }.onSuccess { nextPage ->
-                val updatedList = _uiState.value.pokemon + nextPage
-                _uiState.value = _uiState.value.copy(
-                    isLoadingMore = false,
-                    pokemon = updatedList,
-                    hasMorePokemon = nextPage.size == pageSize
-                )
-                currentOffset += nextPage.size
+                val selectedType = _uiState.value.selectedType
+                val selectedGeneration = _uiState.value.selectedGeneration
+                val selectedAbility = _uiState.value.selectedAbility
+                val selectedHabitat = _uiState.value.selectedHabitat
+                val selectedRegion = _uiState.value.selectedRegion
+                val selectedShape = _uiState.value.selectedShape
+
+                val deferredLists = buildList {
+                    selectedType?.let { add(async { getPokemonByTypeUseCase(it.apiName) }) }
+                    selectedGeneration?.let { add(async { getPokemonByGenerationUseCase(it.apiName) }) }
+                    selectedAbility?.let { add(async { getPokemonByAbilityUseCase(it.apiName) }) }
+                    selectedHabitat?.let { add(async { getPokemonByHabitatUseCase(it.apiName) }) }
+                    selectedRegion?.let { add(async { getPokemonByRegionUseCase(it.apiName) }) }
+                    selectedShape?.let { add(async { getPokemonByShapeUseCase(it.apiName) }) }
+                }
+
+                val lists = deferredLists.awaitAll()
+                intersectPokemonLists(lists)
+            }.onSuccess { filtered ->
+                _uiState.value = _uiState.value.copy(isLoading = false, filteredPokemon = filtered)
             }.onFailure {
                 _uiState.value = _uiState.value.copy(
-                    isLoadingMore = false,
-                    errorMessage = "Impossible de charger plus de Pokemon."
+                    isLoading = false,
+                    errorMessage = "Impossible d'appliquer les filtres."
                 )
             }
         }
     }
 
-    fun onSectionSelected(section: PokedexSection) {
-        _uiState.value = _uiState.value.copy(
-            selectedSection = section,
-            selectedTypeLabel = null,
-            selectedGenerationLabel = null,
-            selectedAbilityLabel = null,
-            selectedHabitatLabel = null,
-            selectedRegionLabel = null,
-            selectedShapeLabel = null,
-            filteredPokemon = emptyList(),
-            errorMessage = null
-        )
-        ensureSectionOptionsLoaded(section)
+    private fun intersectPokemonLists(lists: List<List<PokemonSummary>>): List<PokemonSummary> {
+        if (lists.isEmpty()) return emptyList()
+
+        val idIntersection = lists
+            .map { list -> list.map { it.id }.toSet() }
+            .reduce { acc, ids -> acc intersect ids }
+
+        val reference = lists.first().associateBy { it.id }
+        return idIntersection.mapNotNull { reference[it] }.sortedBy { it.id }
     }
 
-    fun onTypeClicked(type: PokemonFilterOption) {
-        loadFilteredPokemon(
-            selectedLabel = type.label,
-            clearOtherSelections = {
-                copy(
-                    selectedGenerationLabel = null,
-                    selectedAbilityLabel = null,
-                    selectedHabitatLabel = null,
-                    selectedRegionLabel = null,
-                    selectedShapeLabel = null
-                )
-            },
-            loader = { getPokemonByTypeUseCase(type.apiName) },
-            error = "Impossible de charger les Pokemon de ce type.",
-            labelSetter = { state, label -> state.copy(selectedTypeLabel = label) }
-        )
+    private fun hasActiveFilters(state: PokedexUiState): Boolean {
+        return state.selectedType != null ||
+            state.selectedGeneration != null ||
+            state.selectedAbility != null ||
+            state.selectedHabitat != null ||
+            state.selectedRegion != null ||
+            state.selectedShape != null
     }
 
-    fun onGenerationClicked(generation: PokemonFilterOption) {
-        loadFilteredPokemon(
-            selectedLabel = generation.label,
-            clearOtherSelections = {
-                copy(
-                    selectedTypeLabel = null,
-                    selectedAbilityLabel = null,
-                    selectedHabitatLabel = null,
-                    selectedRegionLabel = null,
-                    selectedShapeLabel = null
-                )
-            },
-            loader = { getPokemonByGenerationUseCase(generation.apiName) },
-            error = "Impossible de charger les Pokemon de cette generation.",
-            labelSetter = { state, label -> state.copy(selectedGenerationLabel = label) }
-        )
-    }
-
-    fun onAbilityClicked(ability: PokemonFilterOption) {
-        loadFilteredPokemon(
-            selectedLabel = ability.label,
-            clearOtherSelections = {
-                copy(
-                    selectedTypeLabel = null,
-                    selectedGenerationLabel = null,
-                    selectedHabitatLabel = null,
-                    selectedRegionLabel = null,
-                    selectedShapeLabel = null
-                )
-            },
-            loader = { getPokemonByAbilityUseCase(ability.apiName) },
-            error = "Impossible de charger les Pokemon de cette capacite.",
-            labelSetter = { state, label -> state.copy(selectedAbilityLabel = label) }
-        )
-    }
-
-    fun onHabitatClicked(habitat: PokemonFilterOption) {
-        loadFilteredPokemon(
-            selectedLabel = habitat.label,
-            clearOtherSelections = {
-                copy(
-                    selectedTypeLabel = null,
-                    selectedGenerationLabel = null,
-                    selectedAbilityLabel = null,
-                    selectedRegionLabel = null,
-                    selectedShapeLabel = null
-                )
-            },
-            loader = { getPokemonByHabitatUseCase(habitat.apiName) },
-            error = "Impossible de charger les Pokemon de cet habitat.",
-            labelSetter = { state, label -> state.copy(selectedHabitatLabel = label) }
-        )
-    }
-
-    fun onRegionClicked(region: PokemonFilterOption) {
-        loadFilteredPokemon(
-            selectedLabel = region.label,
-            clearOtherSelections = {
-                copy(
-                    selectedTypeLabel = null,
-                    selectedGenerationLabel = null,
-                    selectedAbilityLabel = null,
-                    selectedHabitatLabel = null,
-                    selectedShapeLabel = null
-                )
-            },
-            loader = { getPokemonByRegionUseCase(region.apiName) },
-            error = "Impossible de charger les Pokemon de cette region.",
-            labelSetter = { state, label -> state.copy(selectedRegionLabel = label) }
-        )
-    }
-
-    fun onShapeClicked(shape: PokemonFilterOption) {
-        loadFilteredPokemon(
-            selectedLabel = shape.label,
-            clearOtherSelections = {
-                copy(
-                    selectedTypeLabel = null,
-                    selectedGenerationLabel = null,
-                    selectedAbilityLabel = null,
-                    selectedHabitatLabel = null,
-                    selectedRegionLabel = null
-                )
-            },
-            loader = { getPokemonByShapeUseCase(shape.apiName) },
-            error = "Impossible de charger les Pokemon de cette forme.",
-            labelSetter = { state, label -> state.copy(selectedShapeLabel = label) }
-        )
-    }
-
-    fun clearTypeFilter() {
-        _uiState.value = _uiState.value.copy(selectedTypeLabel = null, filteredPokemon = emptyList(), errorMessage = null)
-    }
-
-    fun clearGenerationFilter() {
-        _uiState.value = _uiState.value.copy(selectedGenerationLabel = null, filteredPokemon = emptyList(), errorMessage = null)
-    }
-
-    fun clearAbilityFilter() {
-        _uiState.value = _uiState.value.copy(selectedAbilityLabel = null, filteredPokemon = emptyList(), errorMessage = null)
-    }
-
-    fun clearHabitatFilter() {
-        _uiState.value = _uiState.value.copy(selectedHabitatLabel = null, filteredPokemon = emptyList(), errorMessage = null)
-    }
-
-    fun clearRegionFilter() {
-        _uiState.value = _uiState.value.copy(selectedRegionLabel = null, filteredPokemon = emptyList(), errorMessage = null)
-    }
-
-    fun clearShapeFilter() {
-        _uiState.value = _uiState.value.copy(selectedShapeLabel = null, filteredPokemon = emptyList(), errorMessage = null)
-    }
-
-    private fun ensureSectionOptionsLoaded(section: PokedexSection) {
+    private fun ensureOptionsLoaded(section: PokedexSection) {
         when (section) {
-            PokedexSection.ALL -> Unit
             PokedexSection.TYPE -> if (_uiState.value.types.isEmpty()) loadOptions { copy(types = getPokemonTypesUseCase()) }
             PokedexSection.GENERATION -> if (_uiState.value.generations.isEmpty()) loadOptions { copy(generations = getPokemonGenerationsUseCase()) }
             PokedexSection.ABILITY -> if (_uiState.value.abilities.isEmpty()) loadOptions { copy(abilities = getPokemonAbilitiesUseCase()) }
@@ -289,29 +265,6 @@ class PokedexViewModel(
         }
     }
 
-    private fun loadFilteredPokemon(
-        selectedLabel: String,
-        clearOtherSelections: PokedexUiState.() -> PokedexUiState,
-        loader: suspend () -> List<PokemonSummary>,
-        error: String,
-        labelSetter: (PokedexUiState, String) -> PokedexUiState
-    ) {
-        var nextState = _uiState.value.copy(isLoading = true, errorMessage = null)
-        nextState = nextState.clearOtherSelections()
-        nextState = labelSetter(nextState, selectedLabel)
-        _uiState.value = nextState
-
-        viewModelScope.launch(Dispatchers.IO) {
-            runCatching { loader() }
-                .onSuccess { pokemon ->
-                    _uiState.value = _uiState.value.copy(isLoading = false, filteredPokemon = pokemon)
-                }
-                .onFailure {
-                    _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = error)
-                }
-        }
-    }
-
     private fun observeLanguageChanges() {
         viewModelScope.launch {
             AppLanguageState.selectedLanguageCode.drop(1).collect {
@@ -325,33 +278,20 @@ class PokedexViewModel(
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 val repository = AppContainer.pokemonRepository
-                val pokemonUseCase = GetPokemonListUseCase(repository)
-                val typesUseCase = GetPokemonTypesUseCase(repository)
-                val generationsUseCase = GetPokemonGenerationsUseCase(repository)
-                val abilitiesUseCase = GetPokemonAbilitiesUseCase(repository)
-                val habitatsUseCase = GetPokemonHabitatsUseCase(repository)
-                val regionsUseCase = GetPokemonRegionsUseCase(repository)
-                val shapesUseCase = GetPokemonShapesUseCase(repository)
-                val pokemonByTypeUseCase = GetPokemonByTypeUseCase(repository)
-                val pokemonByGenerationUseCase = GetPokemonByGenerationUseCase(repository)
-                val pokemonByAbilityUseCase = GetPokemonByAbilityUseCase(repository)
-                val pokemonByHabitatUseCase = GetPokemonByHabitatUseCase(repository)
-                val pokemonByRegionUseCase = GetPokemonByRegionUseCase(repository)
-                val pokemonByShapeUseCase = GetPokemonByShapeUseCase(repository)
                 return PokedexViewModel(
-                    pokemonUseCase,
-                    typesUseCase,
-                    generationsUseCase,
-                    abilitiesUseCase,
-                    habitatsUseCase,
-                    regionsUseCase,
-                    shapesUseCase,
-                    pokemonByTypeUseCase,
-                    pokemonByGenerationUseCase,
-                    pokemonByAbilityUseCase,
-                    pokemonByHabitatUseCase,
-                    pokemonByRegionUseCase,
-                    pokemonByShapeUseCase
+                    getPokemonListUseCase = GetPokemonListUseCase(repository),
+                    getPokemonTypesUseCase = GetPokemonTypesUseCase(repository),
+                    getPokemonGenerationsUseCase = GetPokemonGenerationsUseCase(repository),
+                    getPokemonAbilitiesUseCase = GetPokemonAbilitiesUseCase(repository),
+                    getPokemonHabitatsUseCase = GetPokemonHabitatsUseCase(repository),
+                    getPokemonRegionsUseCase = GetPokemonRegionsUseCase(repository),
+                    getPokemonShapesUseCase = GetPokemonShapesUseCase(repository),
+                    getPokemonByTypeUseCase = GetPokemonByTypeUseCase(repository),
+                    getPokemonByGenerationUseCase = GetPokemonByGenerationUseCase(repository),
+                    getPokemonByAbilityUseCase = GetPokemonByAbilityUseCase(repository),
+                    getPokemonByHabitatUseCase = GetPokemonByHabitatUseCase(repository),
+                    getPokemonByRegionUseCase = GetPokemonByRegionUseCase(repository),
+                    getPokemonByShapeUseCase = GetPokemonByShapeUseCase(repository)
                 ) as T
             }
         }
