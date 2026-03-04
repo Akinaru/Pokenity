@@ -115,6 +115,7 @@ fun PokemonDetailScreen(
     uiState: PokemonDetailUiState,
     onBack: () -> Unit,
     onRetry: () -> Unit,
+    onOpenComparator: (Int) -> Unit,
     onPreviousPokemon: (() -> Unit)? = null,
     onNextPokemon: (() -> Unit)? = null,
     onPokemonClick: (Int) -> Unit,
@@ -199,6 +200,19 @@ fun PokemonDetailScreen(
                     // Stats section
                     item {
                         StatsSection(stats = pokemon.stats)
+                    }
+
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            OutlinedButton(onClick = { onOpenComparator(pokemon.id) }) {
+                                Text("Comparer ce Pokemon")
+                            }
+                        }
                     }
 
                     // Evolution chain section

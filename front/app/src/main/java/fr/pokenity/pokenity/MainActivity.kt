@@ -8,15 +8,20 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CatchingPokemon
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -33,6 +38,8 @@ import androidx.navigation.navArgument
 import fr.pokenity.pokenity.core.PokemonBrowseState
 import fr.pokenity.pokenity.presentation.detail.PokemonDetailScreen
 import fr.pokenity.pokenity.presentation.detail.PokemonDetailViewModel
+import fr.pokenity.pokenity.presentation.compare.PokemonCompareScreen
+import fr.pokenity.pokenity.presentation.compare.PokemonCompareViewModel
 import fr.pokenity.pokenity.presentation.map.MapScreen
 import fr.pokenity.pokenity.presentation.map.MapViewModel
 import fr.pokenity.pokenity.presentation.account.AccountScreen
@@ -57,6 +64,7 @@ class MainActivity : ComponentActivity() {
     private val settingsViewModel: SettingsViewModel by viewModels { SettingsViewModel.factory }
     private val accountViewModel: AccountViewModel by viewModels { AccountViewModel.factory }
     private val detailViewModel: PokemonDetailViewModel by viewModels { PokemonDetailViewModel.factory }
+    private val compareViewModel: PokemonCompareViewModel by viewModels { PokemonCompareViewModel.factory }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,6 +76,7 @@ class MainActivity : ComponentActivity() {
             val settingsUiState by settingsViewModel.uiState.collectAsState()
             val accountUiState by accountViewModel.uiState.collectAsState()
             val detailUiState by detailViewModel.uiState.collectAsState()
+            val compareUiState by compareViewModel.uiState.collectAsState()
 
             val navController = rememberNavController()
 
@@ -185,6 +194,7 @@ class MainActivity : ComponentActivity() {
                             uiState = detailUiState,
                             onBack = { navController.popBackStack() },
                             onRetry = { detailViewModel.loadPokemon(pokemonId) },
+                            onOpenComparator = { baseId -> navController.navigate("compare/$baseId") },
                             onPreviousPokemon = if (previousId != null) {
                                 { navController.navigate("detail/$previousId") }
                             } else null,
@@ -196,9 +206,137 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     }
+
+                    composable(
+                        route = "compare/{baseId}",
+                        arguments = listOf(navArgument("baseId") { type = NavType.IntType })
+                    ) { backStackEntry ->
+                        val baseId = backStackEntry.arguments?.getInt("baseId") ?: return@composable
+                        LaunchedEffect(baseId) {
+                            compareViewModel.load(basePokemonId = baseId, comparedPokemonId = null)
+                        }
+
+                        PokemonCompareScreen(
+                            uiState = compareUiState,
+                            onBack = { navController.popBackStack() },
+                            onRetry = { compareViewModel.load(basePokemonId = baseId, comparedPokemonId = null) },
+                            onOpenSelector = { navController.navigate("compare-picker/$baseId") },
+                            onOpenPokemonDetail = { id -> navController.navigate("detail/$id") }
+                        )
+                    }
+
+                    composable(
+                        route = "compare/{baseId}/{comparedId}",
+                        arguments = listOf(
+                            navArgument("baseId") { type = NavType.IntType },
+                            navArgument("comparedId") { type = NavType.IntType }
+                        )
+                    ) { backStackEntry ->
+                        val baseId = backStackEntry.arguments?.getInt("baseId") ?: return@composable
+                        val comparedId = backStackEntry.arguments?.getInt("comparedId") ?: return@composable
+
+                        LaunchedEffect(baseId, comparedId) {
+                            compareViewModel.load(basePokemonId = baseId, comparedPokemonId = comparedId)
+                        }
+
+                        PokemonCompareScreen(
+                            uiState = compareUiState,
+                            onBack = { navController.popBackStack() },
+                            onRetry = { compareViewModel.load(basePokemonId = baseId, comparedPokemonId = comparedId) },
+                            onOpenSelector = { navController.navigate("compare-picker/$baseId") },
+                            onOpenPokemonDetail = { id -> navController.navigate("detail/$id") }
+                        )
+                    }
+
+                    composable(
+                        route = "compare-picker/{baseId}",
+                        arguments = listOf(navArgument("baseId") { type = NavType.IntType })
+                    ) { backStackEntry ->
+                        val baseId = backStackEntry.arguments?.getInt("baseId") ?: return@composable
+                        ComparePickerScreen(
+                            uiState = pokedexUiState,
+                            onBack = { navController.popBackStack() },
+                            onRetry = pokedexViewModel::loadPokedexData,
+                            onFilterCategorySelected = pokedexViewModel::onFilterCategorySelected,
+                            onLoadMore = pokedexViewModel::loadMorePokemonIfNeeded,
+                            onTypeClicked = pokedexViewModel::onTypeClicked,
+                            onGenerationClicked = pokedexViewModel::onGenerationClicked,
+                            onAbilityClicked = pokedexViewModel::onAbilityClicked,
+                            onHabitatClicked = pokedexViewModel::onHabitatClicked,
+                            onRegionClicked = pokedexViewModel::onRegionClicked,
+                            onShapeClicked = pokedexViewModel::onShapeClicked,
+                            onClearTypeFilter = pokedexViewModel::clearTypeFilter,
+                            onClearGenerationFilter = pokedexViewModel::clearGenerationFilter,
+                            onClearAbilityFilter = pokedexViewModel::clearAbilityFilter,
+                            onClearHabitatFilter = pokedexViewModel::clearHabitatFilter,
+                            onClearRegionFilter = pokedexViewModel::clearRegionFilter,
+                            onClearShapeFilter = pokedexViewModel::clearShapeFilter,
+                            onPokemonPicked = { pickedId ->
+                                navController.navigate("compare/$baseId/$pickedId")
+                            }
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ComparePickerScreen(
+    uiState: fr.pokenity.pokenity.presentation.pokedex.PokedexUiState,
+    onBack: () -> Unit,
+    onRetry: () -> Unit,
+    onFilterCategorySelected: (fr.pokenity.pokenity.presentation.pokedex.PokedexSection) -> Unit,
+    onLoadMore: () -> Unit,
+    onTypeClicked: (fr.pokenity.pokenity.domain.model.PokemonFilterOption) -> Unit,
+    onGenerationClicked: (fr.pokenity.pokenity.domain.model.PokemonFilterOption) -> Unit,
+    onAbilityClicked: (fr.pokenity.pokenity.domain.model.PokemonFilterOption) -> Unit,
+    onHabitatClicked: (fr.pokenity.pokenity.domain.model.PokemonFilterOption) -> Unit,
+    onRegionClicked: (fr.pokenity.pokenity.domain.model.PokemonFilterOption) -> Unit,
+    onShapeClicked: (fr.pokenity.pokenity.domain.model.PokemonFilterOption) -> Unit,
+    onClearTypeFilter: () -> Unit,
+    onClearGenerationFilter: () -> Unit,
+    onClearAbilityFilter: () -> Unit,
+    onClearHabitatFilter: () -> Unit,
+    onClearRegionFilter: () -> Unit,
+    onClearShapeFilter: () -> Unit,
+    onPokemonPicked: (Int) -> Unit
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Choisir un Pokemon") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors()
+            )
+        }
+    ) { innerPadding ->
+        PokedexScreen(
+            uiState = uiState,
+            onRetry = onRetry,
+            onFilterCategorySelected = onFilterCategorySelected,
+            onLoadMore = onLoadMore,
+            onPokemonClick = { id, _ -> onPokemonPicked(id) },
+            onTypeClicked = onTypeClicked,
+            onGenerationClicked = onGenerationClicked,
+            onAbilityClicked = onAbilityClicked,
+            onHabitatClicked = onHabitatClicked,
+            onRegionClicked = onRegionClicked,
+            onShapeClicked = onShapeClicked,
+            onClearTypeFilter = onClearTypeFilter,
+            onClearGenerationFilter = onClearGenerationFilter,
+            onClearAbilityFilter = onClearAbilityFilter,
+            onClearHabitatFilter = onClearHabitatFilter,
+            onClearRegionFilter = onClearRegionFilter,
+            onClearShapeFilter = onClearShapeFilter,
+            modifier = Modifier.padding(innerPadding)
+        )
     }
 }
 
