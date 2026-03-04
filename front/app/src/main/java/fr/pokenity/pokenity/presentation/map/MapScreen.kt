@@ -23,6 +23,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,6 +34,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import fr.pokenity.pokenity.core.PokemonImageSettings
+import fr.pokenity.pokenity.core.pokemonImageUrl
 import fr.pokenity.pokenity.domain.model.PokemonFilterOption
 import fr.pokenity.pokenity.domain.model.PokemonSummary
 
@@ -48,6 +52,9 @@ fun MapScreen(
     onBackToAreas: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val spriteType by PokemonImageSettings.imageType.collectAsState()
+    val shinyEnabled by PokemonImageSettings.isShiny.collectAsState()
+
     Surface(modifier = modifier.fillMaxSize()) {
         when {
             uiState.isLoading -> {
@@ -71,6 +78,20 @@ fun MapScreen(
                             title = "World Map Explorer",
                             subtitle = "Choisis une region, puis une location, puis une zone"
                         )
+                    }
+
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            OutlinedButton(
+                                onClick = { PokemonImageSettings.toggleShiny() },
+                                enabled = spriteType.supportsShiny
+                            ) {
+                                Text(if (shinyEnabled) "Shiny ON" else "Shiny OFF")
+                            }
+                        }
                     }
 
                     item {
@@ -130,7 +151,11 @@ fun MapScreen(
                                 }
                             } else {
                                 items(uiState.pokemons, key = { it.id }) { pokemon ->
-                                    PokemonRow(pokemon = pokemon, onClick = { onPokemonClick(pokemon.id) })
+                                    PokemonRow(
+                                        pokemon = pokemon,
+                                        imageUrl = pokemonImageUrl(pokemon.id, spriteType, shinyEnabled),
+                                        onClick = { onPokemonClick(pokemon.id) }
+                                    )
                                 }
                             }
                         }
@@ -196,7 +221,7 @@ private fun ChoiceCard(title: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun PokemonRow(pokemon: PokemonSummary, onClick: () -> Unit) {
+private fun PokemonRow(pokemon: PokemonSummary, imageUrl: String, onClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(20.dp),
         tonalElevation = 3.dp,
@@ -212,7 +237,7 @@ private fun PokemonRow(pokemon: PokemonSummary, onClick: () -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             AsyncImage(
-                model = pokemon.imageUrl,
+                model = imageUrl,
                 contentDescription = pokemon.name,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.size(84.dp)

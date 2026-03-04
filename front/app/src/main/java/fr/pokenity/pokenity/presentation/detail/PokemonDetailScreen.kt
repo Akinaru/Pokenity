@@ -27,10 +27,12 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +49,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import fr.pokenity.pokenity.core.PokemonImageSettings
+import fr.pokenity.pokenity.core.PokemonImageType
+import fr.pokenity.pokenity.core.pokemonImageUrl
 import fr.pokenity.pokenity.domain.model.EvolutionStage
 import fr.pokenity.pokenity.domain.model.PokemonDetail
 import fr.pokenity.pokenity.domain.model.PokemonMove
@@ -100,6 +105,9 @@ fun PokemonDetailScreen(
     onPokemonClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val imageType by PokemonImageSettings.imageType.collectAsState()
+    val shinyEnabled by PokemonImageSettings.isShiny.collectAsState()
+
     Surface(modifier = modifier.fillMaxSize()) {
         when {
             uiState.isLoading -> {
@@ -132,11 +140,29 @@ fun PokemonDetailScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 32.dp)
                 ) {
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            OutlinedButton(
+                                onClick = { PokemonImageSettings.toggleShiny() },
+                                enabled = imageType.supportsShiny
+                            ) {
+                                Text(if (shinyEnabled) "Shiny ON" else "Shiny OFF")
+                            }
+                        }
+                    }
+
                     // Header with image and gradient background
                     item {
                         DetailHeader(
                             pokemon = pokemon,
                             primaryTypeColor = primaryTypeColor,
+                            imageType = imageType,
+                            shinyEnabled = shinyEnabled,
                             onBack = onBack
                         )
                     }
@@ -157,6 +183,8 @@ fun PokemonDetailScreen(
                             EvolutionSection(
                                 evolutionChain = pokemon.evolutionChain,
                                 primaryTypeColor = primaryTypeColor,
+                                imageType = imageType,
+                                shinyEnabled = shinyEnabled,
                                 onPokemonClick = onPokemonClick
                             )
                         }
@@ -183,6 +211,8 @@ fun PokemonDetailScreen(
 private fun DetailHeader(
     pokemon: PokemonDetail,
     primaryTypeColor: Color,
+    imageType: PokemonImageType,
+    shinyEnabled: Boolean,
     onBack: () -> Unit
 ) {
     Box(
@@ -225,7 +255,7 @@ private fun DetailHeader(
 
         // Pokemon image centered
         AsyncImage(
-            model = pokemon.imageUrl,
+            model = pokemonImageUrl(pokemon.id, imageType, shinyEnabled),
             contentDescription = pokemon.name,
             contentScale = ContentScale.Fit,
             modifier = Modifier
@@ -463,6 +493,8 @@ private fun StatBar(stat: PokemonStat) {
 private fun EvolutionSection(
     evolutionChain: List<EvolutionStage>,
     primaryTypeColor: Color,
+    imageType: PokemonImageType,
+    shinyEnabled: Boolean,
     onPokemonClick: (Int) -> Unit
 ) {
     Column(
@@ -493,6 +525,8 @@ private fun EvolutionSection(
                     EvolutionStageItem(
                         stage = stage,
                         primaryTypeColor = primaryTypeColor,
+                        imageType = imageType,
+                        shinyEnabled = shinyEnabled,
                         onClick = { if (!stage.isCurrent) onPokemonClick(stage.id) },
                         modifier = Modifier.weight(1f)
                     )
@@ -514,6 +548,8 @@ private fun EvolutionSection(
 private fun EvolutionStageItem(
     stage: EvolutionStage,
     primaryTypeColor: Color,
+    imageType: PokemonImageType,
+    shinyEnabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -537,7 +573,7 @@ private fun EvolutionStageItem(
                 )
         ) {
             AsyncImage(
-                model = stage.imageUrl,
+                model = pokemonImageUrl(stage.id, imageType, shinyEnabled),
                 contentDescription = stage.name,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.size(64.dp)

@@ -1,6 +1,5 @@
 package fr.pokenity.pokenity.presentation.pokedex
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,9 +13,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -27,6 +26,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,13 +35,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import fr.pokenity.pokenity.core.PokemonImageSettings
+import fr.pokenity.pokenity.core.pokemonImageUrl
 import fr.pokenity.pokenity.domain.model.PokemonFilterOption
 import fr.pokenity.pokenity.domain.model.PokemonSummary
 
@@ -68,6 +67,9 @@ fun PokedexScreen(
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     val listState = rememberLazyListState()
+
+    val spriteType by PokemonImageSettings.imageType.collectAsState()
+    val shinyEnabled by PokemonImageSettings.isShiny.collectAsState()
 
     val allFilteredPokemon by remember(uiState.pokemon, query) {
         mutableStateOf(
@@ -101,7 +103,23 @@ fun PokedexScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     item {
-                        HeaderCard(total = currentTotal(uiState = uiState, allPokemonCount = allFilteredPokemon.size))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "${currentTotal(uiState = uiState, allPokemonCount = allFilteredPokemon.size)} elements",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            OutlinedButton(
+                                onClick = { PokemonImageSettings.toggleShiny() },
+                                enabled = spriteType.supportsShiny
+                            ) {
+                                Text(if (shinyEnabled) "Shiny ON" else "Shiny OFF")
+                            }
+                        }
                     }
 
                     item {
@@ -124,7 +142,7 @@ fun PokedexScreen(
                                     placeholder = { Text("Nom ou numero") }
                                 )
                             }
-                            PokemonListItems(allFilteredPokemon, onPokemonClick)
+                            PokemonListItems(allFilteredPokemon, onPokemonClick, spriteType, shinyEnabled)
                             if (uiState.isLoadingMore) {
                                 item {
                                     Box(
@@ -201,7 +219,7 @@ fun PokedexScreen(
                     }
 
                     if (uiState.selectedSection != PokedexSection.ALL && selectedLabelForSection(uiState) != null) {
-                        PokemonListItems(uiState.filteredPokemon, onPokemonClick)
+                        PokemonListItems(uiState.filteredPokemon, onPokemonClick, spriteType, shinyEnabled)
                     }
                 }
 
@@ -251,7 +269,12 @@ private fun selectedLabelForSection(uiState: PokedexUiState): String? {
     }
 }
 
-private fun androidx.compose.foundation.lazy.LazyListScope.PokemonListItems(pokemon: List<PokemonSummary>, onPokemonClick: (Int) -> Unit) {
+private fun androidx.compose.foundation.lazy.LazyListScope.PokemonListItems(
+    pokemon: List<PokemonSummary>,
+    onPokemonClick: (Int) -> Unit,
+    spriteType: fr.pokenity.pokenity.core.PokemonImageType,
+    shinyEnabled: Boolean
+) {
     if (pokemon.isEmpty()) {
         item {
             Text(
@@ -262,7 +285,11 @@ private fun androidx.compose.foundation.lazy.LazyListScope.PokemonListItems(poke
         }
     } else {
         items(items = pokemon, key = { it.id }) { item ->
-            PokemonRow(pokemon = item, onClick = { onPokemonClick(item.id) })
+            PokemonRow(
+                pokemon = item,
+                imageUrl = pokemonImageUrl(item.id, spriteType, shinyEnabled),
+                onClick = { onPokemonClick(item.id) }
+            )
         }
     }
 }
@@ -378,37 +405,7 @@ private fun SectionButton(
 }
 
 @Composable
-private fun HeaderCard(total: Int) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(
-                brush = Brush.horizontalGradient(
-                    colors = listOf(Color(0xFFE3350D), Color(0xFFFFCB05), Color(0xFF3B4CCA))
-                )
-            )
-            .padding(20.dp)
-    ) {
-        Column {
-            Text(
-                text = "Pokenity Pokedex",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color.White
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = "$total elements affiches",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color.White
-            )
-        }
-    }
-}
-
-@Composable
-private fun PokemonRow(pokemon: PokemonSummary, onClick: () -> Unit) {
+private fun PokemonRow(pokemon: PokemonSummary, imageUrl: String, onClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(20.dp),
         tonalElevation = 3.dp,
@@ -424,7 +421,7 @@ private fun PokemonRow(pokemon: PokemonSummary, onClick: () -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             AsyncImage(
-                model = pokemon.imageUrl,
+                model = imageUrl,
                 contentDescription = pokemon.name,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.size(84.dp)

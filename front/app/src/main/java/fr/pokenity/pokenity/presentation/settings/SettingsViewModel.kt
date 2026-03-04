@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import fr.pokenity.pokenity.core.AppLanguageState
 import fr.pokenity.pokenity.core.AppContainer
+import fr.pokenity.pokenity.core.PokemonImageSettings
+import fr.pokenity.pokenity.core.PokemonImageType
 import fr.pokenity.pokenity.domain.usecase.GetAvailableLanguagesUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +24,7 @@ class SettingsViewModel(
 
     init {
         observeLanguage()
+        observeImageType()
         loadLanguages()
     }
 
@@ -49,10 +52,22 @@ class SettingsViewModel(
         AppLanguageState.setLanguage(code)
     }
 
+    fun onImageTypeSelected(type: PokemonImageType) {
+        PokemonImageSettings.setImageType(type)
+    }
+
     private fun observeLanguage() {
         viewModelScope.launch {
             AppLanguageState.selectedLanguageCode.collectLatest { code ->
                 _uiState.value = _uiState.value.copy(selectedLanguageCode = code)
+            }
+        }
+    }
+
+    private fun observeImageType() {
+        viewModelScope.launch {
+            PokemonImageSettings.imageType.collectLatest { type ->
+                _uiState.value = _uiState.value.copy(selectedImageType = type)
             }
         }
     }

@@ -132,6 +132,7 @@ class MainActivity : ComponentActivity() {
                                         uiState = settingsUiState,
                                         onRetry = settingsViewModel::loadLanguages,
                                         onLanguageSelected = settingsViewModel::onLanguageSelected,
+                                        onImageTypeSelected = settingsViewModel::onImageTypeSelected,
                                         modifier = Modifier.padding(innerPadding)
                                     )
                                 }
