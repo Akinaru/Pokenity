@@ -7,7 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -20,9 +19,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -30,16 +30,24 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -110,6 +118,14 @@ private val StatLabels = mapOf(
     "Speed" to "SPD"
 )
 
+private enum class DetailTab(val label: String) {
+    About("About"),
+    Stats("Stats"),
+    Moves("Moves"),
+    Evolutions("Evolutions")
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PokemonDetailScreen(
     uiState: PokemonDetailUiState,
@@ -157,7 +173,16 @@ fun PokemonDetailScreen(
                 val pokemon = uiState.pokemon
                 val primaryTypeColor = TypeColors[pokemon.types.firstOrNull()?.name] ?: MaterialTheme.colorScheme.primary
 
-                LazyColumn(
+                var showBottomSheet by rememberSaveable(pokemon.id) { mutableStateOf(true) }
+                val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+
+                // Ouvrir le sheet automatiquement a l'entree
+                LaunchedEffect(pokemon.id) {
+                    sheetState.show()
+                }
+
+                // Background : header plein ecran
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .pointerInput(pokemon.id, onPreviousPokemon, onNextPokemon) {
@@ -174,88 +199,60 @@ fun PokemonDetailScreen(
                                     dragOffset = 0f
                                 }
                             )
-                        },
-                    contentPadding = PaddingValues(bottom = 32.dp)
+                        }
                 ) {
-                    // Header with image and gradient background
-                    item {
-                        DetailHeader(
+                    DetailHeader(
+                        pokemon = pokemon,
+                        primaryTypeColor = primaryTypeColor,
+                        imageType = imageType,
+                        shinyEnabled = effectiveShiny,
+                        visualPreset = selectedPreset,
+                        canUseShiny = imageType.supportsShiny && selectedPreset.supportsShiny,
+                        onToggleShiny = { PokemonImageSettings.toggleShiny() },
+                        onPresetSelected = { preset -> visualPresetKey = preset.key },
+                        onBack = onBack
+                    )
+                }
+
+                // ModalBottomSheet
+                if (showBottomSheet) {
+                    ModalBottomSheet(
+                        onDismissRequest = {
+                            showBottomSheet = false
+                            onBack()
+                        },
+                        sheetState = sheetState,
+                        shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp),
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        dragHandle = {
+                            // Petit handle de drag
+                            Box(
+                                modifier = Modifier
+                                    .padding(vertical = 10.dp)
+                                    .width(40.dp)
+                                    .height(4.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                            )
+                        }
+                    ) {
+                        SheetTabContent(
                             pokemon = pokemon,
                             primaryTypeColor = primaryTypeColor,
                             imageType = imageType,
                             shinyEnabled = effectiveShiny,
                             visualPreset = selectedPreset,
-                            canUseShiny = imageType.supportsShiny && selectedPreset.supportsShiny,
-                            onToggleShiny = { PokemonImageSettings.toggleShiny() },
-                            onPresetSelected = { preset -> visualPresetKey = preset.key },
-                            onBack = onBack
+                            onOpenComparator = onOpenComparator,
+                            onPokemonClick = onPokemonClick
                         )
-                    }
-
-                    // Info card (types, height, weight)
-                    item {
-                        InfoSection(pokemon = pokemon, visualPreset = selectedPreset)
-                    }
-
-                    // Stats section
-                    item {
-                        StatsSection(stats = pokemon.stats)
-                    }
-
-                    item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            OutlinedButton(onClick = { onOpenComparator(pokemon.id) }) {
-                                Text("Comparer ce Pokemon")
-                            }
-                        }
-                    }
-
-                    // Evolution chain section
-                    if (pokemon.evolutionChain.size > 1) {
-                        item {
-                            EvolutionSection(
-                                evolutionChain = pokemon.evolutionChain,
-                                primaryTypeColor = primaryTypeColor,
-                                imageType = imageType,
-                                shinyEnabled = effectiveShiny,
-                                visualPreset = selectedPreset,
-                                onPokemonClick = onPokemonClick
-                            )
-                        }
-                    }
-
-                    // Gallery section (mega evolutions + shiny)
-                    if (pokemon.megaEvolutions.isNotEmpty() || pokemon.shinyImageUrl.isNotBlank()) {
-                        item {
-                            GallerySection(
-                                shinyImageUrl = pokemon.shinyImageUrl,
-                                megaEvolutions = pokemon.megaEvolutions,
-                                pokemonName = pokemon.name
-                            )
-                        }
-                    }
-
-                    // Moves section
-                    if (pokemon.moves.isNotEmpty()) {
-                        item {
-                            MovesSection(moves = pokemon.moves, visualPreset = selectedPreset)
-                        }
-                    }
-
-                    // Abilities section
-                    item {
-                        AbilitiesSection(abilities = pokemon.abilities)
                     }
                 }
             }
         }
     }
 }
+
+// ─── Header ────────────────────────────────────────────────────────
 
 @Composable
 private fun DetailHeader(
@@ -274,8 +271,7 @@ private fun DetailHeader(
 
     Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .height(360.dp + statusBarPadding)
+            .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
@@ -299,6 +295,7 @@ private fun DetailHeader(
             )
         }
 
+        // Shiny toggle
         OutlinedButton(
             onClick = onToggleShiny,
             enabled = canUseShiny,
@@ -307,108 +304,283 @@ private fun DetailHeader(
                 .align(Alignment.TopEnd)
         ) { Text(if (shinyEnabled) "Shiny ON" else "Shiny OFF") }
 
+        // Pokemon image + preset selector + name
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(top = statusBarPadding + 56.dp, bottom = 16.dp),
+                .fillMaxWidth()
+                .align(Alignment.Center)
+                .padding(bottom = 60.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                PokemonSpriteImage(
-                    pokemonId = pokemon.id,
-                    contentDescription = pokemon.name,
-                    imageType = imageType,
-                    shiny = shinyEnabled,
-                    visualPreset = visualPreset,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.size(190.dp)
-                )
+            PokemonSpriteImage(
+                pokemonId = pokemon.id,
+                contentDescription = pokemon.name,
+                imageType = imageType,
+                shiny = shinyEnabled,
+                visualPreset = visualPreset,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.size(200.dp)
+            )
 
-                Box {
-                    OutlinedButton(onClick = { presetMenuExpanded = true }) {
-                        Text(visualPreset.label)
-                    }
-                    DropdownMenu(
-                        expanded = presetMenuExpanded,
-                        onDismissRequest = { presetMenuExpanded = false }
-                    ) {
-                        PokemonVisualPresets.forEach { preset ->
-                            DropdownMenuItem(
-                                text = { Text(preset.label) },
-                                onClick = {
-                                    onPresetSelected(preset)
-                                    presetMenuExpanded = false
-                                }
-                            )
-                        }
+            Box {
+                OutlinedButton(onClick = { presetMenuExpanded = true }) {
+                    Text(visualPreset.label)
+                }
+                DropdownMenu(
+                    expanded = presetMenuExpanded,
+                    onDismissRequest = { presetMenuExpanded = false }
+                ) {
+                    PokemonVisualPresets.forEach { preset ->
+                        DropdownMenuItem(
+                            text = { Text(preset.label) },
+                            onClick = {
+                                onPresetSelected(preset)
+                                presetMenuExpanded = false
+                            }
+                        )
                     }
                 }
             }
 
             Text(
                 text = pokemon.name,
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color.White
+            )
+            Text(
+                text = "#${pokemon.id.toString().padStart(3, '0')}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.White.copy(alpha = 0.7f)
             )
         }
     }
 }
 
+// ─── Sheet tab content ─────────────────────────────────────────────
+
 @Composable
-private fun InfoSection(pokemon: PokemonDetail, visualPreset: PokemonVisualPreset) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 16.dp)
-    ) {
-        // Types row — images instead of text chips
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            pokemon.types.forEachIndexed { index, type ->
-                TypeImageChip(type = type, visualPreset = visualPreset)
-                if (index < pokemon.types.lastIndex) {
-                    Spacer(modifier = Modifier.width(12.dp))
+private fun SheetTabContent(
+    pokemon: PokemonDetail,
+    primaryTypeColor: Color,
+    imageType: PokemonImageType,
+    shinyEnabled: Boolean,
+    visualPreset: PokemonVisualPreset,
+    onOpenComparator: (Int) -> Unit,
+    onPokemonClick: (Int) -> Unit
+) {
+    var selectedTab by rememberSaveable(pokemon.id) { mutableIntStateOf(0) }
+    val tabs = DetailTab.entries
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        // Tab row
+        TabRow(
+            selectedTabIndex = selectedTab,
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = primaryTypeColor,
+            indicator = { tabPositions ->
+                if (selectedTab < tabPositions.size) {
+                    TabRowDefaults.SecondaryIndicator(
+                        modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                        color = primaryTypeColor
+                    )
                 }
+            }
+        ) {
+            tabs.forEachIndexed { index, tab ->
+                Tab(
+                    selected = selectedTab == index,
+                    onClick = { selectedTab = index },
+                    text = {
+                        Text(
+                            text = tab.label,
+                            fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal,
+                            fontSize = 13.sp
+                        )
+                    },
+                    selectedContentColor = primaryTypeColor,
+                    unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // Height / Weight row
-        Surface(
-            shape = RoundedCornerShape(20.dp),
-            tonalElevation = 2.dp,
-            modifier = Modifier.fillMaxWidth()
+        // Tab content (scrollable)
+        val scrollState = rememberScrollState()
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .verticalScroll(scrollState)
+                .padding(bottom = 32.dp)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                InfoItem(
-                    label = "Taille",
-                    value = "${pokemon.height / 10.0} m"
+            when (tabs[selectedTab]) {
+                DetailTab.About -> AboutTabContent(
+                    pokemon = pokemon,
+                    visualPreset = visualPreset,
+                    onOpenComparator = onOpenComparator
                 )
-                // Vertical divider
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .height(40.dp)
-                        .background(MaterialTheme.colorScheme.outlineVariant)
+                DetailTab.Stats -> StatsTabContent(stats = pokemon.stats)
+                DetailTab.Moves -> MovesTabContent(
+                    moves = pokemon.moves,
+                    visualPreset = visualPreset
                 )
-                InfoItem(
-                    label = "Poids",
-                    value = "${pokemon.weight / 10.0} kg"
+                DetailTab.Evolutions -> EvolutionsTabContent(
+                    pokemon = pokemon,
+                    primaryTypeColor = primaryTypeColor,
+                    imageType = imageType,
+                    shinyEnabled = shinyEnabled,
+                    visualPreset = visualPreset,
+                    onPokemonClick = onPokemonClick
                 )
             }
         }
     }
 }
+
+// ─── Tab: About ────────────────────────────────────────────────────
+
+@Composable
+private fun AboutTabContent(
+    pokemon: PokemonDetail,
+    visualPreset: PokemonVisualPreset,
+    onOpenComparator: (Int) -> Unit
+) {
+    // Types
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 16.dp),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        pokemon.types.forEachIndexed { index, type ->
+            TypeImageChip(type = type, visualPreset = visualPreset)
+            if (index < pokemon.types.lastIndex) {
+                Spacer(modifier = Modifier.width(12.dp))
+            }
+        }
+    }
+
+    // Height / Weight
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        tonalElevation = 2.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            InfoItem(label = "Taille", value = "${pokemon.height / 10.0} m")
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(40.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant)
+            )
+            InfoItem(label = "Poids", value = "${pokemon.weight / 10.0} kg")
+        }
+    }
+
+    Spacer(modifier = Modifier.height(16.dp))
+
+    // Abilities
+    AbilitiesSection(abilities = pokemon.abilities)
+
+    // Compare button
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.End
+    ) {
+        OutlinedButton(onClick = { onOpenComparator(pokemon.id) }) {
+            Text("Comparer ce Pokemon")
+        }
+    }
+}
+
+// ─── Tab: Stats ────────────────────────────────────────────────────
+
+@Composable
+private fun StatsTabContent(stats: List<PokemonStat>) {
+    StatsSection(stats = stats)
+}
+
+// ─── Tab: Moves ────────────────────────────────────────────────────
+
+@Composable
+private fun MovesTabContent(moves: List<PokemonMove>, visualPreset: PokemonVisualPreset) {
+    if (moves.isEmpty()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(32.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "Aucune attaque disponible",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    } else {
+        MovesSection(moves = moves, visualPreset = visualPreset)
+    }
+}
+
+// ─── Tab: Evolutions ───────────────────────────────────────────────
+
+@Composable
+private fun EvolutionsTabContent(
+    pokemon: PokemonDetail,
+    primaryTypeColor: Color,
+    imageType: PokemonImageType,
+    shinyEnabled: Boolean,
+    visualPreset: PokemonVisualPreset,
+    onPokemonClick: (Int) -> Unit
+) {
+    if (pokemon.evolutionChain.size > 1) {
+        EvolutionSection(
+            evolutionChain = pokemon.evolutionChain,
+            primaryTypeColor = primaryTypeColor,
+            imageType = imageType,
+            shinyEnabled = shinyEnabled,
+            visualPreset = visualPreset,
+            onPokemonClick = onPokemonClick
+        )
+    }
+
+    if (pokemon.megaEvolutions.isNotEmpty() || pokemon.shinyImageUrl.isNotBlank()) {
+        GallerySection(
+            shinyImageUrl = pokemon.shinyImageUrl,
+            megaEvolutions = pokemon.megaEvolutions,
+            pokemonName = pokemon.name
+        )
+    }
+
+    if (pokemon.evolutionChain.size <= 1 && pokemon.megaEvolutions.isEmpty() && pokemon.shinyImageUrl.isBlank()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(32.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "Aucune evolution disponible",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+// ─── Shared composables ────────────────────────────────────────────
 
 @Composable
 private fun InfoItem(label: String, value: String) {
@@ -453,7 +625,7 @@ private fun StatsSection(stats: List<PokemonStat>) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 16.dp, vertical = 16.dp)
     ) {
         Text(
             text = "Statistiques",
@@ -477,7 +649,6 @@ private fun StatsSection(stats: List<PokemonStat>) {
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Total
                 val total = stats.sumOf { it.baseStat }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -525,7 +696,6 @@ private fun StatBar(stat: PokemonStat) {
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Stat label
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
@@ -536,7 +706,6 @@ private fun StatBar(stat: PokemonStat) {
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        // Stat value
         Text(
             text = stat.baseStat.toString(),
             style = MaterialTheme.typography.bodyLarge,
@@ -547,7 +716,6 @@ private fun StatBar(stat: PokemonStat) {
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        // Progress bar
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -615,7 +783,7 @@ private fun EvolutionSection(
                     )
                     if (index < evolutionChain.lastIndex) {
                         Text(
-                            text = "\u2192", // arrow
+                            text = "\u2192",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -641,7 +809,6 @@ private fun EvolutionStageItem(
         modifier = modifier.clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Image with highlight ring for current stage
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
@@ -678,7 +845,6 @@ private fun EvolutionStageItem(
             maxLines = 1
         )
 
-        // Small indicator dot for current
         if (stage.isCurrent) {
             Spacer(modifier = Modifier.height(4.dp))
             Box(
@@ -723,7 +889,6 @@ private fun MoveCard(move: PokemonMove, visualPreset: PokemonVisualPreset) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
-            // Row 1: Move name + type image
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -754,10 +919,7 @@ private fun MoveCard(move: PokemonMove, visualPreset: PokemonVisualPreset) {
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Row 2: Power / Accuracy / PP
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 move.power?.let {
                     MoveStatLabel(label = "PWR", value = it.toString(), color = typeColor)
                 }
@@ -769,7 +931,6 @@ private fun MoveCard(move: PokemonMove, visualPreset: PokemonVisualPreset) {
                 }
             }
 
-            // Row 3: Description
             if (move.description.isNotBlank()) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
@@ -806,7 +967,7 @@ private fun AbilitiesSection(abilities: List<PokemonAbility>) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 16.dp)
+            .padding(horizontal = 16.dp)
     ) {
         Text(
             text = "Talents",
@@ -884,7 +1045,6 @@ private fun GallerySection(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Shiny image
                 if (shinyImageUrl.isNotBlank()) {
                     Text(
                         text = "Shiny",
@@ -900,7 +1060,6 @@ private fun GallerySection(
                     )
                 }
 
-                // Mega evolutions
                 megaEvolutions.forEach { mega ->
                     Text(
                         text = mega.name,

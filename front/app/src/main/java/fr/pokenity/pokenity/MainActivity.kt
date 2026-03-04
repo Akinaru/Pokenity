@@ -40,6 +40,11 @@ import fr.pokenity.pokenity.core.AuthSessionState
 import fr.pokenity.pokenity.core.PokemonBrowseState
 import fr.pokenity.pokenity.core.AppThemeState
 import fr.pokenity.pokenity.core.AppThemeMode
+import fr.pokenity.pokenity.presentation.auth.AuthFlowViewModel
+import fr.pokenity.pokenity.presentation.auth.LoginScreen
+import fr.pokenity.pokenity.presentation.auth.ProfileSetupScreen
+import fr.pokenity.pokenity.presentation.auth.RegisterScreen
+import fr.pokenity.pokenity.presentation.auth.WelcomeScreen
 import fr.pokenity.pokenity.presentation.detail.PokemonDetailScreen
 import fr.pokenity.pokenity.presentation.detail.PokemonDetailViewModel
 import fr.pokenity.pokenity.presentation.compare.PokemonCompareScreen
@@ -69,11 +74,20 @@ class MainActivity : ComponentActivity() {
     private val accountViewModel: AccountViewModel by viewModels { AccountViewModel.factory }
     private val detailViewModel: PokemonDetailViewModel by viewModels { PokemonDetailViewModel.factory }
     private val compareViewModel: PokemonCompareViewModel by viewModels { PokemonCompareViewModel.factory }
+    private val authFlowViewModel: AuthFlowViewModel by viewModels { AuthFlowViewModel.factory }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         AuthSessionState.initialize(applicationContext)
+
+        // Determine start destination based on session state
+        val startDest = when {
+            AuthSessionState.isFirstLaunch.value -> "welcome"
+            AuthSessionState.token.value == null -> "login"
+            AuthSessionState.isNewAccount.value -> "profile-setup"
+            else -> "home"
+        }
 
         setContent {
             val pokedexUiState by pokedexViewModel.uiState.collectAsState()
@@ -82,6 +96,7 @@ class MainActivity : ComponentActivity() {
             val accountUiState by accountViewModel.uiState.collectAsState()
             val detailUiState by detailViewModel.uiState.collectAsState()
             val compareUiState by compareViewModel.uiState.collectAsState()
+            val authFlowUiState by authFlowViewModel.uiState.collectAsState()
             val themeMode by AppThemeState.themeMode.collectAsState()
             val systemDark = isSystemInDarkTheme()
             val isDarkTheme = when (themeMode) {
@@ -95,9 +110,73 @@ class MainActivity : ComponentActivity() {
             PokenityTheme(darkTheme = isDarkTheme) {
                 NavHost(
                     navController = navController,
-                    startDestination = "home"
+                    startDestination = startDest
                 ) {
-                    // Home screen with bottom navigation bar
+                    // --- Auth flow screens ---
+
+                    composable("welcome") {
+                        WelcomeScreen(
+                            onStart = {
+                                authFlowViewModel.onWelcomeDone()
+                                navController.navigate("login") {
+                                    popUpTo("welcome") { inclusive = true }
+                                }
+                            }
+                        )
+                    }
+
+                    composable("login") {
+                        LoginScreen(
+                            uiState = authFlowUiState,
+                            onEmailChange = authFlowViewModel::updateEmail,
+                            onCheckEmail = { authFlowViewModel.checkEmail() },
+                            onPasswordChange = authFlowViewModel::updateLoginPassword,
+                            onLogin = {
+                                authFlowViewModel.login {
+                                    navController.navigate("home") {
+                                        popUpTo("login") { inclusive = true }
+                                    }
+                                }
+                            },
+                            onGoToRegister = {
+                                authFlowViewModel.prepareRegisterWithEmail()
+                                navController.navigate("register")
+                            }
+                        )
+                    }
+
+                    composable("register") {
+                        RegisterScreen(
+                            uiState = authFlowUiState,
+                            onUsernameChange = authFlowViewModel::updateRegisterUsername,
+                            onEmailChange = authFlowViewModel::updateRegisterEmail,
+                            onPasswordChange = authFlowViewModel::updateRegisterPassword,
+                            onRegister = {
+                                authFlowViewModel.register {
+                                    navController.navigate("profile-setup") {
+                                        popUpTo("login") { inclusive = true }
+                                    }
+                                }
+                            },
+                            onBackToLogin = {
+                                authFlowViewModel.resetLoginState()
+                                navController.popBackStack()
+                            }
+                        )
+                    }
+
+                    composable("profile-setup") {
+                        ProfileSetupScreen(
+                            onNext = {
+                                authFlowViewModel.onProfileSetupDone()
+                                navController.navigate("home") {
+                                    popUpTo("profile-setup") { inclusive = true }
+                                }
+                            }
+                        )
+                    }
+
+                    // --- Main app screens ---
                     composable("home") {
                         var selectedDestination by rememberSaveable {
                             mutableStateOf(MainDestination.POKEMONS)
