@@ -5,7 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -25,6 +24,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import fr.pokenity.pokenity.presentation.detail.PokemonDetailScreen
 import fr.pokenity.pokenity.presentation.detail.PokemonDetailViewModel
 import fr.pokenity.pokenity.presentation.map.MapScreen
@@ -57,23 +61,20 @@ class MainActivity : ComponentActivity() {
             val mapUiState by mapViewModel.uiState.collectAsState()
             val settingsUiState by settingsViewModel.uiState.collectAsState()
             val detailUiState by detailViewModel.uiState.collectAsState()
-            var selectedDestination by rememberSaveable { mutableStateOf(MainDestination.POKEMONS) }
-            var selectedPokemonId by rememberSaveable { mutableStateOf<Int?>(null) }
+
+            val navController = rememberNavController()
 
             PokenityTheme {
-                Crossfade(targetState = selectedPokemonId, label = "nav") { pokemonId ->
-                    if (pokemonId != null) {
-                        LaunchedEffect(pokemonId) {
-                            detailViewModel.loadPokemon(pokemonId)
+                NavHost(
+                    navController = navController,
+                    startDestination = "home"
+                ) {
+                    // Home screen with bottom navigation bar
+                    composable("home") {
+                        var selectedDestination by rememberSaveable {
+                            mutableStateOf(MainDestination.POKEMONS)
                         }
 
-                        PokemonDetailScreen(
-                            uiState = detailUiState,
-                            onBack = { selectedPokemonId = null },
-                            onRetry = { detailViewModel.loadPokemon(pokemonId) },
-                            onPokemonClick = { id -> selectedPokemonId = id }
-                        )
-                    } else {
                         Scaffold(
                             modifier = Modifier.fillMaxSize(),
                             bottomBar = {
@@ -90,7 +91,9 @@ class MainActivity : ComponentActivity() {
                                         onRetry = pokedexViewModel::loadPokedexData,
                                         onSectionSelected = pokedexViewModel::onSectionSelected,
                                         onLoadMore = pokedexViewModel::loadMorePokemonIfNeeded,
-                                        onPokemonClick = { id -> selectedPokemonId = id },
+                                        onPokemonClick = { id ->
+                                            navController.navigate("detail/$id")
+                                        },
                                         onTypeClicked = pokedexViewModel::onTypeClicked,
                                         onGenerationClicked = pokedexViewModel::onGenerationClicked,
                                         onAbilityClicked = pokedexViewModel::onAbilityClicked,
@@ -111,7 +114,9 @@ class MainActivity : ComponentActivity() {
                                     MapScreen(
                                         uiState = mapUiState,
                                         onRetry = mapViewModel::loadRegions,
-                                        onPokemonClick = { id -> selectedPokemonId = id },
+                                        onPokemonClick = { id ->
+                                            navController.navigate("detail/$id")
+                                        },
                                         onRegionSelected = mapViewModel::onRegionSelected,
                                         onLocationSelected = mapViewModel::onLocationSelected,
                                         onAreaSelected = mapViewModel::onAreaSelected,
@@ -132,6 +137,29 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         }
+                    }
+
+                    // Detail screen — each navigation pushes onto the back stack
+                    composable(
+                        route = "detail/{pokemonId}",
+                        arguments = listOf(
+                            navArgument("pokemonId") { type = NavType.IntType }
+                        )
+                    ) { backStackEntry ->
+                        val pokemonId = backStackEntry.arguments?.getInt("pokemonId") ?: return@composable
+
+                        LaunchedEffect(pokemonId) {
+                            detailViewModel.loadPokemon(pokemonId)
+                        }
+
+                        PokemonDetailScreen(
+                            uiState = detailUiState,
+                            onBack = { navController.popBackStack() },
+                            onRetry = { detailViewModel.loadPokemon(pokemonId) },
+                            onPokemonClick = { id ->
+                                navController.navigate("detail/$id")
+                            }
+                        )
                     }
                 }
             }
