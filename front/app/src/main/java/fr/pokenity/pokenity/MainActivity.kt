@@ -77,15 +77,15 @@ class MainActivity : ComponentActivity() {
                                         onRetry = pokedexViewModel::loadPokedexData,
                                         onSectionSelected = pokedexViewModel::onSectionSelected,
                                         onPokemonClick = { id -> selectedPokemonId = id },
-                                        onTypeClicked = viewModel::onTypeClicked,
-                                onGenerationClicked = viewModel::onGenerationClicked,
-                                onAbilityClicked = viewModel::onAbilityClicked,
-                                onHabitatClicked = viewModel::onHabitatClicked,
-                                onClearTypeFilter = viewModel::clearTypeFilter,
-                                onClearGenerationFilter = viewModel::clearGenerationFilter,
-                                onClearAbilityFilter = viewModel::clearAbilityFilter,
-                                onClearHabitatFilter = viewModel::clearHabitatFilter,
-                                modifier = Modifier.padding(innerPadding)
+                                        onTypeClicked = pokedexViewModel::onTypeClicked,
+                                        onGenerationClicked = pokedexViewModel::onGenerationClicked,
+                                        onAbilityClicked = pokedexViewModel::onAbilityClicked,
+                                        onHabitatClicked = pokedexViewModel::onHabitatClicked,
+                                        onClearTypeFilter = pokedexViewModel::clearTypeFilter,
+                                        onClearGenerationFilter = pokedexViewModel::clearGenerationFilter,
+                                        onClearAbilityFilter = pokedexViewModel::clearAbilityFilter,
+                                        onClearHabitatFilter = pokedexViewModel::clearHabitatFilter,
+                                        modifier = Modifier.padding(innerPadding)
                                     )
                                 }
                             }
