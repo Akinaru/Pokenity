@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CatchingPokemon
 import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -30,17 +31,21 @@ import fr.pokenity.pokenity.presentation.map.MapScreen
 import fr.pokenity.pokenity.presentation.map.MapViewModel
 import fr.pokenity.pokenity.presentation.pokedex.PokedexScreen
 import fr.pokenity.pokenity.presentation.pokedex.PokedexViewModel
+import fr.pokenity.pokenity.presentation.settings.SettingsScreen
+import fr.pokenity.pokenity.presentation.settings.SettingsViewModel
 import fr.pokenity.pokenity.ui.theme.PokenityTheme
 
 private enum class MainDestination {
     POKEMONS,
-    MAP
+    MAP,
+    SETTINGS
 }
 
 class MainActivity : ComponentActivity() {
 
     private val pokedexViewModel: PokedexViewModel by viewModels { PokedexViewModel.factory }
     private val mapViewModel: MapViewModel by viewModels { MapViewModel.factory }
+    private val settingsViewModel: SettingsViewModel by viewModels { SettingsViewModel.factory }
     private val detailViewModel: PokemonDetailViewModel by viewModels { PokemonDetailViewModel.factory }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,6 +55,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val pokedexUiState by pokedexViewModel.uiState.collectAsState()
             val mapUiState by mapViewModel.uiState.collectAsState()
+            val settingsUiState by settingsViewModel.uiState.collectAsState()
             val detailUiState by detailViewModel.uiState.collectAsState()
             var selectedDestination by rememberSaveable { mutableStateOf(MainDestination.POKEMONS) }
             var selectedPokemonId by rememberSaveable { mutableStateOf<Int?>(null) }
@@ -114,6 +120,15 @@ class MainActivity : ComponentActivity() {
                                         modifier = Modifier.padding(innerPadding)
                                     )
                                 }
+
+                                MainDestination.SETTINGS -> {
+                                    SettingsScreen(
+                                        uiState = settingsUiState,
+                                        onRetry = settingsViewModel::loadLanguages,
+                                        onLanguageSelected = settingsViewModel::onLanguageSelected,
+                                        modifier = Modifier.padding(innerPadding)
+                                    )
+                                }
                             }
                         }
                     }
@@ -150,6 +165,17 @@ private fun MainBottomBar(
                 )
             },
             label = { Text("Map") }
+        )
+        NavigationBarItem(
+            selected = selectedDestination == MainDestination.SETTINGS,
+            onClick = { onSelected(MainDestination.SETTINGS) },
+            icon = {
+                Icon(
+                    imageVector = Icons.Filled.Settings,
+                    contentDescription = "Settings"
+                )
+            },
+            label = { Text("Settings") }
         )
     }
 }

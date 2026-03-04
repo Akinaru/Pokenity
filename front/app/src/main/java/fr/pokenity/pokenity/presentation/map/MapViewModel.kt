@@ -3,6 +3,7 @@ package fr.pokenity.pokenity.presentation.map
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import fr.pokenity.pokenity.core.AppLanguageState
 import fr.pokenity.pokenity.data.remote.PokeApiService
 import fr.pokenity.pokenity.data.repository.PokemonRepositoryImpl
 import fr.pokenity.pokenity.domain.model.PokemonFilterOption
@@ -14,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 
 class MapViewModel(
@@ -28,6 +30,7 @@ class MapViewModel(
 
     init {
         loadRegions()
+        observeLanguageChanges()
     }
 
     fun loadRegions() {
@@ -162,6 +165,14 @@ class MapViewModel(
             pokemons = emptyList(),
             errorMessage = null
         )
+    }
+
+    private fun observeLanguageChanges() {
+        viewModelScope.launch {
+            AppLanguageState.selectedLanguageCode.drop(1).collect {
+                loadRegions()
+            }
+        }
     }
 
     companion object {

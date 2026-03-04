@@ -2,9 +2,11 @@ package fr.pokenity.pokenity.domain.repository
 
 import fr.pokenity.pokenity.domain.model.PokemonDetail
 import fr.pokenity.pokenity.domain.model.PokemonFilterOption
+import fr.pokenity.pokenity.domain.model.LanguageOption
 import fr.pokenity.pokenity.domain.model.PokemonSummary
 
 interface PokemonRepository {
+    suspend fun getAvailableLanguages(): List<LanguageOption>
     suspend fun getPokemonList(limit: Int = 80, offset: Int = 0): List<PokemonSummary>
     suspend fun getPokemonTypes(): List<PokemonFilterOption>
     suspend fun getPokemonGenerations(): List<PokemonFilterOption>

@@ -5,6 +5,25 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 class PokeApiService {
+    private val localizedNameCache = mutableMapOf<String, String>()
+
+    fun fetchAvailableLanguages(): List<LanguageDto> {
+        return fetchNamedResults("https://pokeapi.co/api/v2/language/").map { resource ->
+            val json = fetchObject(resource.url)
+            val names = json.optJSONArray("names")
+            var label = resource.name
+            if (names != null) {
+                for (i in 0 until names.length()) {
+                    val entry = names.getJSONObject(i)
+                    if (entry.getJSONObject("language").getString("name") == "en") {
+                        label = entry.getString("name")
+                        break
+                    }
+                }
+            }
+            LanguageDto(code = resource.name, label = label)
+        }
+    }
 
     fun fetchPokemonList(limit: Int, offset: Int): List<PokemonListItemDto> {
         val endpoint = "https://pokeapi.co/api/v2/pokemon?limit=$limit&offset=$offset"
@@ -195,22 +214,29 @@ class PokeApiService {
                 val typeId = typeUrl.trimEnd('/').substringAfterLast('/').toInt()
                 PokemonTypeDto(
                     name = typeObj.getString("name"),
-                    id = typeId
+                    id = typeId,
+                    url = typeUrl
                 )
             }
 
             val statsArray = root.getJSONArray("stats")
             val stats = List(statsArray.length()) { i ->
                 val statObj = statsArray.getJSONObject(i)
+                val statResource = statObj.getJSONObject("stat")
                 PokemonStatDto(
-                    name = statObj.getJSONObject("stat").getString("name"),
+                    name = statResource.getString("name"),
+                    url = statResource.getString("url"),
                     baseStat = statObj.getInt("base_stat")
                 )
             }
 
             val abilitiesArray = root.getJSONArray("abilities")
             val abilities = List(abilitiesArray.length()) { i ->
-                abilitiesArray.getJSONObject(i).getJSONObject("ability").getString("name")
+                val abilityObj = abilitiesArray.getJSONObject(i).getJSONObject("ability")
+                NamedResourceDto(
+                    name = abilityObj.getString("name"),
+                    url = abilityObj.getString("url")
+                )
             }
 
             // Extract level-up moves, take the 6 highest level ones
@@ -253,7 +279,7 @@ class PokeApiService {
     /**
      * Fetches detailed info for a single move (type, description, power, accuracy, pp).
      */
-    fun fetchMoveDetail(moveName: String): MoveDetailDto {
+    fun fetchMoveDetail(moveName: String, languageCode: String): MoveDetailDto {
         val root = fetchJson("https://pokeapi.co/api/v2/move/$moveName")
 
         val typeObj = root.getJSONObject("type")
@@ -261,19 +287,40 @@ class PokeApiService {
         val typeId = typeUrl.trimEnd('/').substringAfterLast('/').toInt()
         val typeName = typeObj.getString("name")
 
-        // Get English flavor text (description)
+        // Get localized flavor text (fallback to english)
         val flavorEntries = root.getJSONArray("flavor_text_entries")
         var description = ""
         for (i in 0 until flavorEntries.length()) {
             val entry = flavorEntries.getJSONObject(i)
-            if (entry.getJSONObject("language").getString("name") == "en") {
+            if (entry.getJSONObject("language").getString("name") == languageCode) {
                 description = entry.getString("flavor_text").replace("\n", " ").replace("\u000c", " ")
                 break
             }
         }
+        if (description.isBlank()) {
+            for (i in 0 until flavorEntries.length()) {
+                val entry = flavorEntries.getJSONObject(i)
+                if (entry.getJSONObject("language").getString("name") == "en") {
+                    description = entry.getString("flavor_text").replace("\n", " ").replace("\u000c", " ")
+                    break
+                }
+            }
+        }
+
+        var localizedMoveName = root.getString("name")
+        val moveNames = root.optJSONArray("names")
+        if (moveNames != null) {
+            for (i in 0 until moveNames.length()) {
+                val entry = moveNames.getJSONObject(i)
+                if (entry.getJSONObject("language").getString("name") == languageCode) {
+                    localizedMoveName = entry.getString("name")
+                    break
+                }
+            }
+        }
 
         return MoveDetailDto(
-            name = root.getString("name"),
+            name = localizedMoveName,
             typeName = typeName,
             typeId = typeId,
             description = description,
@@ -335,6 +382,44 @@ class PokeApiService {
         }
     }
 
+    fun fetchLocalizedName(resourceUrl: String, languageCode: String, fallbackName: String): String {
+        val key = "$resourceUrl|$languageCode"
+        localizedNameCache[key]?.let { return it }
+
+        val root = fetchObject(resourceUrl)
+        val names = root.optJSONArray("names")
+        var localized = fallbackName
+
+        if (names != null) {
+            for (i in 0 until names.length()) {
+                val entry = names.getJSONObject(i)
+                if (entry.getJSONObject("language").getString("name") == languageCode) {
+                    localized = entry.getString("name")
+                    break
+                }
+            }
+            if (localized == fallbackName) {
+                for (i in 0 until names.length()) {
+                    val entry = names.getJSONObject(i)
+                    if (entry.getJSONObject("language").getString("name") == "en") {
+                        localized = entry.getString("name")
+                        break
+                    }
+                }
+            }
+        } else if (root.has("name")) {
+            localized = root.getString("name")
+        }
+
+        localizedNameCache[key] = localized
+        return localized
+    }
+
+    fun fetchPokemonSpeciesNameById(id: Int, languageCode: String, fallbackName: String): String {
+        val speciesUrl = "https://pokeapi.co/api/v2/pokemon-species/$id"
+        return fetchLocalizedName(speciesUrl, languageCode, fallbackName)
+    }
+
     private fun fetchNamedResults(endpoint: String): List<NamedResourceDto> {
         val root = fetchObject(endpoint)
         val results = root.getJSONArray("results")
@@ -378,6 +463,11 @@ data class NamedResourceDto(
     val url: String
 )
 
+data class LanguageDto(
+    val code: String,
+    val label: String
+)
+
 data class PokemonDetailDto(
     val id: Int,
     val name: String,
@@ -385,17 +475,19 @@ data class PokemonDetailDto(
     val weight: Int,
     val types: List<PokemonTypeDto>,
     val stats: List<PokemonStatDto>,
-    val abilities: List<String>,
+    val abilities: List<NamedResourceDto>,
     val moveNames: List<String> = emptyList()
 )
 
 data class PokemonTypeDto(
     val name: String,
-    val id: Int
+    val id: Int,
+    val url: String
 )
 
 data class PokemonStatDto(
     val name: String,
+    val url: String,
     val baseStat: Int
 )
 
