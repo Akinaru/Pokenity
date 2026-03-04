@@ -1,6 +1,7 @@
 package fr.pokenity.pokenity.presentation.pokedex
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,6 +38,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import fr.pokenity.pokenity.domain.model.PokemonFilterOption
 import fr.pokenity.pokenity.domain.model.PokemonSummary
 
 @Composable
@@ -44,6 +46,10 @@ fun PokedexScreen(
     uiState: PokedexUiState,
     onRetry: () -> Unit,
     onSectionSelected: (PokedexSection) -> Unit,
+    onTypeClicked: (PokemonFilterOption) -> Unit,
+    onGenerationClicked: (PokemonFilterOption) -> Unit,
+    onClearTypeFilter: () -> Unit,
+    onClearGenerationFilter: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var query by rememberSaveable { mutableStateOf("") }
@@ -82,7 +88,7 @@ fun PokedexScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     item {
-                        HeaderCard(total = filteredPokemon.size)
+                        HeaderCard(total = currentTotal(uiState = uiState, allPokemonCount = filteredPokemon.size))
                     }
 
                     item {
@@ -122,19 +128,91 @@ fun PokedexScreen(
                         }
 
                         PokedexSection.TYPE -> {
-                            items(uiState.types, key = { it }) { type ->
-                                NameCard(title = type)
+                            if (uiState.selectedTypeLabel == null) {
+                                items(uiState.types, key = { it.apiName }) { type ->
+                                    NameCard(
+                                        title = type.label,
+                                        onClick = { onTypeClicked(type) }
+                                    )
+                                }
+                            } else {
+                                item {
+                                    FilterHeader(
+                                        title = "Type: ${uiState.selectedTypeLabel}",
+                                        onBack = onClearTypeFilter
+                                    )
+                                }
+                                PokemonListItems(uiState.filteredPokemon)
                             }
                         }
 
                         PokedexSection.GENERATION -> {
-                            items(uiState.generations, key = { it }) { generation ->
-                                NameCard(title = generation)
+                            if (uiState.selectedGenerationLabel == null) {
+                                items(uiState.generations, key = { it.apiName }) { generation ->
+                                    NameCard(
+                                        title = generation.label,
+                                        onClick = { onGenerationClicked(generation) }
+                                    )
+                                }
+                            } else {
+                                item {
+                                    FilterHeader(
+                                        title = "Generation: ${uiState.selectedGenerationLabel}",
+                                        onBack = onClearGenerationFilter
+                                    )
+                                }
+                                PokemonListItems(uiState.filteredPokemon)
                             }
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+private fun androidx.compose.foundation.lazy.LazyListScope.PokemonListItems(pokemon: List<PokemonSummary>) {
+    if (pokemon.isEmpty()) {
+        item {
+            Text(
+                text = "Aucun Pokemon trouve pour ce filtre.",
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(vertical = 12.dp)
+            )
+        }
+    } else {
+        items(items = pokemon, key = { it.id }) { item ->
+            PokemonRow(pokemon = item)
+        }
+    }
+}
+
+private fun currentTotal(uiState: PokedexUiState, allPokemonCount: Int): Int {
+    return when (uiState.selectedSection) {
+        PokedexSection.ALL -> allPokemonCount
+        PokedexSection.TYPE,
+        PokedexSection.GENERATION -> if (uiState.filteredPokemon.isEmpty()) {
+            when (uiState.selectedSection) {
+                PokedexSection.TYPE -> uiState.types.size
+                PokedexSection.GENERATION -> uiState.generations.size
+                else -> allPokemonCount
+            }
+        } else {
+            uiState.filteredPokemon.size
+        }
+    }
+}
+
+@Composable
+private fun FilterHeader(title: String, onBack: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(text = title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        OutlinedButton(onClick = onBack) {
+            Text("Retour")
         }
     }
 }
@@ -209,7 +287,7 @@ private fun HeaderCard(total: Int) {
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "$total Pokemon charges",
+                text = "$total elements affiches",
                 style = MaterialTheme.typography.bodyLarge,
                 color = Color.White
             )
@@ -256,11 +334,13 @@ private fun PokemonRow(pokemon: PokemonSummary) {
 }
 
 @Composable
-private fun NameCard(title: String) {
+private fun NameCard(title: String, onClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(16.dp),
         tonalElevation = 2.dp,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
     ) {
         Text(
             text = title,

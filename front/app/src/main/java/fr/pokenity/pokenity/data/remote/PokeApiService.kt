@@ -19,7 +19,47 @@ class PokeApiService {
         return fetchNamedResults("https://pokeapi.co/api/v2/generation?limit=100")
     }
 
+    fun fetchPokemonByType(typeName: String): List<NamedResourceDto> {
+        val endpoint = "https://pokeapi.co/api/v2/type/$typeName"
+        val root = fetchObject(endpoint)
+        val pokemonArray = root.getJSONArray("pokemon")
+
+        return List(pokemonArray.length()) { index ->
+            val item = pokemonArray.getJSONObject(index).getJSONObject("pokemon")
+            NamedResourceDto(
+                name = item.getString("name"),
+                url = item.getString("url")
+            )
+        }
+    }
+
+    fun fetchPokemonByGeneration(generationName: String): List<NamedResourceDto> {
+        val endpoint = "https://pokeapi.co/api/v2/generation/$generationName"
+        val root = fetchObject(endpoint)
+        val speciesArray = root.getJSONArray("pokemon_species")
+
+        return List(speciesArray.length()) { index ->
+            val item = speciesArray.getJSONObject(index)
+            NamedResourceDto(
+                name = item.getString("name"),
+                url = item.getString("url")
+            )
+        }
+    }
+
     private fun fetchNamedResults(endpoint: String): List<NamedResourceDto> {
+        val root = fetchObject(endpoint)
+        val results = root.getJSONArray("results")
+        return List(results.length()) { index ->
+            val item = results.getJSONObject(index)
+            NamedResourceDto(
+                name = item.getString("name"),
+                url = item.getString("url")
+            )
+        }
+    }
+
+    private fun fetchObject(endpoint: String): JSONObject {
         val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
             connectTimeout = 15_000
@@ -33,15 +73,7 @@ class PokeApiService {
             }
 
             val response = connection.inputStream.bufferedReader().use { it.readText() }
-            val root = JSONObject(response)
-            val results = root.getJSONArray("results")
-            List(results.length()) { index ->
-                val item = results.getJSONObject(index)
-                NamedResourceDto(
-                    name = item.getString("name"),
-                    url = item.getString("url")
-                )
-            }
+            JSONObject(response)
         } finally {
             connection.disconnect()
         }

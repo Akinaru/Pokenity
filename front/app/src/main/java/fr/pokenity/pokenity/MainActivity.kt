@@ -57,6 +57,10 @@ class MainActivity : ComponentActivity() {
                                 uiState = uiState,
                                 onRetry = viewModel::loadPokedexData,
                                 onSectionSelected = viewModel::onSectionSelected,
+                                onTypeClicked = viewModel::onTypeClicked,
+                                onGenerationClicked = viewModel::onGenerationClicked,
+                                onClearTypeFilter = viewModel::clearTypeFilter,
+                                onClearGenerationFilter = viewModel::clearGenerationFilter,
                                 modifier = Modifier.padding(innerPadding)
                             )
                         }
