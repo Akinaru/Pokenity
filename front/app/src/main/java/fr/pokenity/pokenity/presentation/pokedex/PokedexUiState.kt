@@ -1,18 +1,28 @@
 package fr.pokenity.pokenity.presentation.pokedex
 
+import fr.pokenity.pokenity.domain.model.PokemonFilterOption
 import fr.pokenity.pokenity.domain.model.PokemonSummary
 
 enum class PokedexSection {
     ALL,
     TYPE,
-    GENERATION
+    GENERATION,
+    ABILITY,
+    HABITAT
 }
 
 data class PokedexUiState(
     val isLoading: Boolean = true,
     val pokemon: List<PokemonSummary> = emptyList(),
-    val types: List<String> = emptyList(),
-    val generations: List<String> = emptyList(),
+    val filteredPokemon: List<PokemonSummary> = emptyList(),
+    val types: List<PokemonFilterOption> = emptyList(),
+    val generations: List<PokemonFilterOption> = emptyList(),
+    val abilities: List<PokemonFilterOption> = emptyList(),
+    val habitats: List<PokemonFilterOption> = emptyList(),
     val selectedSection: PokedexSection = PokedexSection.ALL,
+    val selectedTypeLabel: String? = null,
+    val selectedGenerationLabel: String? = null,
+    val selectedAbilityLabel: String? = null,
+    val selectedHabitatLabel: String? = null,
     val errorMessage: String? = null
 )

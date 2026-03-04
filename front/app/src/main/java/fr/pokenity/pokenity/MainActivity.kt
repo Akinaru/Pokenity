@@ -77,7 +77,15 @@ class MainActivity : ComponentActivity() {
                                         onRetry = pokedexViewModel::loadPokedexData,
                                         onSectionSelected = pokedexViewModel::onSectionSelected,
                                         onPokemonClick = { id -> selectedPokemonId = id },
-                                        modifier = Modifier.padding(innerPadding)
+                                        onTypeClicked = viewModel::onTypeClicked,
+                                onGenerationClicked = viewModel::onGenerationClicked,
+                                onAbilityClicked = viewModel::onAbilityClicked,
+                                onHabitatClicked = viewModel::onHabitatClicked,
+                                onClearTypeFilter = viewModel::clearTypeFilter,
+                                onClearGenerationFilter = viewModel::clearGenerationFilter,
+                                onClearAbilityFilter = viewModel::clearAbilityFilter,
+                                onClearHabitatFilter = viewModel::clearHabitatFilter,
+                                modifier = Modifier.padding(innerPadding)
                                     )
                                 }
                             }

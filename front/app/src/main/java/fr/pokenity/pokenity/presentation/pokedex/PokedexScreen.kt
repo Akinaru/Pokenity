@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -38,6 +39,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import fr.pokenity.pokenity.domain.model.PokemonFilterOption
 import fr.pokenity.pokenity.domain.model.PokemonSummary
 
 @Composable
@@ -46,11 +48,19 @@ fun PokedexScreen(
     onRetry: () -> Unit,
     onSectionSelected: (PokedexSection) -> Unit,
     onPokemonClick: (Int) -> Unit,
+    onTypeClicked: (PokemonFilterOption) -> Unit,
+    onGenerationClicked: (PokemonFilterOption) -> Unit,
+    onAbilityClicked: (PokemonFilterOption) -> Unit,
+    onHabitatClicked: (PokemonFilterOption) -> Unit,
+    onClearTypeFilter: () -> Unit,
+    onClearGenerationFilter: () -> Unit,
+    onClearAbilityFilter: () -> Unit,
+    onClearHabitatFilter: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var query by rememberSaveable { mutableStateOf("") }
 
-    val filteredPokemon by remember(uiState.pokemon, query) {
+    val allFilteredPokemon by remember(uiState.pokemon, query) {
         mutableStateOf(
             if (query.isBlank()) {
                 uiState.pokemon
@@ -71,10 +81,7 @@ fun PokedexScreen(
             }
 
             uiState.errorMessage != null -> {
-                ErrorState(
-                    message = uiState.errorMessage,
-                    onRetry = onRetry
-                )
+                ErrorState(message = uiState.errorMessage, onRetry = onRetry)
             }
 
             else -> {
@@ -84,7 +91,7 @@ fun PokedexScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     item {
-                        HeaderCard(total = filteredPokemon.size)
+                        HeaderCard(total = currentTotal(uiState = uiState, allPokemonCount = allFilteredPokemon.size))
                     }
 
                     item {
@@ -107,39 +114,132 @@ fun PokedexScreen(
                                     placeholder = { Text("Nom ou numero") }
                                 )
                             }
-
-                            if (filteredPokemon.isEmpty()) {
-                                item {
-                                    Text(
-                                        text = "Aucun Pokemon ne correspond a ta recherche.",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        modifier = Modifier.padding(vertical = 12.dp)
-                                    )
-                                }
-                            }
-
-                            items(items = filteredPokemon, key = { it.id }) { pokemon ->
-                                PokemonRow(
-                                    pokemon = pokemon,
-                                    onClick = { onPokemonClick(pokemon.id) }
-                                )
-                            }
+                            PokemonListItems(allFilteredPokemon, onPokemonClick)
                         }
 
                         PokedexSection.TYPE -> {
-                            items(uiState.types, key = { it }) { type ->
-                                NameCard(title = type)
-                            }
+                            FilterSectionContent(
+                                selectedLabel = uiState.selectedTypeLabel,
+                                headerPrefix = "Type",
+                                options = uiState.types,
+                                onOptionClicked = onTypeClicked,
+                                onBack = onClearTypeFilter
+                            )
                         }
 
                         PokedexSection.GENERATION -> {
-                            items(uiState.generations, key = { it }) { generation ->
-                                NameCard(title = generation)
-                            }
+                            FilterSectionContent(
+                                selectedLabel = uiState.selectedGenerationLabel,
+                                headerPrefix = "Generation",
+                                options = uiState.generations,
+                                onOptionClicked = onGenerationClicked,
+                                onBack = onClearGenerationFilter
+                            )
                         }
+
+                        PokedexSection.ABILITY -> {
+                            FilterSectionContent(
+                                selectedLabel = uiState.selectedAbilityLabel,
+                                headerPrefix = "Ability",
+                                options = uiState.abilities,
+                                onOptionClicked = onAbilityClicked,
+                                onBack = onClearAbilityFilter
+                            )
+                        }
+
+                        PokedexSection.HABITAT -> {
+                            FilterSectionContent(
+                                selectedLabel = uiState.selectedHabitatLabel,
+                                headerPrefix = "Habitat",
+                                options = uiState.habitats,
+                                onOptionClicked = onHabitatClicked,
+                                onBack = onClearHabitatFilter
+                            )
+                        }
+                    }
+
+                    if (uiState.selectedSection != PokedexSection.ALL && selectedLabelForSection(uiState) != null) {
+                        PokemonListItems(uiState.filteredPokemon, onPokemonClick)
                     }
                 }
             }
+        }
+    }
+}
+
+private fun androidx.compose.foundation.lazy.LazyListScope.FilterSectionContent(
+    selectedLabel: String?,
+    headerPrefix: String,
+    options: List<PokemonFilterOption>,
+    onOptionClicked: (PokemonFilterOption) -> Unit,
+    onBack: () -> Unit
+) {
+    if (selectedLabel == null) {
+        items(options, key = { it.apiName }) { option ->
+            NameCard(title = option.label, imageUrl = option.imageUrl, onClick = { onOptionClicked(option) })
+        }
+    } else {
+        item {
+            FilterHeader(title = "$headerPrefix: $selectedLabel", onBack = onBack)
+        }
+    }
+}
+
+private fun selectedLabelForSection(uiState: PokedexUiState): String? {
+    return when (uiState.selectedSection) {
+        PokedexSection.ALL -> null
+        PokedexSection.TYPE -> uiState.selectedTypeLabel
+        PokedexSection.GENERATION -> uiState.selectedGenerationLabel
+        PokedexSection.ABILITY -> uiState.selectedAbilityLabel
+        PokedexSection.HABITAT -> uiState.selectedHabitatLabel
+    }
+}
+
+private fun androidx.compose.foundation.lazy.LazyListScope.PokemonListItems(pokemon: List<PokemonSummary>, onPokemonClick: (Int) -> Unit) {
+    if (pokemon.isEmpty()) {
+        item {
+            Text(
+                text = "Aucun Pokemon trouve pour ce filtre.",
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(vertical = 12.dp)
+            )
+        }
+    } else {
+        items(items = pokemon, key = { it.id }) { item ->
+            PokemonRow(pokemon = item, onClick = { onPokemonClick(item.id) })
+        }
+    }
+}
+
+private fun currentTotal(uiState: PokedexUiState, allPokemonCount: Int): Int {
+    val selectedLabel = selectedLabelForSection(uiState)
+    if (uiState.selectedSection == PokedexSection.ALL) {
+        return allPokemonCount
+    }
+
+    return if (selectedLabel == null) {
+        when (uiState.selectedSection) {
+            PokedexSection.TYPE -> uiState.types.size
+            PokedexSection.GENERATION -> uiState.generations.size
+            PokedexSection.ABILITY -> uiState.abilities.size
+            PokedexSection.HABITAT -> uiState.habitats.size
+            PokedexSection.ALL -> allPokemonCount
+        }
+    } else {
+        uiState.filteredPokemon.size
+    }
+}
+
+@Composable
+private fun FilterHeader(title: String, onBack: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(text = title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        OutlinedButton(onClick = onBack) {
+            Text("Retour")
         }
     }
 }
@@ -149,28 +249,42 @@ private fun SectionSelector(
     selectedSection: PokedexSection,
     onSectionSelected: (PokedexSection) -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        SectionButton(
-            label = "All",
-            selected = selectedSection == PokedexSection.ALL,
-            onClick = { onSectionSelected(PokedexSection.ALL) },
-            modifier = Modifier.weight(1f)
-        )
-        SectionButton(
-            label = "Type",
-            selected = selectedSection == PokedexSection.TYPE,
-            onClick = { onSectionSelected(PokedexSection.TYPE) },
-            modifier = Modifier.weight(1f)
-        )
-        SectionButton(
-            label = "Generation",
-            selected = selectedSection == PokedexSection.GENERATION,
-            onClick = { onSectionSelected(PokedexSection.GENERATION) },
-            modifier = Modifier.weight(1f)
-        )
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        item {
+            SectionButton(
+                label = "All",
+                selected = selectedSection == PokedexSection.ALL,
+                onClick = { onSectionSelected(PokedexSection.ALL) }
+            )
+        }
+        item {
+            SectionButton(
+                label = "Type",
+                selected = selectedSection == PokedexSection.TYPE,
+                onClick = { onSectionSelected(PokedexSection.TYPE) }
+            )
+        }
+        item {
+            SectionButton(
+                label = "Generation",
+                selected = selectedSection == PokedexSection.GENERATION,
+                onClick = { onSectionSelected(PokedexSection.GENERATION) }
+            )
+        }
+        item {
+            SectionButton(
+                label = "Ability",
+                selected = selectedSection == PokedexSection.ABILITY,
+                onClick = { onSectionSelected(PokedexSection.ABILITY) }
+            )
+        }
+        item {
+            SectionButton(
+                label = "Habitat",
+                selected = selectedSection == PokedexSection.HABITAT,
+                onClick = { onSectionSelected(PokedexSection.HABITAT) }
+            )
+        }
     }
 }
 
@@ -178,15 +292,14 @@ private fun SectionSelector(
 private fun SectionButton(
     label: String,
     selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    onClick: () -> Unit
 ) {
     if (selected) {
-        Button(onClick = onClick, modifier = modifier) {
+        Button(onClick = onClick) {
             Text(label)
         }
     } else {
-        OutlinedButton(onClick = onClick, modifier = modifier) {
+        OutlinedButton(onClick = onClick) {
             Text(label)
         }
     }
@@ -214,7 +327,7 @@ private fun HeaderCard(total: Int) {
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "$total Pokemon charges",
+                text = "$total elements affiches",
                 style = MaterialTheme.typography.bodyLarge,
                 color = Color.White
             )
@@ -263,17 +376,29 @@ private fun PokemonRow(pokemon: PokemonSummary, onClick: () -> Unit) {
 }
 
 @Composable
-private fun NameCard(title: String) {
+private fun NameCard(title: String, imageUrl: String?, onClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(16.dp),
         tonalElevation = 2.dp,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
     ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)
-        )
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            if (imageUrl != null) {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = title,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.size(40.dp)
+                )
+            }
+            Text(text = title, style = MaterialTheme.typography.titleMedium)
+        }
     }
 }
 
