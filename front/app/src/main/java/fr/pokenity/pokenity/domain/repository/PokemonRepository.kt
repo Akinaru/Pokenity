@@ -18,5 +18,8 @@ interface PokemonRepository {
     suspend fun getPokemonByHabitat(habitatName: String): List<PokemonSummary>
     suspend fun getPokemonByRegion(regionName: String): List<PokemonSummary>
     suspend fun getPokemonByShape(shapeName: String): List<PokemonSummary>
+    suspend fun getLocationsByRegion(regionName: String): List<PokemonFilterOption>
+    suspend fun getLocationAreasByLocation(locationName: String): List<PokemonFilterOption>
+    suspend fun getPokemonByLocationArea(locationAreaName: String): List<PokemonSummary>
     suspend fun getPokemonDetail(id: Int): PokemonDetail
 }

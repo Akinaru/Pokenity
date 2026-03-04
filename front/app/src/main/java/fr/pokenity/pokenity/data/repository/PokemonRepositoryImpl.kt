@@ -125,6 +125,31 @@ class PokemonRepositoryImpl(
             .sortedBy { it.id }
     }
 
+    override suspend fun getLocationsByRegion(regionName: String): List<PokemonFilterOption> {
+        return pokeApiService.fetchLocationsByRegion(regionName).map { resource ->
+            PokemonFilterOption(
+                apiName = resource.name,
+                label = resource.name.asDisplayName()
+            )
+        }
+    }
+
+    override suspend fun getLocationAreasByLocation(locationName: String): List<PokemonFilterOption> {
+        return pokeApiService.fetchLocationAreasByLocation(locationName).map { resource ->
+            PokemonFilterOption(
+                apiName = resource.name,
+                label = resource.name.asDisplayName()
+            )
+        }
+    }
+
+    override suspend fun getPokemonByLocationArea(locationAreaName: String): List<PokemonSummary> {
+        return pokeApiService
+            .fetchPokemonByLocationArea(locationAreaName)
+            .toPokemonSummaries()
+            .sortedBy { it.id }
+    }
+
     private fun List<NamedResourceDto>.toPokemonSummaries(): List<PokemonSummary> {
         return mapNotNull { resource ->
             val id = resource.url.toResourceId() ?: return@mapNotNull null
