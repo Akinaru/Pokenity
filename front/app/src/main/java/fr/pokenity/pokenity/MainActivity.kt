@@ -81,10 +81,14 @@ class MainActivity : ComponentActivity() {
                                         onGenerationClicked = pokedexViewModel::onGenerationClicked,
                                         onAbilityClicked = pokedexViewModel::onAbilityClicked,
                                         onHabitatClicked = pokedexViewModel::onHabitatClicked,
+                                        onRegionClicked = pokedexViewModel::onRegionClicked,
+                                        onShapeClicked = pokedexViewModel::onShapeClicked,
                                         onClearTypeFilter = pokedexViewModel::clearTypeFilter,
                                         onClearGenerationFilter = pokedexViewModel::clearGenerationFilter,
                                         onClearAbilityFilter = pokedexViewModel::clearAbilityFilter,
                                         onClearHabitatFilter = pokedexViewModel::clearHabitatFilter,
+                                        onClearRegionFilter = pokedexViewModel::clearRegionFilter,
+                                        onClearShapeFilter = pokedexViewModel::clearShapeFilter,
                                         modifier = Modifier.padding(innerPadding)
                                     )
                                 }

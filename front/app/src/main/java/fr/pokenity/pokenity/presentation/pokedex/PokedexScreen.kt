@@ -52,10 +52,14 @@ fun PokedexScreen(
     onGenerationClicked: (PokemonFilterOption) -> Unit,
     onAbilityClicked: (PokemonFilterOption) -> Unit,
     onHabitatClicked: (PokemonFilterOption) -> Unit,
+    onRegionClicked: (PokemonFilterOption) -> Unit,
+    onShapeClicked: (PokemonFilterOption) -> Unit,
     onClearTypeFilter: () -> Unit,
     onClearGenerationFilter: () -> Unit,
     onClearAbilityFilter: () -> Unit,
     onClearHabitatFilter: () -> Unit,
+    onClearRegionFilter: () -> Unit,
+    onClearShapeFilter: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var query by rememberSaveable { mutableStateOf("") }
@@ -156,6 +160,26 @@ fun PokedexScreen(
                                 onBack = onClearHabitatFilter
                             )
                         }
+
+                        PokedexSection.REGION -> {
+                            FilterSectionContent(
+                                selectedLabel = uiState.selectedRegionLabel,
+                                headerPrefix = "Region",
+                                options = uiState.regions,
+                                onOptionClicked = onRegionClicked,
+                                onBack = onClearRegionFilter
+                            )
+                        }
+
+                        PokedexSection.SHAPE -> {
+                            FilterSectionContent(
+                                selectedLabel = uiState.selectedShapeLabel,
+                                headerPrefix = "Shape",
+                                options = uiState.shapes,
+                                onOptionClicked = onShapeClicked,
+                                onBack = onClearShapeFilter
+                            )
+                        }
                     }
 
                     if (uiState.selectedSection != PokedexSection.ALL && selectedLabelForSection(uiState) != null) {
@@ -192,6 +216,8 @@ private fun selectedLabelForSection(uiState: PokedexUiState): String? {
         PokedexSection.GENERATION -> uiState.selectedGenerationLabel
         PokedexSection.ABILITY -> uiState.selectedAbilityLabel
         PokedexSection.HABITAT -> uiState.selectedHabitatLabel
+        PokedexSection.REGION -> uiState.selectedRegionLabel
+        PokedexSection.SHAPE -> uiState.selectedShapeLabel
     }
 }
 
@@ -223,6 +249,8 @@ private fun currentTotal(uiState: PokedexUiState, allPokemonCount: Int): Int {
             PokedexSection.GENERATION -> uiState.generations.size
             PokedexSection.ABILITY -> uiState.abilities.size
             PokedexSection.HABITAT -> uiState.habitats.size
+            PokedexSection.REGION -> uiState.regions.size
+            PokedexSection.SHAPE -> uiState.shapes.size
             PokedexSection.ALL -> allPokemonCount
         }
     } else {
@@ -283,6 +311,20 @@ private fun SectionSelector(
                 label = "Habitat",
                 selected = selectedSection == PokedexSection.HABITAT,
                 onClick = { onSectionSelected(PokedexSection.HABITAT) }
+            )
+        }
+        item {
+            SectionButton(
+                label = "Region",
+                selected = selectedSection == PokedexSection.REGION,
+                onClick = { onSectionSelected(PokedexSection.REGION) }
+            )
+        }
+        item {
+            SectionButton(
+                label = "Shape",
+                selected = selectedSection == PokedexSection.SHAPE,
+                onClick = { onSectionSelected(PokedexSection.SHAPE) }
             )
         }
     }

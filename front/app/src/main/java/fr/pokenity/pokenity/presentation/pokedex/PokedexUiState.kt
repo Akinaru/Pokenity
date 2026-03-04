@@ -8,7 +8,9 @@ enum class PokedexSection {
     TYPE,
     GENERATION,
     ABILITY,
-    HABITAT
+    HABITAT,
+    REGION,
+    SHAPE
 }
 
 data class PokedexUiState(
@@ -19,10 +21,14 @@ data class PokedexUiState(
     val generations: List<PokemonFilterOption> = emptyList(),
     val abilities: List<PokemonFilterOption> = emptyList(),
     val habitats: List<PokemonFilterOption> = emptyList(),
+    val regions: List<PokemonFilterOption> = emptyList(),
+    val shapes: List<PokemonFilterOption> = emptyList(),
     val selectedSection: PokedexSection = PokedexSection.ALL,
     val selectedTypeLabel: String? = null,
     val selectedGenerationLabel: String? = null,
     val selectedAbilityLabel: String? = null,
     val selectedHabitatLabel: String? = null,
+    val selectedRegionLabel: String? = null,
+    val selectedShapeLabel: String? = null,
     val errorMessage: String? = null
 )

@@ -65,6 +65,24 @@ class PokemonRepositoryImpl(
         }
     }
 
+    override suspend fun getPokemonRegions(): List<PokemonFilterOption> {
+        return pokeApiService.fetchPokemonRegions().map { resource ->
+            PokemonFilterOption(
+                apiName = resource.name,
+                label = resource.name.asDisplayName()
+            )
+        }
+    }
+
+    override suspend fun getPokemonShapes(): List<PokemonFilterOption> {
+        return pokeApiService.fetchPokemonShapes().map { resource ->
+            PokemonFilterOption(
+                apiName = resource.name,
+                label = resource.name.asDisplayName()
+            )
+        }
+    }
+
     override suspend fun getPokemonByType(typeName: String): List<PokemonSummary> {
         return pokeApiService
             .fetchPokemonByType(typeName)
@@ -89,6 +107,20 @@ class PokemonRepositoryImpl(
     override suspend fun getPokemonByHabitat(habitatName: String): List<PokemonSummary> {
         return pokeApiService
             .fetchPokemonByHabitat(habitatName)
+            .toPokemonSummaries()
+            .sortedBy { it.id }
+    }
+
+    override suspend fun getPokemonByRegion(regionName: String): List<PokemonSummary> {
+        return pokeApiService
+            .fetchPokemonByRegion(regionName)
+            .toPokemonSummaries()
+            .sortedBy { it.id }
+    }
+
+    override suspend fun getPokemonByShape(shapeName: String): List<PokemonSummary> {
+        return pokeApiService
+            .fetchPokemonByShape(shapeName)
             .toPokemonSummaries()
             .sortedBy { it.id }
     }
