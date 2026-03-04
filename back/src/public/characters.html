@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pokenity BO - Characters</title>
+    <link rel="stylesheet" href="/admin/assets/admin.css" />
+    <script defer src="/admin/assets/common.js"></script>
+    <script defer src="/admin/assets/characters.js"></script>
+  </head>
+  <body data-page="characters">
+    <div class="bo-layout">
+      <aside class="bo-sidebar">
+        <h2 class="bo-brand">Pokenity BO</h2>
+        <p class="bo-subtitle">Gestion interne API</p>
+        <nav class="bo-nav">
+          <a class="bo-nav-link" data-page="dashboard" href="/admin/">Dashboard</a>
+          <a class="bo-nav-link" data-page="users" href="/admin/users.html">Users</a>
+          <a class="bo-nav-link" data-page="boxes" href="/admin/boxes.html">Boxes</a>
+          <a class="bo-nav-link" data-page="characters" href="/admin/characters.html">Characters</a>
+        </nav>
+      </aside>
+
+      <main class="bo-main">
+        <header class="bo-top">
+          <div>
+            <h1>Characters</h1>
+            <p>CRUD personnages avec upload avatar et image.</p>
+          </div>
+          <span class="bo-badge" id="charactersBadge">0 characters</span>
+        </header>
+
+        <section class="bo-grid two">
+          <article class="bo-panel">
+            <h2>Create character</h2>
+            <form id="createCharacterForm" class="bo-form-grid">
+              <div class="bo-field">
+                <label for="cCharacterName">Name</label>
+                <input id="cCharacterName" name="name" required placeholder="ex: Red" />
+              </div>
+              <div class="bo-field">
+                <label for="cCharacterAvatar">Avatar image</label>
+                <input id="cCharacterAvatar" name="avatar" type="file" accept="image/*" required />
+              </div>
+              <div class="bo-field">
+                <label for="cCharacterImage">Main image</label>
+                <input id="cCharacterImage" name="image" type="file" accept="image/*" required />
+              </div>
+              <div class="bo-actions">
+                <button class="bo-btn primary" type="submit">Create</button>
+              </div>
+            </form>
+
+            <hr class="bo-separator" />
+
+            <h2>Edit character</h2>
+            <p class="bo-meta" id="editCharacterMeta">No character selected.</p>
+            <form id="editCharacterForm" class="bo-form-grid">
+              <div class="bo-field">
+                <label for="eCharacterName">Name</label>
+                <input id="eCharacterName" name="name" placeholder="leave empty to keep current value" />
+              </div>
+              <div class="bo-field">
+                <label for="eCharacterAvatar">Avatar image</label>
+                <input id="eCharacterAvatar" name="avatar" type="file" accept="image/*" />
+              </div>
+              <div class="bo-field">
+                <label for="eCharacterImage">Main image</label>
+                <input id="eCharacterImage" name="image" type="file" accept="image/*" />
+              </div>
+              <div class="bo-actions">
+                <button class="bo-btn primary" type="submit">Save</button>
+                <button class="bo-btn soft" id="cancelCharacterEditBtn" type="button">Cancel</button>
+              </div>
+            </form>
+          </article>
+
+          <article class="bo-panel">
+            <div class="bo-panel-head">
+              <h2>Character list</h2>
+              <span class="bo-counter" id="charactersCount">0</span>
+            </div>
+            <div class="bo-table-wrap" id="charactersTableWrap"></div>
+          </article>
+        </section>
+      </main>
+    </div>
+  </body>
+  </html>
+

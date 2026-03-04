@@ -232,7 +232,31 @@ Body (un ou plusieurs champs):
 
 `DELETE /boxes/:boxId`
 
-### 6) Ouvrir une box
+### 6) Characters CRUD (upload avatar + image)
+
+Fichiers servis publiquement via: `GET /uploads/...`
+
+`GET /characters`
+
+`GET /characters/:id`
+
+`POST /characters` (multipart/form-data)
+
+Fields:
+- `name` (text, requis)
+- `avatar` (file image, requis)
+- `image` (file image, requis)
+
+`PATCH /characters/:id` (multipart/form-data)
+
+Fields optionnels:
+- `name` (text)
+- `avatar` (file image)
+- `image` (file image)
+
+`DELETE /characters/:id`
+
+### 7) Ouvrir une box
 
 `POST /boxes/:boxId/open` (Bearer token requis)
 

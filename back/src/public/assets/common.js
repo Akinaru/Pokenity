@@ -36,21 +36,33 @@
   }
 
   async function api(path, options = {}) {
+    const headers = {
+      ...(options.headers || {}),
+    };
+    const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+    if (!isFormData && !headers["Content-Type"]) {
+      headers["Content-Type"] = "application/json";
+    }
+
     const response = await fetch(path, {
-      headers: {
-        "Content-Type": "application/json",
-        ...(options.headers || {}),
-      },
+      headers,
       ...options,
     });
 
     if (response.status === 204) {
       return null;
     }
-
-    const data = await response.json();
+    const rawText = await response.text();
+    let data = null;
+    if (rawText) {
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        data = { error: rawText };
+      }
+    }
     if (!response.ok) {
-      throw new Error(data.error || "API error");
+      throw new Error((data && data.error) || "API error");
     }
 
     return data;
