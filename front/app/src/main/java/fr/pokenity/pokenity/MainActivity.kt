@@ -42,6 +42,7 @@ import fr.pokenity.pokenity.core.PokemonBrowseState
 import fr.pokenity.pokenity.core.AppThemeState
 import fr.pokenity.pokenity.core.AppThemeMode
 import fr.pokenity.pokenity.presentation.auth.AuthFlowViewModel
+import fr.pokenity.pokenity.presentation.auth.CharacterSelectionScreen
 import fr.pokenity.pokenity.presentation.auth.LoginScreen
 import fr.pokenity.pokenity.presentation.auth.ProfileSetupScreen
 import fr.pokenity.pokenity.presentation.auth.RegisterScreen
@@ -154,16 +155,30 @@ class MainActivity : ComponentActivity() {
                             onEmailChange = authFlowViewModel::updateRegisterEmail,
                             onPasswordChange = authFlowViewModel::updateRegisterPassword,
                             onRegister = {
-                                authFlowViewModel.register {
-                                    navController.navigate("profile-setup") {
-                                        popUpTo("login") { inclusive = true }
-                                    }
+                                authFlowViewModel.goToCharacterSelection {
+                                    navController.navigate("register-character")
                                 }
                             },
                             onBackToLogin = {
                                 authFlowViewModel.resetLoginState()
                                 navController.popBackStack()
                             }
+                        )
+                    }
+
+                    composable("register-character") {
+                        CharacterSelectionScreen(
+                            uiState = authFlowUiState,
+                            onPrevious = authFlowViewModel::selectPreviousCharacter,
+                            onNext = authFlowViewModel::selectNextCharacter,
+                            onValidate = {
+                                authFlowViewModel.registerWithSelectedCharacter {
+                                    navController.navigate("home") {
+                                        popUpTo("login") { inclusive = true }
+                                    }
+                                }
+                            },
+                            onBack = { navController.popBackStack() }
                         )
                     }
 

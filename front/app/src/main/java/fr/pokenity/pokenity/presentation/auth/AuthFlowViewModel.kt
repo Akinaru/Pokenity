@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import fr.pokenity.pokenity.core.AppContainer
 import fr.pokenity.pokenity.core.AuthSessionState
+import fr.pokenity.pokenity.domain.model.AuthCharacter
+import fr.pokenity.pokenity.domain.usecase.AuthFetchCharactersUseCase
 import fr.pokenity.pokenity.domain.usecase.AuthLoginUseCase
 import fr.pokenity.pokenity.domain.usecase.AuthRegisterUseCase
 import kotlinx.coroutines.Dispatchers
@@ -16,7 +18,8 @@ import kotlinx.coroutines.launch
 
 class AuthFlowViewModel(
     private val authLoginUseCase: AuthLoginUseCase,
-    private val authRegisterUseCase: AuthRegisterUseCase
+    private val authRegisterUseCase: AuthRegisterUseCase,
+    private val authFetchCharactersUseCase: AuthFetchCharactersUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AuthFlowUiState())
@@ -120,7 +123,7 @@ class AuthFlowViewModel(
         _uiState.value = _uiState.value.copy(registerPassword = value, errorMessage = null)
     }
 
-    fun register(onSuccess: () -> Unit) {
+    fun goToCharacterSelection(onSuccess: () -> Unit) {
         val state = _uiState.value
         if (state.registerUsername.isBlank() || state.registerEmail.isBlank() || state.registerPassword.isBlank()) {
             _uiState.value = state.copy(errorMessage = "Username, email et mot de passe requis.")
@@ -130,13 +133,67 @@ class AuthFlowViewModel(
         _uiState.value = state.copy(isLoading = true, errorMessage = null)
         viewModelScope.launch(Dispatchers.IO) {
             runCatching {
+                authFetchCharactersUseCase()
+            }.onSuccess {
+                if (it.isEmpty()) {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = "Aucun dresseur disponible."
+                    )
+                    return@onSuccess
+                }
+
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    characters = it.map { character -> character.toUi() },
+                    selectedCharacterIndex = 0
+                )
+                launch(Dispatchers.Main) { onSuccess() }
+            }.onFailure {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = it.message ?: "Erreur lors du chargement des dresseurs"
+                )
+            }
+        }
+    }
+
+    fun selectPreviousCharacter() {
+        val state = _uiState.value
+        if (state.selectedCharacterIndex <= 0) return
+        _uiState.value = state.copy(selectedCharacterIndex = state.selectedCharacterIndex - 1)
+    }
+
+    fun selectNextCharacter() {
+        val state = _uiState.value
+        if (state.selectedCharacterIndex >= state.characters.lastIndex) return
+        _uiState.value = state.copy(selectedCharacterIndex = state.selectedCharacterIndex + 1)
+    }
+
+    fun registerWithSelectedCharacter(onSuccess: () -> Unit) {
+        val state = _uiState.value
+        if (state.registerUsername.isBlank() || state.registerEmail.isBlank() || state.registerPassword.isBlank()) {
+            _uiState.value = state.copy(errorMessage = "Username, email et mot de passe requis.")
+            return
+        }
+
+        val selectedCharacter = state.characters.getOrNull(state.selectedCharacterIndex)
+        if (selectedCharacter == null) {
+            _uiState.value = state.copy(errorMessage = "Choisis un dresseur.")
+            return
+        }
+
+        _uiState.value = state.copy(isLoading = true, errorMessage = null)
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
                 authRegisterUseCase(
                     username = state.registerUsername.trim(),
                     email = state.registerEmail.trim(),
-                    password = state.registerPassword
+                    password = state.registerPassword,
+                    characterId = selectedCharacter.id
                 )
             }.onSuccess {
-                AuthSessionState.setNewAccount(true)
+                AuthSessionState.setNewAccount(false)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     registerPassword = ""
@@ -175,9 +232,19 @@ class AuthFlowViewModel(
                 val repository = AppContainer.authRepository
                 return AuthFlowViewModel(
                     authLoginUseCase = AuthLoginUseCase(repository),
-                    authRegisterUseCase = AuthRegisterUseCase(repository)
+                    authRegisterUseCase = AuthRegisterUseCase(repository),
+                    authFetchCharactersUseCase = AuthFetchCharactersUseCase(repository)
                 ) as T
             }
         }
     }
+}
+
+private fun AuthCharacter.toUi(): AuthCharacterUiModel {
+    return AuthCharacterUiModel(
+        id = id,
+        name = name,
+        avatarUrl = avatarUrl,
+        imageUrl = imageUrl
+    )
 }

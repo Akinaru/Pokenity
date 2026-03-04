@@ -4,6 +4,8 @@
 
   const createForm = qs("#createUserForm");
   const editForm = qs("#editUserForm");
+  const createCharacterSelect = qs("#cCharacterId");
+  const editCharacterSelect = qs("#eCharacterId");
   const cancelEditBtn = qs("#cancelEditBtn");
   const editMeta = qs("#editMeta");
   const usersCount = qs("#usersCount");
@@ -12,13 +14,39 @@
   const inventoryTableWrap = qs("#inventoryTableWrap");
 
   let users = [];
+  let characters = [];
   let selectedUserId = null;
 
   function resetEditForm() {
     selectedUserId = null;
     editForm.reset();
+    editCharacterSelect.value = "";
     editMeta.textContent = "No user selected.";
     inventoryTableWrap.innerHTML = '<div class="bo-empty">Inventory not loaded.</div>';
+  }
+
+  function renderCharacterSelectOptions() {
+    const baseOptions = characters
+      .map((character) => {
+        return `<option value="${character.id}">${escapeHtml(character.name)}</option>`;
+      })
+      .join("");
+
+    createCharacterSelect.innerHTML = baseOptions;
+    createCharacterSelect.disabled = characters.length === 0;
+
+    editCharacterSelect.innerHTML = `
+      <option value="">leave empty to keep current value</option>
+      ${baseOptions}
+    `;
+    editCharacterSelect.disabled = characters.length === 0;
+  }
+
+  function avatarTag(url, label) {
+    if (!url) {
+      return '<span class="bo-muted">-</span>';
+    }
+    return `<img class="bo-thumb" src="${escapeHtml(url)}" alt="${escapeHtml(label)}" />`;
   }
 
   function renderUsersTable() {
@@ -36,6 +64,8 @@
           <tr>
             <td><strong>${escapeHtml(user.username)}</strong></td>
             <td>${escapeHtml(user.email)}</td>
+            <td>${avatarTag(user.character?.avatarUrl, `${user.username} avatar`)}</td>
+            <td>${escapeHtml(user.character?.name || "-")}</td>
             <td>${formatDate(user.createdAt)}</td>
             <td>
               <div class="bo-actions">
@@ -55,6 +85,8 @@
           <tr>
             <th>Username</th>
             <th>Email</th>
+            <th>Avatar</th>
+            <th>Character</th>
             <th>Created at</th>
             <th>Actions</th>
           </tr>
@@ -106,6 +138,12 @@
     renderUsersTable();
   }
 
+  async function loadCharacters() {
+    const data = await api("/api/characters");
+    characters = data.characters || [];
+    renderCharacterSelectOptions();
+  }
+
   async function loadInventory(userId) {
     const data = await api(`/api/inventory/users/${userId}`);
     renderInventoryTable(data.inventory || []);
@@ -114,6 +152,12 @@
   createForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const formData = new FormData(createForm);
+    const characterId = String(formData.get("characterId") || "").trim();
+
+    if (!characterId) {
+      notify("Select a character.", "err");
+      return;
+    }
 
     try {
       await api("/api/users", {
@@ -122,10 +166,14 @@
           username: formData.get("username"),
           email: formData.get("email"),
           password: formData.get("password"),
+          characterId,
         }),
       });
 
       createForm.reset();
+      if (characters.length > 0) {
+        createCharacterSelect.value = characters[0].id;
+      }
       await loadUsers();
       notify("User created.");
     } catch (error) {
@@ -151,6 +199,9 @@
     }
     if (String(formData.get("password") || "").trim()) {
       payload.password = formData.get("password");
+    }
+    if (String(formData.get("characterId") || "").trim()) {
+      payload.characterId = formData.get("characterId");
     }
 
     if (!Object.keys(payload).length) {
@@ -191,6 +242,7 @@
       editForm.username.value = user.username;
       editForm.email.value = user.email;
       editForm.password.value = "";
+      editCharacterSelect.value = user.characterId || "";
       return;
     }
 
@@ -220,5 +272,5 @@
   });
 
   resetEditForm();
-  loadUsers().catch((error) => notify(error.message, "err"));
+  Promise.all([loadCharacters(), loadUsers()]).catch((error) => notify(error.message, "err"));
 })();

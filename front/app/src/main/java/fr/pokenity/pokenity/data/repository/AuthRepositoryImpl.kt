@@ -1,9 +1,11 @@
 package fr.pokenity.pokenity.data.repository
 
 import fr.pokenity.pokenity.core.AuthSessionState
+import fr.pokenity.pokenity.data.remote.auth.AuthCharacterDto
 import fr.pokenity.pokenity.data.remote.auth.AuthApiService
 import fr.pokenity.pokenity.data.remote.auth.AuthSessionDto
 import fr.pokenity.pokenity.data.remote.auth.AuthUserDto
+import fr.pokenity.pokenity.domain.model.AuthCharacter
 import fr.pokenity.pokenity.domain.model.AuthenticatedSession
 import fr.pokenity.pokenity.domain.model.AuthenticatedUser
 import fr.pokenity.pokenity.domain.repository.AuthRepository
@@ -24,11 +26,21 @@ class AuthRepositoryImpl(
     override suspend fun register(
         username: String,
         email: String,
-        password: String
+        password: String,
+        characterId: String?
     ): AuthenticatedSession {
-        val session = authApiService.register(username = username, email = email, password = password)
+        val session = authApiService.register(
+            username = username,
+            email = email,
+            password = password,
+            characterId = characterId
+        )
         AuthSessionState.setToken(session.token)
         return session.toDomain()
+    }
+
+    override suspend fun fetchCharacters(): List<AuthCharacter> {
+        return authApiService.characters().map { it.toDomain() }
     }
 
     override suspend fun fetchAuthenticatedUser(): AuthenticatedUser {
@@ -53,6 +65,15 @@ class AuthRepositoryImpl(
             username = username,
             email = email,
             createdAt = createdAt
+        )
+    }
+
+    private fun AuthCharacterDto.toDomain(): AuthCharacter {
+        return AuthCharacter(
+            id = id,
+            name = name,
+            avatarUrl = avatarUrl,
+            imageUrl = imageUrl
         )
     }
 }

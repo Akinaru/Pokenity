@@ -7,12 +7,24 @@ import java.net.URL
 class AuthApiService(
     private val baseUrl: String = "https://apipoke.cloud.akinaru.fr/api"
 ) {
+    private val baseOrigin: String = run {
+        val parsed = URL(baseUrl)
+        "${parsed.protocol}://${parsed.host}${if (parsed.port != -1) ":${parsed.port}" else ""}"
+    }
 
-    fun register(username: String, email: String, password: String): AuthSessionDto {
+    fun register(
+        username: String,
+        email: String,
+        password: String,
+        characterId: String? = null
+    ): AuthSessionDto {
         val payload = JSONObject()
             .put("username", username)
             .put("email", email)
             .put("password", password)
+        if (!characterId.isNullOrBlank()) {
+            payload.put("characterId", characterId)
+        }
         return postAuth("$baseUrl/auth/register", payload.toString())
     }
 
@@ -53,6 +65,53 @@ class AuthApiService(
         } finally {
             connection.disconnect()
         }
+    }
+
+    fun characters(): List<AuthCharacterDto> {
+        val connection = (URL("$baseUrl/characters").openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = 15_000
+            readTimeout = 15_000
+        }
+
+        return try {
+            val status = connection.responseCode
+            val body = if (status in 200..299) {
+                connection.inputStream.bufferedReader().use { it.readText() }
+            } else {
+                connection.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
+            }
+
+            if (status !in 200..299) {
+                throw IllegalStateException(parseApiError(body, "Erreur API ($status)"))
+            }
+
+            val root = JSONObject(body)
+            val entries = root.optJSONArray("characters") ?: return emptyList()
+            buildList {
+                for (index in 0 until entries.length()) {
+                    val item = entries.getJSONObject(index)
+                    add(
+                        AuthCharacterDto(
+                            id = item.getString("id"),
+                            name = item.getString("name"),
+                            avatarUrl = normalizeMediaUrl(item.optString("avatarUrl")),
+                            imageUrl = normalizeMediaUrl(item.optString("imageUrl"))
+                        )
+                    )
+                }
+            }
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun normalizeMediaUrl(rawUrl: String?): String {
+        val value = (rawUrl ?: "").trim()
+        if (value.isBlank()) return ""
+        if (value.startsWith("http://") || value.startsWith("https://")) return value
+        if (value.startsWith("/")) return "$baseOrigin$value"
+        return "$baseOrigin/$value"
     }
 
     private fun postAuth(url: String, body: String): AuthSessionDto {
@@ -113,4 +172,11 @@ data class AuthUserDto(
     val username: String,
     val email: String,
     val createdAt: String? = null
+)
+
+data class AuthCharacterDto(
+    val id: String,
+    val name: String,
+    val avatarUrl: String,
+    val imageUrl: String
 )

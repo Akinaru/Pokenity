@@ -2,6 +2,7 @@ const { Prisma } = require("@prisma/client");
 const express = require("express");
 const { authRequired } = require("../middleware/auth");
 const { createPasswordHash, verifyPassword } = require("../lib/password");
+const { prisma } = require("../lib/prisma");
 const { signToken } = require("../lib/token");
 const {
   createUser,
@@ -17,8 +18,46 @@ function cleanUser(user) {
     id: user.id,
     username: user.username,
     email: user.email,
+    characterId: user.characterId ?? null,
+    character: user.character
+      ? {
+          id: user.character.id,
+          name: user.character.name,
+          avatarUrl: user.character.avatarUrl,
+          imageUrl: user.character.imageUrl,
+        }
+      : null,
     createdAt: user.createdAt,
   };
+}
+
+async function ensureCharacterIdOrDefault(rawCharacterId) {
+  const normalized =
+    rawCharacterId === undefined || rawCharacterId === null
+      ? ""
+      : String(rawCharacterId).trim();
+
+  if (normalized) {
+    const character = await prisma.character.findUnique({
+      where: { id: normalized },
+      select: { id: true },
+    });
+    if (!character) {
+      return { error: "character_not_found" };
+    }
+    return { characterId: character.id };
+  }
+
+  const fallbackCharacter = await prisma.character.findFirst({
+    orderBy: { createdAt: "asc" },
+    select: { id: true },
+  });
+
+  if (!fallbackCharacter) {
+    return { error: "no_character_available" };
+  }
+
+  return { characterId: fallbackCharacter.id };
 }
 
 router.post("/register", async (req, res) => {
@@ -55,12 +94,23 @@ router.post("/register", async (req, res) => {
     return res.status(409).json({ error: "username is already used." });
   }
 
+  const resolvedCharacter = await ensureCharacterIdOrDefault(req.body.characterId);
+  if (resolvedCharacter.error === "character_not_found") {
+    return res.status(404).json({ error: "character not found." });
+  }
+  if (resolvedCharacter.error === "no_character_available") {
+    return res.status(400).json({
+      error: "No character available. Create at least one character first.",
+    });
+  }
+
   let user;
   try {
     user = await createUser({
       username,
       email,
       passwordHash: await createPasswordHash(password),
+      characterId: resolvedCharacter.characterId,
     });
   } catch (error) {
     if (
@@ -68,6 +118,12 @@ router.post("/register", async (req, res) => {
       error.code === "P2002"
     ) {
       return res.status(409).json({ error: "email or username is already used." });
+    }
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2003"
+    ) {
+      return res.status(400).json({ error: "invalid character id." });
     }
     throw error;
   }

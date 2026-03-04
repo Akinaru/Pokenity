@@ -12,10 +12,13 @@ model User {
   username     String   @unique @db.VarChar(50)
   email        String   @unique @db.VarChar(191)
   passwordHash String   @map("password_hash") @db.VarChar(255)
+  characterId  String?  @map("character_id") @db.Char(36)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
   inventory    InventoryItem[]
+  character    Character? @relation(fields: [characterId], references: [id], onDelete: SetNull)
 
+  @@index([characterId])
   @@map("users")
 }
 
@@ -75,6 +78,7 @@ model Character {
   imageUrl  String   @map("image_url") @db.VarChar(512)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+  users     User[]
 
   @@map("characters")
 }

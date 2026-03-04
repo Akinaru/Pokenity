@@ -13,5 +13,16 @@ data class AuthFlowUiState(
     // Register screen
     val registerUsername: String = "",
     val registerEmail: String = "",
-    val registerPassword: String = ""
+    val registerPassword: String = "",
+
+    // Character selection
+    val characters: List<AuthCharacterUiModel> = emptyList(),
+    val selectedCharacterIndex: Int = 0
+)
+
+data class AuthCharacterUiModel(
+    val id: String,
+    val name: String,
+    val avatarUrl: String,
+    val imageUrl: String
 )
