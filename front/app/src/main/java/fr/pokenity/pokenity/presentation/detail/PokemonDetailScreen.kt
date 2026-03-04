@@ -53,12 +53,12 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import fr.pokenity.pokenity.core.PokemonImageSettings
 import fr.pokenity.pokenity.core.PokemonImageType
-import fr.pokenity.pokenity.core.pokemonImageUrl
 import fr.pokenity.pokenity.domain.model.EvolutionStage
 import fr.pokenity.pokenity.domain.model.PokemonDetail
 import fr.pokenity.pokenity.domain.model.PokemonMove
 import fr.pokenity.pokenity.domain.model.PokemonStat
 import fr.pokenity.pokenity.domain.model.PokemonType
+import fr.pokenity.pokenity.ui.components.PokemonSpriteImage
 
 private val TypeColors = mapOf(
     "Normal" to Color(0xFFA8A77A),
@@ -278,9 +278,11 @@ private fun DetailHeader(
         )
 
         // Pokemon image centered
-        AsyncImage(
-            model = pokemonImageUrl(pokemon.id, imageType, shinyEnabled),
+        PokemonSpriteImage(
+            pokemonId = pokemon.id,
             contentDescription = pokemon.name,
+            imageType = imageType,
+            shiny = shinyEnabled,
             contentScale = ContentScale.Fit,
             modifier = Modifier
                 .size(200.dp)
@@ -596,9 +598,11 @@ private fun EvolutionStageItem(
                     }
                 )
         ) {
-            AsyncImage(
-                model = pokemonImageUrl(stage.id, imageType, shinyEnabled),
+            PokemonSpriteImage(
+                pokemonId = stage.id,
                 contentDescription = stage.name,
+                imageType = imageType,
+                shiny = shinyEnabled,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.size(64.dp)
             )

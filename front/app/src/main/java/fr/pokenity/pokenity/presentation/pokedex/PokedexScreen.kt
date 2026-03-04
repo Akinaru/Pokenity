@@ -40,9 +40,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import fr.pokenity.pokenity.core.PokemonImageSettings
-import fr.pokenity.pokenity.core.pokemonImageUrl
 import fr.pokenity.pokenity.domain.model.PokemonFilterOption
 import fr.pokenity.pokenity.domain.model.PokemonSummary
+import fr.pokenity.pokenity.ui.components.PokemonSpriteImage
 
 @Composable
 fun PokedexScreen(
@@ -288,7 +288,8 @@ private fun androidx.compose.foundation.lazy.LazyListScope.PokemonListItems(
         items(items = pokemon, key = { it.id }) { item ->
             PokemonRow(
                 pokemon = item,
-                imageUrl = pokemonImageUrl(item.id, spriteType, shinyEnabled),
+                spriteType = spriteType,
+                shinyEnabled = shinyEnabled,
                 onClick = { onPokemonClick(item.id, ids) }
             )
         }
@@ -406,7 +407,12 @@ private fun SectionButton(
 }
 
 @Composable
-private fun PokemonRow(pokemon: PokemonSummary, imageUrl: String, onClick: () -> Unit) {
+private fun PokemonRow(
+    pokemon: PokemonSummary,
+    spriteType: fr.pokenity.pokenity.core.PokemonImageType,
+    shinyEnabled: Boolean,
+    onClick: () -> Unit
+) {
     Surface(
         shape = RoundedCornerShape(20.dp),
         tonalElevation = 3.dp,
@@ -421,9 +427,11 @@ private fun PokemonRow(pokemon: PokemonSummary, imageUrl: String, onClick: () ->
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            AsyncImage(
-                model = imageUrl,
+            PokemonSpriteImage(
+                pokemonId = pokemon.id,
                 contentDescription = pokemon.name,
+                imageType = spriteType,
+                shiny = shinyEnabled,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.size(84.dp)
             )
