@@ -4,44 +4,37 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import fr.pokenity.pokenity.presentation.pokedex.PokedexScreen
+import fr.pokenity.pokenity.presentation.pokedex.PokedexViewModel
 import fr.pokenity.pokenity.ui.theme.PokenityTheme
 
 class MainActivity : ComponentActivity() {
+
+    private val viewModel: PokedexViewModel by viewModels { PokedexViewModel.factory }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
         setContent {
+            val uiState by viewModel.uiState.collectAsState()
+
             PokenityTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
+                    PokedexScreen(
+                        uiState = uiState,
+                        onRetry = viewModel::loadPokemon,
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    PokenityTheme {
-        Greeting("Android")
     }
 }
