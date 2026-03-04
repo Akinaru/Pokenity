@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CatchingPokemon
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -34,6 +35,8 @@ import fr.pokenity.pokenity.presentation.detail.PokemonDetailScreen
 import fr.pokenity.pokenity.presentation.detail.PokemonDetailViewModel
 import fr.pokenity.pokenity.presentation.map.MapScreen
 import fr.pokenity.pokenity.presentation.map.MapViewModel
+import fr.pokenity.pokenity.presentation.account.AccountScreen
+import fr.pokenity.pokenity.presentation.account.AccountViewModel
 import fr.pokenity.pokenity.presentation.pokedex.PokedexScreen
 import fr.pokenity.pokenity.presentation.pokedex.PokedexViewModel
 import fr.pokenity.pokenity.presentation.settings.SettingsScreen
@@ -43,7 +46,8 @@ import fr.pokenity.pokenity.ui.theme.PokenityTheme
 private enum class MainDestination {
     POKEMONS,
     MAP,
-    SETTINGS
+    SETTINGS,
+    ACCOUNT
 }
 
 class MainActivity : ComponentActivity() {
@@ -51,6 +55,7 @@ class MainActivity : ComponentActivity() {
     private val pokedexViewModel: PokedexViewModel by viewModels { PokedexViewModel.factory }
     private val mapViewModel: MapViewModel by viewModels { MapViewModel.factory }
     private val settingsViewModel: SettingsViewModel by viewModels { SettingsViewModel.factory }
+    private val accountViewModel: AccountViewModel by viewModels { AccountViewModel.factory }
     private val detailViewModel: PokemonDetailViewModel by viewModels { PokemonDetailViewModel.factory }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -61,6 +66,7 @@ class MainActivity : ComponentActivity() {
             val pokedexUiState by pokedexViewModel.uiState.collectAsState()
             val mapUiState by mapViewModel.uiState.collectAsState()
             val settingsUiState by settingsViewModel.uiState.collectAsState()
+            val accountUiState by accountViewModel.uiState.collectAsState()
             val detailUiState by detailViewModel.uiState.collectAsState()
 
             val navController = rememberNavController()
@@ -136,6 +142,23 @@ class MainActivity : ComponentActivity() {
                                         onRetry = settingsViewModel::loadLanguages,
                                         onLanguageSelected = settingsViewModel::onLanguageSelected,
                                         onImageTypeSelected = settingsViewModel::onImageTypeSelected,
+                                        modifier = Modifier.padding(innerPadding)
+                                    )
+                                }
+
+                                MainDestination.ACCOUNT -> {
+                                    AccountScreen(
+                                        uiState = accountUiState,
+                                        onModeChange = accountViewModel::setMode,
+                                        onLoginIdentifierChange = accountViewModel::updateLoginIdentifier,
+                                        onLoginPasswordChange = accountViewModel::updateLoginPassword,
+                                        onRegisterUsernameChange = accountViewModel::updateRegisterUsername,
+                                        onRegisterEmailChange = accountViewModel::updateRegisterEmail,
+                                        onRegisterPasswordChange = accountViewModel::updateRegisterPassword,
+                                        onLogin = accountViewModel::login,
+                                        onRegister = accountViewModel::register,
+                                        onFetchMe = accountViewModel::fetchMe,
+                                        onLogout = accountViewModel::logout,
                                         modifier = Modifier.padding(innerPadding)
                                     )
                                 }
@@ -217,6 +240,17 @@ private fun MainBottomBar(
                 )
             },
             label = { Text("Settings") }
+        )
+        NavigationBarItem(
+            selected = selectedDestination == MainDestination.ACCOUNT,
+            onClick = { onSelected(MainDestination.ACCOUNT) },
+            icon = {
+                Icon(
+                    imageVector = Icons.Filled.AccountCircle,
+                    contentDescription = "Compte"
+                )
+            },
+            label = { Text("Compte") }
         )
     }
 }
