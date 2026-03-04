@@ -12,7 +12,29 @@ const {
 
 const router = express.Router();
 
+function normalizeCharacterMediaValue(rawValue) {
+  const value = String(rawValue || "").trim();
+  if (!value) {
+    return "";
+  }
+  const slashNormalized = value.replaceAll("\\", "/");
+  if (slashNormalized.includes("/uploads/characters/")) {
+    return slashNormalized.split("/").pop() || "";
+  }
+  if (slashNormalized.startsWith("uploads/characters/")) {
+    return slashNormalized.split("/").pop() || "";
+  }
+  return value;
+}
+
 function cleanUser(user) {
+  const characterAvatar = user.character
+    ? normalizeCharacterMediaValue(user.character.avatarUrl)
+    : "";
+  const characterImage = user.character
+    ? normalizeCharacterMediaValue(user.character.imageUrl)
+    : "";
+
   return {
     id: user.id,
     username: user.username,
@@ -22,8 +44,10 @@ function cleanUser(user) {
       ? {
           id: user.character.id,
           name: user.character.name,
-          avatarUrl: user.character.avatarUrl,
-          imageUrl: user.character.imageUrl,
+          avatarUrl: characterAvatar,
+          imageUrl: characterImage,
+          avatarFileName: characterAvatar,
+          imageFileName: characterImage,
         }
       : null,
     createdAt: user.createdAt,

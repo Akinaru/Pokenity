@@ -56,12 +56,7 @@ class AuthApiService(
             }
 
             val root = JSONObject(body).getJSONObject("user")
-            AuthUserDto(
-                id = root.getString("id"),
-                username = root.getString("username"),
-                email = root.getString("email"),
-                createdAt = root.optString("createdAt")
-            )
+            parseAuthUser(root)
         } finally {
             connection.disconnect()
         }
@@ -95,8 +90,16 @@ class AuthApiService(
                         AuthCharacterDto(
                             id = item.getString("id"),
                             name = item.getString("name"),
-                            avatarUrl = normalizeMediaUrl(item.optString("avatarUrl")),
-                            imageUrl = normalizeMediaUrl(item.optString("imageUrl"))
+                            avatarUrl = normalizeMediaUrl(
+                                item.optString("avatarFileName").ifBlank {
+                                    item.optString("avatarUrl")
+                                }
+                            ),
+                            imageUrl = normalizeMediaUrl(
+                                item.optString("imageFileName").ifBlank {
+                                    item.optString("imageUrl")
+                                }
+                            )
                         )
                     )
                 }
@@ -109,7 +112,16 @@ class AuthApiService(
     private fun normalizeMediaUrl(rawUrl: String?): String {
         val value = (rawUrl ?: "").trim()
         if (value.isBlank()) return ""
+        val slashNormalized = value.replace("\\", "/")
+        if (
+            slashNormalized.contains("/uploads/characters/") ||
+            slashNormalized.startsWith("uploads/characters/")
+        ) {
+            return slashNormalized.substringAfterLast("/")
+        }
         if (value.startsWith("http://") || value.startsWith("https://")) return value
+        // Plain filename => handled as local app asset (no host prefix)
+        if (!value.contains("/")) return value
         if (value.startsWith("/")) return "$baseOrigin$value"
         return "$baseOrigin/$value"
     }
@@ -143,16 +155,43 @@ class AuthApiService(
             val user = root.getJSONObject("user")
             AuthSessionDto(
                 token = root.getString("token"),
-                user = AuthUserDto(
-                    id = user.getString("id"),
-                    username = user.getString("username"),
-                    email = user.getString("email"),
-                    createdAt = user.optString("createdAt")
-                )
+                user = parseAuthUser(user)
             )
         } finally {
             connection.disconnect()
         }
+    }
+
+    private fun parseAuthUser(root: JSONObject): AuthUserDto {
+        return AuthUserDto(
+            id = root.getString("id"),
+            username = root.getString("username"),
+            email = root.getString("email"),
+            createdAt = root.optString("createdAt").ifBlank { null },
+            characterId = root.optString("characterId").ifBlank { null },
+            character = parseAuthCharacter(root.optJSONObject("character"))
+        )
+    }
+
+    private fun parseAuthCharacter(raw: JSONObject?): AuthCharacterDto? {
+        if (raw == null) return null
+        val id = raw.optString("id").trim()
+        val name = raw.optString("name").trim()
+        if (id.isBlank() || name.isBlank()) return null
+        return AuthCharacterDto(
+            id = id,
+            name = name,
+            avatarUrl = normalizeMediaUrl(
+                raw.optString("avatarFileName").ifBlank {
+                    raw.optString("avatarUrl")
+                }
+            ),
+            imageUrl = normalizeMediaUrl(
+                raw.optString("imageFileName").ifBlank {
+                    raw.optString("imageUrl")
+                }
+            )
+        )
     }
 
     private fun parseApiError(raw: String, fallback: String): String {
@@ -171,7 +210,9 @@ data class AuthUserDto(
     val id: String,
     val username: String,
     val email: String,
-    val createdAt: String? = null
+    val createdAt: String? = null,
+    val characterId: String? = null,
+    val character: AuthCharacterDto? = null
 )
 
 data class AuthCharacterDto(

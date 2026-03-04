@@ -13,7 +13,60 @@ const {
 
 const router = express.Router();
 
-function cleanUser(user) {
+function getRequestOrigin(req) {
+  const forwardedProto = String(req.headers["x-forwarded-proto"] || "")
+    .split(",")[0]
+    .trim();
+  const forwardedHost = String(req.headers["x-forwarded-host"] || "")
+    .split(",")[0]
+    .trim();
+  const protocol = forwardedProto || req.protocol;
+  const host = forwardedHost || req.get("host");
+  if (!protocol || !host) {
+    return "";
+  }
+  return `${protocol}://${host}`;
+}
+
+function normalizeMediaUrl(req, rawUrl) {
+  const value = String(rawUrl || "").trim();
+  if (!value) {
+    return "";
+  }
+  const slashNormalized = value.replaceAll("\\", "/");
+  if (slashNormalized.includes("/uploads/characters/")) {
+    return slashNormalized.split("/").pop() || "";
+  }
+  if (slashNormalized.startsWith("uploads/characters/")) {
+    return slashNormalized.split("/").pop() || "";
+  }
+  if (value.startsWith("http://") || value.startsWith("https://")) {
+    return value;
+  }
+  if (!value.includes("/")) {
+    return value;
+  }
+
+  const origin = getRequestOrigin(req);
+  if (!origin) {
+    return value;
+  }
+
+  if (value.startsWith("/")) {
+    return `${origin}${value}`;
+  }
+
+  return `${origin}/${value}`;
+}
+
+function cleanUser(req, user) {
+  const characterAvatar = user.character
+    ? normalizeMediaUrl(req, user.character.avatarUrl)
+    : "";
+  const characterImage = user.character
+    ? normalizeMediaUrl(req, user.character.imageUrl)
+    : "";
+
   return {
     id: user.id,
     username: user.username,
@@ -23,8 +76,10 @@ function cleanUser(user) {
       ? {
           id: user.character.id,
           name: user.character.name,
-          avatarUrl: user.character.avatarUrl,
-          imageUrl: user.character.imageUrl,
+          avatarUrl: characterAvatar,
+          imageUrl: characterImage,
+          avatarFileName: characterAvatar,
+          imageFileName: characterImage,
         }
       : null,
     createdAt: user.createdAt,
@@ -136,7 +191,7 @@ router.post("/register", async (req, res) => {
 
   return res.status(201).json({
     token,
-    user: cleanUser(user),
+    user: cleanUser(req, user),
   });
 });
 
@@ -166,7 +221,7 @@ router.post("/login", async (req, res) => {
 
   return res.json({
     token,
-    user: cleanUser(user),
+    user: cleanUser(req, user),
   });
 });
 
@@ -177,7 +232,7 @@ router.get("/me", authRequired, async (req, res) => {
   }
 
   return res.json({
-    user: cleanUser(user),
+    user: cleanUser(req, user),
   });
 });
 

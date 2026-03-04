@@ -1,33 +1,74 @@
-const path = require("path");
 const { Prisma } = require("@prisma/client");
 const express = require("express");
 const { prisma } = require("../lib/prisma");
-const {
-  parseMultipartFormData,
-  saveImageFile,
-  safeDeleteFile,
-} = require("../lib/multipart");
 
 const router = express.Router();
-const uploadsDir = path.join(__dirname, "..", "uploads", "characters");
+
+const ALLOWED_IMAGE_EXTENSIONS = new Set([
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".webp",
+  ".gif",
+  ".svg",
+]);
+
+function cleanFileName(raw) {
+  const value = String(raw || "").trim();
+  if (!value) {
+    return "";
+  }
+
+  const slashNormalized = value.replaceAll("\\", "/");
+  const fromPath = slashNormalized.split("/").pop() || "";
+  return fromPath.trim();
+}
+
+function validateImageFileName(rawValue, fieldLabel) {
+  const fileName = cleanFileName(rawValue);
+  if (!fileName) {
+    return { error: `${fieldLabel} is required.` };
+  }
+
+  if (!/^[A-Za-z0-9._-]+$/.test(fileName)) {
+    return {
+      error: `${fieldLabel} must only contain letters, digits, dot, underscore or dash.`,
+    };
+  }
+
+  const lower = fileName.toLowerCase();
+  const dot = lower.lastIndexOf(".");
+  const ext = dot === -1 ? "" : lower.slice(dot);
+  if (!ALLOWED_IMAGE_EXTENSIONS.has(ext)) {
+    return {
+      error: `${fieldLabel} must use one of: ${Array.from(ALLOWED_IMAGE_EXTENSIONS).join(", ")}.`,
+    };
+  }
+
+  return { value: fileName };
+}
+
+function readAvatarFileName(body = {}) {
+  return body.avatarFileName ?? body.avatarUrl ?? body.avatar;
+}
+
+function readImageFileName(body = {}) {
+  return body.imageFileName ?? body.imageUrl ?? body.image;
+}
 
 function serializeCharacter(character) {
+  const avatarFileName = cleanFileName(character.avatarUrl);
+  const imageFileName = cleanFileName(character.imageUrl);
   return {
     id: character.id,
     name: character.name,
-    avatarUrl: character.avatarUrl,
-    imageUrl: character.imageUrl,
+    avatarUrl: avatarFileName,
+    imageUrl: imageFileName,
+    avatarFileName,
+    imageFileName,
     createdAt: character.createdAt,
     updatedAt: character.updatedAt,
   };
-}
-
-function toAbsoluteFromPublicUrl(publicUrl) {
-  if (!publicUrl || !publicUrl.startsWith("/uploads/characters/")) {
-    return null;
-  }
-  const filename = publicUrl.replace("/uploads/characters/", "");
-  return path.join(uploadsDir, filename);
 }
 
 router.get("/", async (_req, res) => {
@@ -50,36 +91,32 @@ router.get("/:id", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  const parsed = await parseMultipartFormData(req);
-  if (parsed.error) {
-    return res.status(parsed.status || 400).json({ error: parsed.error });
-  }
-
-  const { fields, files } = parsed;
-  const name = String(fields.name || "").trim();
+  const name = String(req.body.name || "").trim();
   if (!name) {
     return res.status(400).json({ error: "name is required." });
   }
 
-  const avatarSaved = await saveImageFile(files.avatar, uploadsDir, "avatar");
-  if (avatarSaved.error) {
-    return res.status(avatarSaved.status || 400).json({ error: avatarSaved.error });
+  const avatarResult = validateImageFileName(
+    readAvatarFileName(req.body),
+    "avatarFileName"
+  );
+  if (avatarResult.error) {
+    return res.status(400).json({ error: avatarResult.error });
   }
 
-  const imageSaved = await saveImageFile(files.image, uploadsDir, "image");
-  if (imageSaved.error) {
-    await safeDeleteFile(path.join(uploadsDir, avatarSaved.filename));
-    return res.status(imageSaved.status || 400).json({ error: imageSaved.error });
+  const imageResult = validateImageFileName(
+    readImageFileName(req.body),
+    "imageFileName"
+  );
+  if (imageResult.error) {
+    return res.status(400).json({ error: imageResult.error });
   }
-
-  const avatarUrl = `/uploads/characters/${avatarSaved.filename}`;
-  const imageUrl = `/uploads/characters/${imageSaved.filename}`;
 
   const character = await prisma.character.create({
     data: {
       name,
-      avatarUrl,
-      imageUrl,
+      avatarUrl: avatarResult.value,
+      imageUrl: imageResult.value,
     },
   });
 
@@ -93,48 +130,49 @@ router.patch("/:id", async (req, res) => {
     return res.status(404).json({ error: "Character not found." });
   }
 
-  const parsed = await parseMultipartFormData(req);
-  if (parsed.error) {
-    return res.status(parsed.status || 400).json({ error: parsed.error });
-  }
-  const { fields, files } = parsed;
-
   const nextData = {};
-  if (fields.name !== undefined) {
-    const name = String(fields.name || "").trim();
+
+  if (req.body.name !== undefined) {
+    const name = String(req.body.name || "").trim();
     if (!name) {
       return res.status(400).json({ error: "name cannot be empty." });
     }
     nextData.name = name;
   }
 
-  let avatarToDelete = null;
-  let imageToDelete = null;
-
-  if (files.avatar) {
-    const saved = await saveImageFile(files.avatar, uploadsDir, "avatar");
-    if (saved.error) {
-      return res.status(saved.status || 400).json({ error: saved.error });
+  if (
+    req.body.avatarFileName !== undefined ||
+    req.body.avatarUrl !== undefined ||
+    req.body.avatar !== undefined
+  ) {
+    const avatarResult = validateImageFileName(
+      readAvatarFileName(req.body),
+      "avatarFileName"
+    );
+    if (avatarResult.error) {
+      return res.status(400).json({ error: avatarResult.error });
     }
-    nextData.avatarUrl = `/uploads/characters/${saved.filename}`;
-    avatarToDelete = toAbsoluteFromPublicUrl(existing.avatarUrl);
+    nextData.avatarUrl = avatarResult.value;
   }
 
-  if (files.image) {
-    const saved = await saveImageFile(files.image, uploadsDir, "image");
-    if (saved.error) {
-      if (nextData.avatarUrl) {
-        await safeDeleteFile(path.join(uploadsDir, nextData.avatarUrl.split("/").pop()));
-      }
-      return res.status(saved.status || 400).json({ error: saved.error });
+  if (
+    req.body.imageFileName !== undefined ||
+    req.body.imageUrl !== undefined ||
+    req.body.image !== undefined
+  ) {
+    const imageResult = validateImageFileName(
+      readImageFileName(req.body),
+      "imageFileName"
+    );
+    if (imageResult.error) {
+      return res.status(400).json({ error: imageResult.error });
     }
-    nextData.imageUrl = `/uploads/characters/${saved.filename}`;
-    imageToDelete = toAbsoluteFromPublicUrl(existing.imageUrl);
+    nextData.imageUrl = imageResult.value;
   }
 
   if (Object.keys(nextData).length === 0) {
     return res.status(400).json({
-      error: "Provide at least one field to update: name, avatar, image.",
+      error: "Provide at least one field to update: name, avatarFileName, imageFileName.",
     });
   }
 
@@ -143,9 +181,6 @@ router.patch("/:id", async (req, res) => {
       where: { id },
       data: nextData,
     });
-
-    if (avatarToDelete) await safeDeleteFile(avatarToDelete);
-    if (imageToDelete) await safeDeleteFile(imageToDelete);
 
     return res.json({ character: serializeCharacter(character) });
   } catch (error) {
@@ -167,11 +202,7 @@ router.delete("/:id", async (req, res) => {
   }
 
   await prisma.character.delete({ where: { id } });
-  await safeDeleteFile(toAbsoluteFromPublicUrl(existing.avatarUrl));
-  await safeDeleteFile(toAbsoluteFromPublicUrl(existing.imageUrl));
-
   return res.status(204).send();
 });
 
 module.exports = router;
-

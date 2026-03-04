@@ -25,7 +25,7 @@
         <header class="bo-top">
           <div>
             <h1>Characters</h1>
-            <p>CRUD personnages avec upload avatar et image.</p>
+            <p>CRUD personnages avec noms de fichiers (images locales de l'application).</p>
           </div>
           <span class="bo-badge" id="charactersBadge">0 characters</span>
         </header>
@@ -33,18 +33,19 @@
         <section class="bo-grid two">
           <article class="bo-panel">
             <h2>Create character</h2>
+            <p class="bo-help">Les fichiers doivent exister dans <code>front/app/src/main/assets/characters/</code>.</p>
             <form id="createCharacterForm" class="bo-form-grid">
               <div class="bo-field">
                 <label for="cCharacterName">Name</label>
                 <input id="cCharacterName" name="name" required placeholder="ex: Red" />
               </div>
               <div class="bo-field">
-                <label for="cCharacterAvatar">Avatar image</label>
-                <input id="cCharacterAvatar" name="avatar" type="file" accept="image/*" required />
+                <label for="cCharacterAvatar">Avatar filename</label>
+                <input id="cCharacterAvatar" name="avatarFileName" required placeholder="ex: red_avatar.png" />
               </div>
               <div class="bo-field">
-                <label for="cCharacterImage">Main image</label>
-                <input id="cCharacterImage" name="image" type="file" accept="image/*" required />
+                <label for="cCharacterImage">Main image filename</label>
+                <input id="cCharacterImage" name="imageFileName" required placeholder="ex: red_main.png" />
               </div>
               <div class="bo-actions">
                 <button class="bo-btn primary" type="submit">Create</button>
@@ -61,12 +62,12 @@
                 <input id="eCharacterName" name="name" placeholder="leave empty to keep current value" />
               </div>
               <div class="bo-field">
-                <label for="eCharacterAvatar">Avatar image</label>
-                <input id="eCharacterAvatar" name="avatar" type="file" accept="image/*" />
+                <label for="eCharacterAvatar">Avatar filename</label>
+                <input id="eCharacterAvatar" name="avatarFileName" placeholder="leave empty to keep current value" />
               </div>
               <div class="bo-field">
-                <label for="eCharacterImage">Main image</label>
-                <input id="eCharacterImage" name="image" type="file" accept="image/*" />
+                <label for="eCharacterImage">Main image filename</label>
+                <input id="eCharacterImage" name="imageFileName" placeholder="leave empty to keep current value" />
               </div>
               <div class="bo-actions">
                 <button class="bo-btn primary" type="submit">Save</button>
@@ -87,4 +88,3 @@
     </div>
   </body>
   </html>
-

@@ -64,7 +64,8 @@ class AuthRepositoryImpl(
             id = id,
             username = username,
             email = email,
-            createdAt = createdAt
+            createdAt = createdAt,
+            character = character?.toDomain()
         )
     }
 

@@ -19,9 +19,9 @@
     editForm.reset();
   }
 
-  function imageTag(url, alt) {
-    if (!url) return '<span class="bo-help">-</span>';
-    return `<img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}" class="bo-thumb" />`;
+  function fileNameTag(value) {
+    if (!value) return '<span class="bo-help">-</span>';
+    return `<span class="bo-pill">${escapeHtml(value)}</span>`;
   }
 
   function renderTable() {
@@ -38,8 +38,8 @@
         return `
           <tr>
             <td><strong>${escapeHtml(character.name)}</strong></td>
-            <td>${imageTag(character.avatarUrl, `${character.name} avatar`)}</td>
-            <td>${imageTag(character.imageUrl, `${character.name} image`)}</td>
+            <td>${fileNameTag(character.avatarFileName || character.avatarUrl)}</td>
+            <td>${fileNameTag(character.imageFileName || character.imageUrl)}</td>
             <td>${formatDate(character.createdAt)}</td>
             <td>
               <div class="bo-actions">
@@ -57,8 +57,8 @@
         <thead>
           <tr>
             <th>Name</th>
-            <th>Avatar</th>
-            <th>Image</th>
+            <th>Avatar file</th>
+            <th>Main image file</th>
             <th>Created at</th>
             <th>Actions</th>
           </tr>
@@ -78,10 +78,16 @@
     event.preventDefault();
     const formData = new FormData(createForm);
 
+    const payload = {
+      name: String(formData.get("name") || "").trim(),
+      avatarFileName: String(formData.get("avatarFileName") || "").trim(),
+      imageFileName: String(formData.get("imageFileName") || "").trim(),
+    };
+
     try {
       await api("/api/characters", {
         method: "POST",
-        body: formData,
+        body: JSON.stringify(payload),
       });
       createForm.reset();
       await loadCharacters();
@@ -98,24 +104,25 @@
       return;
     }
 
-    const name = String(editForm.name.value || "").trim();
-    const avatarFile = editForm.avatar.files?.[0] || null;
-    const imageFile = editForm.image.files?.[0] || null;
+    const payload = {};
 
-    if (!name && !avatarFile && !imageFile) {
+    const name = String(editForm.name.value || "").trim();
+    const avatarFileName = String(editForm.avatarFileName.value || "").trim();
+    const imageFileName = String(editForm.imageFileName.value || "").trim();
+
+    if (name) payload.name = name;
+    if (avatarFileName) payload.avatarFileName = avatarFileName;
+    if (imageFileName) payload.imageFileName = imageFileName;
+
+    if (!Object.keys(payload).length) {
       notify("No changes to save.", "err");
       return;
     }
 
-    const payload = new FormData();
-    if (name) payload.append("name", name);
-    if (avatarFile) payload.append("avatar", avatarFile);
-    if (imageFile) payload.append("image", imageFile);
-
     try {
       await api(`/api/characters/${selectedCharacterId}`, {
         method: "PATCH",
-        body: payload,
+        body: JSON.stringify(payload),
       });
       await loadCharacters();
       notify("Character updated.");
@@ -137,8 +144,8 @@
       selectedCharacterId = character.id;
       editMeta.textContent = `Editing ${character.name}`;
       editForm.name.value = character.name;
-      editForm.avatar.value = "";
-      editForm.image.value = "";
+      editForm.avatarFileName.value = character.avatarFileName || character.avatarUrl || "";
+      editForm.imageFileName.value = character.imageFileName || character.imageUrl || "";
       return;
     }
 
@@ -158,4 +165,3 @@
   resetEditForm();
   loadCharacters().catch((error) => notify(error.message, "err"));
 })();
-

@@ -42,11 +42,15 @@
     editCharacterSelect.disabled = characters.length === 0;
   }
 
-  function avatarTag(url, label) {
+  function avatarTag(character, label) {
+    const url = character?.avatarUrl || "";
     if (!url) {
       return '<span class="bo-muted">-</span>';
     }
-    return `<img class="bo-thumb" src="${escapeHtml(url)}" alt="${escapeHtml(label)}" />`;
+    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("/")) {
+      return `<img class="bo-thumb" src="${escapeHtml(url)}" alt="${escapeHtml(label)}" />`;
+    }
+    return `<span class="bo-pill">${escapeHtml(url)}</span>`;
   }
 
   function renderUsersTable() {
@@ -64,7 +68,7 @@
           <tr>
             <td><strong>${escapeHtml(user.username)}</strong></td>
             <td>${escapeHtml(user.email)}</td>
-            <td>${avatarTag(user.character?.avatarUrl, `${user.username} avatar`)}</td>
+            <td>${avatarTag(user.character, `${user.username} avatar`)}</td>
             <td>${escapeHtml(user.character?.name || "-")}</td>
             <td>${formatDate(user.createdAt)}</td>
             <td>

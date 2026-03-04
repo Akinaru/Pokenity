@@ -232,29 +232,36 @@ Body (un ou plusieurs champs):
 
 `DELETE /boxes/:boxId`
 
-### 6) Characters CRUD (upload avatar + image)
-
-Fichiers servis publiquement via: `GET /uploads/...`
+### 6) Characters CRUD (noms de fichiers images)
 
 `GET /characters`
 
 `GET /characters/:id`
 
-`POST /characters` (multipart/form-data)
+`POST /characters` (`application/json`)
 
-Fields:
+Body:
 - `name` (text, requis)
-- `avatar` (file image, requis)
-- `image` (file image, requis)
+- `avatarFileName` (string, requis, ex `red_avatar.png`)
+- `imageFileName` (string, requis, ex `red_main.png`)
 
-`PATCH /characters/:id` (multipart/form-data)
+`PATCH /characters/:id` (`application/json`)
 
-Fields optionnels:
+Champs optionnels:
 - `name` (text)
-- `avatar` (file image)
-- `image` (file image)
+- `avatarFileName` (string)
+- `imageFileName` (string)
 
 `DELETE /characters/:id`
+
+Extensions autorisees:
+- `.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`, `.svg`
+
+Important:
+- l'API ne stocke plus de fichiers dans `back/src/uploads`
+- les valeurs en base sont des noms de fichiers
+- cote Android, les images doivent etre presentes dans:
+  `front/app/src/main/assets/characters/<fileName>`
 
 ### 7) Ouvrir une box
 

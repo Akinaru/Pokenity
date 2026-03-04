@@ -160,14 +160,24 @@ class AuthFlowViewModel(
 
     fun selectPreviousCharacter() {
         val state = _uiState.value
-        if (state.selectedCharacterIndex <= 0) return
-        _uiState.value = state.copy(selectedCharacterIndex = state.selectedCharacterIndex - 1)
+        if (state.characters.isEmpty()) return
+        val nextIndex = if (state.selectedCharacterIndex <= 0) {
+            state.characters.lastIndex
+        } else {
+            state.selectedCharacterIndex - 1
+        }
+        _uiState.value = state.copy(selectedCharacterIndex = nextIndex)
     }
 
     fun selectNextCharacter() {
         val state = _uiState.value
-        if (state.selectedCharacterIndex >= state.characters.lastIndex) return
-        _uiState.value = state.copy(selectedCharacterIndex = state.selectedCharacterIndex + 1)
+        if (state.characters.isEmpty()) return
+        val nextIndex = if (state.selectedCharacterIndex >= state.characters.lastIndex) {
+            0
+        } else {
+            state.selectedCharacterIndex + 1
+        }
+        _uiState.value = state.copy(selectedCharacterIndex = nextIndex)
     }
 
     fun registerWithSelectedCharacter(onSuccess: () -> Unit) {

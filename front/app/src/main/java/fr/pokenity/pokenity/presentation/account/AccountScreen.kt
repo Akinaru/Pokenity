@@ -1,24 +1,41 @@
 package fr.pokenity.pokenity.presentation.account
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import fr.pokenity.pokenity.presentation.auth.AuthAccentYellow
+import fr.pokenity.pokenity.presentation.auth.AuthInputText
+import fr.pokenity.pokenity.ui.media.resolveCharacterMediaModel
+import fr.pokenity.pokenity.ui.theme.MistWhite
 
 @Composable
 fun AccountScreen(
@@ -29,49 +46,220 @@ fun AccountScreen(
     modifier: Modifier = Modifier
 ) {
     Surface(modifier = modifier.fillMaxSize(), color = Color.Transparent) {
+        if (uiState.isLoading && uiState.user == null) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = AuthAccentYellow)
+            }
+            return@Surface
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Text(
                 text = uiState.user?.username ?: "Compte",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.ExtraBold
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = MistWhite,
+                textAlign = TextAlign.Center
             )
 
-            if (uiState.errorMessage != null) {
-                Text(uiState.errorMessage, color = MaterialTheme.colorScheme.error)
-            }
-            if (uiState.infoMessage != null) {
-                Text(uiState.infoMessage, color = MaterialTheme.colorScheme.primary)
-            }
-
             if (uiState.user != null) {
-                Text("Connecte en tant que:", style = MaterialTheme.typography.titleMedium)
-                Text("Id: ${uiState.user.id}")
-                Text("Username: ${uiState.user.username}")
-                Text("Email: ${uiState.user.email}")
-                if (!uiState.user.createdAt.isNullOrBlank()) {
-                    Text("Compte cree le: ${uiState.user.createdAt}")
+                AccountAvatar(
+                    url = uiState.user.characterAvatarUrl ?: uiState.user.characterImageUrl,
+                    label = uiState.user.username
+                )
+
+                if (!uiState.user.characterName.isNullOrBlank()) {
+                    Text(
+                        text = uiState.user.characterName,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MistWhite
+                    )
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = onFetchMe) { Text("Rafraichir profil") }
-                    Button(onClick = onLogout) { Text("Deconnexion") }
+                if (!uiState.errorMessage.isNullOrBlank()) {
+                    MessageCard(
+                        message = uiState.errorMessage,
+                        color = Color(0xFFFF8A80)
+                    )
+                }
+
+                if (!uiState.infoMessage.isNullOrBlank()) {
+                    MessageCard(
+                        message = uiState.infoMessage,
+                        color = AuthAccentYellow
+                    )
+                }
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color(0x66180707)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(
+                            text = "Informations du compte",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MistWhite,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        AccountInfoRow(label = "Username", value = uiState.user.username)
+                        AccountInfoRow(label = "Email", value = uiState.user.email)
+                        AccountInfoRow(
+                            label = "Dresseur",
+                            value = uiState.user.characterName ?: "Non defini"
+                        )
+                        if (!uiState.user.createdAt.isNullOrBlank()) {
+                            AccountInfoRow(label = "Compte cree", value = uiState.user.createdAt)
+                        }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onFetchMe,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Text("Rafraichir")
+                    }
+                    Button(
+                        onClick = onLogout,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AuthAccentYellow,
+                            contentColor = AuthInputText
+                        )
+                    ) {
+                        Text("Deconnexion", fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(color = AuthAccentYellow)
                 }
             } else {
-                Text("Session deconnectee.")
-                Button(onClick = onGoToWelcome, modifier = Modifier.fillMaxWidth()) {
-                    Text("Retour au Welcome")
+                if (!uiState.errorMessage.isNullOrBlank()) {
+                    MessageCard(
+                        message = uiState.errorMessage,
+                        color = Color(0xFFFF8A80)
+                    )
+                }
+
+                Text(
+                    text = "Session deconnectee",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MistWhite
+                )
+
+                Button(
+                    onClick = onGoToWelcome,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AuthAccentYellow,
+                        contentColor = AuthInputText
+                    )
+                ) {
+                    Text("Retour au Welcome", fontWeight = FontWeight.Bold)
                 }
             }
-
-            if (uiState.isLoading) {
-                Spacer(Modifier.height(8.dp))
-                CircularProgressIndicator()
-            }
         }
+    }
+}
+
+@Composable
+private fun AccountAvatar(
+    url: String?,
+    label: String
+) {
+    val mediaModel = resolveCharacterMediaModel(url)
+
+    Box(
+        modifier = Modifier
+            .size(164.dp)
+            .clip(CircleShape)
+            .background(Color(0x66180707))
+            .border(width = 2.dp, color = MistWhite.copy(alpha = 0.65f), shape = CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        if (mediaModel != null) {
+            AsyncImage(
+                model = mediaModel,
+                contentDescription = "$label avatar",
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            androidx.compose.material3.Icon(
+                imageVector = Icons.Default.AccountCircle,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                tint = MistWhite.copy(alpha = 0.82f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun AccountInfoRow(
+    label: String,
+    value: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MistWhite.copy(alpha = 0.72f)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MistWhite,
+            textAlign = TextAlign.End
+        )
+    }
+}
+
+@Composable
+private fun MessageCard(
+    message: String,
+    color: Color
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = Color(0x66180707)
+    ) {
+        Text(
+            text = message,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+            color = color,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }

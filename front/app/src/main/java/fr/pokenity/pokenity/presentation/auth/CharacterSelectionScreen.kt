@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -42,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
+import fr.pokenity.pokenity.ui.media.resolveCharacterMediaModel
 
 @Composable
 fun CharacterSelectionScreen(
@@ -52,12 +55,21 @@ fun CharacterSelectionScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val characterCount = uiState.characters.size
     val selectedCharacter = uiState.characters.getOrNull(uiState.selectedCharacterIndex)
-    val previousCharacter = uiState.characters.getOrNull(uiState.selectedCharacterIndex - 1)
-    val nextCharacter = uiState.characters.getOrNull(uiState.selectedCharacterIndex + 1)
+    val previousCharacter = if (characterCount > 1) {
+        uiState.characters[(uiState.selectedCharacterIndex - 1 + characterCount) % characterCount]
+    } else {
+        null
+    }
+    val nextCharacter = if (characterCount > 1) {
+        uiState.characters[(uiState.selectedCharacterIndex + 1) % characterCount]
+    } else {
+        null
+    }
 
     AuthBackgroundContainer(
-        backgroundDrawableName = "background",
+        backgroundDrawableName = "dresseur_background",
         modifier = modifier.fillMaxSize()
     ) {
         BoxWithConstraints(
@@ -76,18 +88,14 @@ fun CharacterSelectionScreen(
             } else if (selectedCharacter != null) {
                 val selectedModel by remember(selectedCharacter) {
                     androidx.compose.runtime.mutableStateOf(
-                        if (selectedCharacter.imageUrl.isNotBlank()) {
-                            selectedCharacter.imageUrl
-                        } else {
-                            selectedCharacter.avatarUrl
-                        }
+                        selectedCharacter.preferredMediaModel()
                     )
                 }
                 val previousModel = if (previousCharacter != null) {
-                    if (previousCharacter.imageUrl.isNotBlank()) previousCharacter.imageUrl else previousCharacter.avatarUrl
+                    previousCharacter.preferredMediaModel()
                 } else null
                 val nextModel = if (nextCharacter != null) {
-                    if (nextCharacter.imageUrl.isNotBlank()) nextCharacter.imageUrl else nextCharacter.avatarUrl
+                    nextCharacter.preferredMediaModel()
                 } else null
 
                 // Prefetch adjacent characters to avoid network flash during slide.
@@ -119,7 +127,13 @@ fun CharacterSelectionScreen(
                         .fillMaxSize()
                         .offset(y = imageBottomOverflow),
                     transitionSpec = {
-                        if (targetState > initialState) {
+                        val moveForward = when {
+                            characterCount <= 1 -> true
+                            initialState == characterCount - 1 && targetState == 0 -> true
+                            initialState == 0 && targetState == characterCount - 1 -> false
+                            else -> targetState > initialState
+                        }
+                        if (moveForward) {
                             (slideInHorizontally(
                                 animationSpec = tween(260),
                                 initialOffsetX = { it / 2 }
@@ -148,11 +162,7 @@ fun CharacterSelectionScreen(
                     val character = uiState.characters.getOrNull(index)
                     if (character != null) {
                         AsyncImage(
-                            model = if (character.imageUrl.isNotBlank()) {
-                                character.imageUrl
-                            } else {
-                                character.avatarUrl
-                            },
+                            model = character.preferredMediaModel(),
                             contentDescription = character.name,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -237,6 +247,27 @@ fun CharacterSelectionScreen(
                         color = Color(0xFFD0EAFD),
                         textAlign = TextAlign.Center
                     )
+
+                    if (characterCount > 0) {
+                        Spacer(Modifier.height(10.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            repeat(characterCount) { index ->
+                                val isActive = index == uiState.selectedCharacterIndex
+                                Box(
+                                    modifier = Modifier
+                                        .width(if (isActive) 18.dp else 12.dp)
+                                        .height(if (isActive) 5.dp else 4.dp)
+                                        .background(
+                                            color = Color(0xFFD0EAFD).copy(alpha = if (isActive) 0.62f else 0.28f),
+                                            shape = RoundedCornerShape(8.dp)
+                                        )
+                                )
+                            }
+                        }
+                    }
                 }
 
                 if (selectedCharacter != null) {
@@ -252,32 +283,26 @@ fun CharacterSelectionScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            if (uiState.selectedCharacterIndex > 0) {
-                                Button(
-                                    onClick = onPrevious,
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = AuthAccentYellow,
-                                        contentColor = Color.Black
-                                    )
-                                ) {
-                                    Text("<")
-                                }
-                            } else {
-                                Spacer(Modifier.width(60.dp))
+                            Button(
+                                onClick = onPrevious,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = AuthAccentYellow,
+                                    contentColor = Color.Black
+                                )
+                            ) {
+                                Text("<")
                             }
 
-                            if (uiState.selectedCharacterIndex < uiState.characters.lastIndex) {
-                                Button(
-                                    onClick = onNext,
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = AuthAccentYellow,
-                                        contentColor = Color.Black
-                                    )
-                                ) {
-                                    Text(">")
-                                }
-                            } else {
-                                Spacer(Modifier.width(60.dp))
+                            Spacer(Modifier.width(60.dp))
+
+                            Button(
+                                onClick = onNext,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = AuthAccentYellow,
+                                    contentColor = Color.Black
+                                )
+                            ) {
+                                Text(">")
                             }
                         }
 
@@ -317,4 +342,9 @@ fun CharacterSelectionScreen(
             }
         }
     }
+}
+
+private fun AuthCharacterUiModel.preferredMediaModel(): String? {
+    val rawValue = if (imageUrl.isNotBlank()) imageUrl else avatarUrl
+    return resolveCharacterMediaModel(rawValue)
 }
