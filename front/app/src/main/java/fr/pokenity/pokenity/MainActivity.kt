@@ -26,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -37,6 +38,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import fr.pokenity.pokenity.core.AuthSessionState
 import fr.pokenity.pokenity.core.PokemonBrowseState
+import fr.pokenity.pokenity.core.AppThemeState
+import fr.pokenity.pokenity.core.AppThemeMode
 import fr.pokenity.pokenity.presentation.detail.PokemonDetailScreen
 import fr.pokenity.pokenity.presentation.detail.PokemonDetailViewModel
 import fr.pokenity.pokenity.presentation.compare.PokemonCompareScreen
@@ -79,10 +82,17 @@ class MainActivity : ComponentActivity() {
             val accountUiState by accountViewModel.uiState.collectAsState()
             val detailUiState by detailViewModel.uiState.collectAsState()
             val compareUiState by compareViewModel.uiState.collectAsState()
+            val themeMode by AppThemeState.themeMode.collectAsState()
+            val systemDark = isSystemInDarkTheme()
+            val isDarkTheme = when (themeMode) {
+                AppThemeMode.SYSTEM -> systemDark
+                AppThemeMode.LIGHT -> false
+                AppThemeMode.DARK -> true
+            }
 
             val navController = rememberNavController()
 
-            PokenityTheme {
+            PokenityTheme(darkTheme = isDarkTheme) {
                 NavHost(
                     navController = navController,
                     startDestination = "home"
@@ -153,6 +163,7 @@ class MainActivity : ComponentActivity() {
                                         onRetry = settingsViewModel::loadLanguages,
                                         onLanguageSelected = settingsViewModel::onLanguageSelected,
                                         onImageTypeSelected = settingsViewModel::onImageTypeSelected,
+                                        onThemeModeSelected = settingsViewModel::onThemeModeSelected,
                                         modifier = Modifier.padding(innerPadding)
                                     )
                                 }

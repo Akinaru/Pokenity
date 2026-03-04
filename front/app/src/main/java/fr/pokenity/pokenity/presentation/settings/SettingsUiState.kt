@@ -1,6 +1,7 @@
 package fr.pokenity.pokenity.presentation.settings
 
 import fr.pokenity.pokenity.core.PokemonImageType
+import fr.pokenity.pokenity.core.AppThemeMode
 import fr.pokenity.pokenity.domain.model.LanguageOption
 
 data class SettingsUiState(
@@ -8,5 +9,6 @@ data class SettingsUiState(
     val errorMessage: String? = null,
     val selectedLanguageCode: String = "en",
     val selectedImageType: PokemonImageType = PokemonImageType.OFFICIAL_ARTWORK,
+    val selectedThemeMode: AppThemeMode = AppThemeMode.SYSTEM,
     val languages: List<LanguageOption> = emptyList()
 )

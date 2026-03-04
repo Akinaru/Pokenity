@@ -20,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import fr.pokenity.pokenity.core.AppThemeMode
 import fr.pokenity.pokenity.core.PokemonImageType
 
 @Composable
@@ -28,6 +29,7 @@ fun SettingsScreen(
     onRetry: () -> Unit,
     onLanguageSelected: (String) -> Unit,
     onImageTypeSelected: (PokemonImageType) -> Unit,
+    onThemeModeSelected: (AppThemeMode) -> Unit,
     modifier: Modifier = Modifier
 ) {
     when {
@@ -55,6 +57,7 @@ fun SettingsScreen(
         else -> {
             var languageExpanded by remember { mutableStateOf(false) }
             var imageTypeExpanded by remember { mutableStateOf(false) }
+            var themeExpanded by remember { mutableStateOf(false) }
             val selectedLanguage = uiState.languages.firstOrNull { it.code == uiState.selectedLanguageCode }
 
             Column(
@@ -64,6 +67,42 @@ fun SettingsScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(text = "Settings", style = MaterialTheme.typography.headlineSmall)
+
+                Text(text = "Theme", style = MaterialTheme.typography.titleMedium)
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedButton(onClick = { themeExpanded = true }, modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            when (uiState.selectedThemeMode) {
+                                AppThemeMode.SYSTEM -> "Appareil"
+                                AppThemeMode.LIGHT -> "Clair"
+                                AppThemeMode.DARK -> "Sombre"
+                            }
+                        )
+                    }
+                    DropdownMenu(expanded = themeExpanded, onDismissRequest = { themeExpanded = false }) {
+                        DropdownMenuItem(
+                            text = { Text("Appareil") },
+                            onClick = {
+                                onThemeModeSelected(AppThemeMode.SYSTEM)
+                                themeExpanded = false
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Clair") },
+                            onClick = {
+                                onThemeModeSelected(AppThemeMode.LIGHT)
+                                themeExpanded = false
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Sombre") },
+                            onClick = {
+                                onThemeModeSelected(AppThemeMode.DARK)
+                                themeExpanded = false
+                            }
+                        )
+                    }
+                }
 
                 Text(
                     text = "Langue des donnees PokeAPI",

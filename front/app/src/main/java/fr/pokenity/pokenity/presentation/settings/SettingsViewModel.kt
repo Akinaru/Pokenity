@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import fr.pokenity.pokenity.core.AppLanguageState
 import fr.pokenity.pokenity.core.AppContainer
+import fr.pokenity.pokenity.core.AppThemeState
+import fr.pokenity.pokenity.core.AppThemeMode
 import fr.pokenity.pokenity.core.PokemonImageSettings
 import fr.pokenity.pokenity.core.PokemonImageType
 import fr.pokenity.pokenity.domain.usecase.GetAvailableLanguagesUseCase
@@ -25,6 +27,7 @@ class SettingsViewModel(
     init {
         observeLanguage()
         observeImageType()
+        observeTheme()
         loadLanguages()
     }
 
@@ -56,6 +59,10 @@ class SettingsViewModel(
         PokemonImageSettings.setImageType(type)
     }
 
+    fun onThemeModeSelected(mode: AppThemeMode) {
+        AppThemeState.setThemeMode(mode)
+    }
+
     private fun observeLanguage() {
         viewModelScope.launch {
             AppLanguageState.selectedLanguageCode.collectLatest { code ->
@@ -68,6 +75,14 @@ class SettingsViewModel(
         viewModelScope.launch {
             PokemonImageSettings.imageType.collectLatest { type ->
                 _uiState.value = _uiState.value.copy(selectedImageType = type)
+            }
+        }
+    }
+
+    private fun observeTheme() {
+        viewModelScope.launch {
+            AppThemeState.themeMode.collectLatest { mode ->
+                _uiState.value = _uiState.value.copy(selectedThemeMode = mode)
             }
         }
     }
