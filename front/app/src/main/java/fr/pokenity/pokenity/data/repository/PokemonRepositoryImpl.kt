@@ -4,7 +4,9 @@ import fr.pokenity.pokenity.data.remote.NamedResourceDto
 import fr.pokenity.pokenity.data.remote.PokeApiService
 import fr.pokenity.pokenity.domain.model.EvolutionStage
 import fr.pokenity.pokenity.domain.model.PokemonDetail
+import fr.pokenity.pokenity.domain.model.PokemonMove
 import fr.pokenity.pokenity.domain.model.PokemonStat
+import fr.pokenity.pokenity.domain.model.PokemonType
 import fr.pokenity.pokenity.domain.model.PokemonFilterOption
 import fr.pokenity.pokenity.domain.model.PokemonSummary
 import fr.pokenity.pokenity.domain.repository.PokemonRepository
@@ -121,11 +123,40 @@ class PokemonRepositoryImpl(
             emptyList()
         }
 
+        // Fetch move details (gracefully fallback to empty if it fails)
+        val moves = try {
+            dto.moveNames.mapNotNull { moveName ->
+                try {
+                    val moveDto = pokeApiService.fetchMoveDetail(moveName)
+                    PokemonMove(
+                        name = moveDto.name.asDisplayName(),
+                        type = PokemonType(
+                            name = moveDto.typeName.asDisplayName(),
+                            imageUrl = typeImageUrl(moveDto.typeId)
+                        ),
+                        description = moveDto.description,
+                        power = moveDto.power,
+                        accuracy = moveDto.accuracy,
+                        pp = moveDto.pp
+                    )
+                } catch (_: Exception) {
+                    null
+                }
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+
         return PokemonDetail(
             id = dto.id,
             name = dto.name.asDisplayName(),
             imageUrl = artworkUrl(dto.id),
-            types = dto.types.map { it.asDisplayName() },
+            types = dto.types.map { typeDto ->
+                PokemonType(
+                    name = typeDto.name.asDisplayName(),
+                    imageUrl = typeImageUrl(typeDto.id)
+                )
+            },
             height = dto.height,
             weight = dto.weight,
             stats = dto.stats.map { stat ->
@@ -135,6 +166,7 @@ class PokemonRepositoryImpl(
                 )
             },
             abilities = dto.abilities.map { it.asDisplayName() },
+            moves = moves,
             evolutionChain = evolutionChain
         )
     }

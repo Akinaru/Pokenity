@@ -58,7 +58,8 @@ class MainActivity : ComponentActivity() {
                         PokemonDetailScreen(
                             uiState = detailUiState,
                             onBack = { selectedPokemonId = null },
-                            onRetry = { detailViewModel.loadPokemon(pokemonId) }
+                            onRetry = { detailViewModel.loadPokemon(pokemonId) },
+                            onPokemonClick = { id -> selectedPokemonId = id }
                         )
                     } else {
                         Scaffold(

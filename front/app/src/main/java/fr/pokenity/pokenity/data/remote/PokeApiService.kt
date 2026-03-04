@@ -102,7 +102,13 @@ class PokeApiService {
 
             val typesArray = root.getJSONArray("types")
             val types = List(typesArray.length()) { i ->
-                typesArray.getJSONObject(i).getJSONObject("type").getString("name")
+                val typeObj = typesArray.getJSONObject(i).getJSONObject("type")
+                val typeUrl = typeObj.getString("url")
+                val typeId = typeUrl.trimEnd('/').substringAfterLast('/').toInt()
+                PokemonTypeDto(
+                    name = typeObj.getString("name"),
+                    id = typeId
+                )
             }
 
             val statsArray = root.getJSONArray("stats")
@@ -119,6 +125,28 @@ class PokeApiService {
                 abilitiesArray.getJSONObject(i).getJSONObject("ability").getString("name")
             }
 
+            // Extract level-up moves, take the 6 highest level ones
+            val movesArray = root.getJSONArray("moves")
+            val levelUpMoves = mutableListOf<Pair<String, Int>>() // name to level
+            for (i in 0 until movesArray.length()) {
+                val moveObj = movesArray.getJSONObject(i)
+                val details = moveObj.getJSONArray("version_group_details")
+                for (j in 0 until details.length()) {
+                    val detail = details.getJSONObject(j)
+                    val method = detail.getJSONObject("move_learn_method").getString("name")
+                    if (method == "level-up") {
+                        val level = detail.getInt("level_learned_at")
+                        val moveName = moveObj.getJSONObject("move").getString("name")
+                        levelUpMoves.add(moveName to level)
+                        break
+                    }
+                }
+            }
+            val topMoveNames = levelUpMoves
+                .sortedByDescending { it.second }
+                .take(6)
+                .map { it.first }
+
             PokemonDetailDto(
                 id = root.getInt("id"),
                 name = root.getString("name"),
@@ -126,11 +154,45 @@ class PokeApiService {
                 weight = root.getInt("weight"),
                 types = types,
                 stats = stats,
-                abilities = abilities
+                abilities = abilities,
+                moveNames = topMoveNames
             )
         } finally {
             connection.disconnect()
         }
+    }
+
+    /**
+     * Fetches detailed info for a single move (type, description, power, accuracy, pp).
+     */
+    fun fetchMoveDetail(moveName: String): MoveDetailDto {
+        val root = fetchJson("https://pokeapi.co/api/v2/move/$moveName")
+
+        val typeObj = root.getJSONObject("type")
+        val typeUrl = typeObj.getString("url")
+        val typeId = typeUrl.trimEnd('/').substringAfterLast('/').toInt()
+        val typeName = typeObj.getString("name")
+
+        // Get English flavor text (description)
+        val flavorEntries = root.getJSONArray("flavor_text_entries")
+        var description = ""
+        for (i in 0 until flavorEntries.length()) {
+            val entry = flavorEntries.getJSONObject(i)
+            if (entry.getJSONObject("language").getString("name") == "en") {
+                description = entry.getString("flavor_text").replace("\n", " ").replace("\u000c", " ")
+                break
+            }
+        }
+
+        return MoveDetailDto(
+            name = root.getString("name"),
+            typeName = typeName,
+            typeId = typeId,
+            description = description,
+            power = if (root.isNull("power")) null else root.getInt("power"),
+            accuracy = if (root.isNull("accuracy")) null else root.getInt("accuracy"),
+            pp = if (root.isNull("pp")) null else root.getInt("pp")
+        )
     }
 
     /**
@@ -233,14 +295,30 @@ data class PokemonDetailDto(
     val name: String,
     val height: Int,
     val weight: Int,
-    val types: List<String>,
+    val types: List<PokemonTypeDto>,
     val stats: List<PokemonStatDto>,
-    val abilities: List<String>
+    val abilities: List<String>,
+    val moveNames: List<String> = emptyList()
+)
+
+data class PokemonTypeDto(
+    val name: String,
+    val id: Int
 )
 
 data class PokemonStatDto(
     val name: String,
     val baseStat: Int
+)
+
+data class MoveDetailDto(
+    val name: String,
+    val typeName: String,
+    val typeId: Int,
+    val description: String,
+    val power: Int?,
+    val accuracy: Int?,
+    val pp: Int?
 )
 
 data class EvolutionStageDto(
