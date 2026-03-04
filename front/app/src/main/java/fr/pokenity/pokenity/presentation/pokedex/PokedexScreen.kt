@@ -38,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -89,7 +90,7 @@ fun PokedexScreen(
         )
     }
 
-    Surface(modifier = modifier.fillMaxSize()) {
+    Surface(modifier = modifier.fillMaxSize(), color = Color.Transparent) {
         when {
             uiState.isLoading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

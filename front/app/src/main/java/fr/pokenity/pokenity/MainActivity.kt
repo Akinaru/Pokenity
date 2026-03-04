@@ -31,6 +31,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -57,6 +58,7 @@ import fr.pokenity.pokenity.presentation.pokedex.PokedexScreen
 import fr.pokenity.pokenity.presentation.pokedex.PokedexViewModel
 import fr.pokenity.pokenity.presentation.settings.SettingsScreen
 import fr.pokenity.pokenity.presentation.settings.SettingsViewModel
+import fr.pokenity.pokenity.ui.theme.AppBackground
 import fr.pokenity.pokenity.ui.theme.PokenityTheme
 
 private enum class MainDestination {
@@ -107,10 +109,11 @@ class MainActivity : ComponentActivity() {
             val navController = rememberNavController()
 
             PokenityTheme(darkTheme = isDarkTheme) {
-                NavHost(
-                    navController = navController,
-                    startDestination = startDest
-                ) {
+                AppBackground(darkTheme = isDarkTheme) {
+                    NavHost(
+                        navController = navController,
+                        startDestination = startDest
+                    ) {
                     // --- Auth flow screens ---
 
                     composable("welcome") {
@@ -181,15 +184,16 @@ class MainActivity : ComponentActivity() {
                             mutableStateOf(MainDestination.POKEMONS)
                         }
 
-                        Scaffold(
-                            modifier = Modifier.fillMaxSize(),
-                            bottomBar = {
-                                MainBottomBar(
-                                    selectedDestination = selectedDestination,
-                                    onSelected = { selectedDestination = it }
-                                )
-                            }
-                        ) { innerPadding ->
+                            Scaffold(
+                                modifier = Modifier.fillMaxSize(),
+                                containerColor = Color.Transparent,
+                                bottomBar = {
+                                    MainBottomBar(
+                                        selectedDestination = selectedDestination,
+                                        onSelected = { selectedDestination = it }
+                                    )
+                                }
+                            ) { innerPadding ->
                             when (selectedDestination) {
                                 MainDestination.POKEMONS -> {
                                     PokedexScreen(
@@ -249,22 +253,26 @@ class MainActivity : ComponentActivity() {
                                 MainDestination.ACCOUNT -> {
                                     AccountScreen(
                                         uiState = accountUiState,
-                                        onModeChange = accountViewModel::setMode,
-                                        onLoginIdentifierChange = accountViewModel::updateLoginIdentifier,
-                                        onLoginPasswordChange = accountViewModel::updateLoginPassword,
-                                        onRegisterUsernameChange = accountViewModel::updateRegisterUsername,
-                                        onRegisterEmailChange = accountViewModel::updateRegisterEmail,
-                                        onRegisterPasswordChange = accountViewModel::updateRegisterPassword,
-                                        onLogin = accountViewModel::login,
-                                        onRegister = accountViewModel::register,
                                         onFetchMe = accountViewModel::fetchMe,
-                                        onLogout = accountViewModel::logout,
+                                        onLogout = {
+                                            accountViewModel.logout()
+                                            navController.navigate("welcome") {
+                                                popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                                                launchSingleTop = true
+                                            }
+                                        },
+                                        onGoToWelcome = {
+                                            navController.navigate("welcome") {
+                                                popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                                                launchSingleTop = true
+                                            }
+                                        },
                                         modifier = Modifier.padding(innerPadding)
                                     )
                                 }
                             }
+                            }
                         }
-                    }
 
                     // Detail screen — each navigation pushes onto the back stack
                     composable(
@@ -372,6 +380,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -396,6 +405,7 @@ private fun ComparePickerScreen(
     onPokemonPicked: (Int) -> Unit
 ) {
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
                 title = { Text("Choisir un Pokemon") },

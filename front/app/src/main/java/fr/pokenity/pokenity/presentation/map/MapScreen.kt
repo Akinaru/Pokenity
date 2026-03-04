@@ -69,7 +69,7 @@ fun MapScreen(
     val spriteType by PokemonImageSettings.imageType.collectAsState()
     val shinyEnabled by PokemonImageSettings.isShiny.collectAsState()
 
-    Surface(modifier = modifier.fillMaxSize()) {
+    Surface(modifier = modifier.fillMaxSize(), color = Color.Transparent) {
         when {
             uiState.isLoading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -203,9 +203,9 @@ private fun MapHeader(title: String, subtitle: String) {
             .padding(20.dp)
     ) {
         Column {
-            Text(text = title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = Color.White)
+            Text(text = title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
             Spacer(modifier = Modifier.height(6.dp))
-            Text(text = subtitle, style = MaterialTheme.typography.bodyLarge, color = Color.White)
+            Text(text = subtitle, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }

@@ -87,7 +87,7 @@ fun PokemonCompareScreen(
     val shiny by PokemonImageSettings.isShiny.collectAsState()
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
-    Surface(modifier = modifier.fillMaxSize()) {
+    Surface(modifier = modifier.fillMaxSize(), color = Color.Transparent) {
         when {
             uiState.isLoading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

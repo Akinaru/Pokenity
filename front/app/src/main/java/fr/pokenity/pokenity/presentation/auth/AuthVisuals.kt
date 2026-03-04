@@ -12,36 +12,31 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import fr.pokenity.pokenity.R
+import fr.pokenity.pokenity.ui.theme.AppFontFamily
 
 val AuthAccentYellow = Color(0xFFFFCC18)
 val AuthInputBackground = Color(0xFFD0EAFD)
 val AuthInputText = Color(0xFF180707)
 
-val AuthFontFamily = FontFamily(
-    Font(R.font.clash_display_extralight, FontWeight.ExtraLight),
-    Font(R.font.clash_display_light, FontWeight.Light),
-    Font(R.font.clash_display_regular, FontWeight.Normal),
-    Font(R.font.clash_display_medium, FontWeight.Medium),
-    Font(R.font.clash_display_semibold, FontWeight.SemiBold),
-    Font(R.font.clash_display_bold, FontWeight.Bold)
-)
+val AuthFontFamily: FontFamily = AppFontFamily
 
 @Composable
 fun AuthBackgroundContainer(
-    backgroundDrawableName: String,
+    backgroundDrawableName: String? = null,
     modifier: Modifier = Modifier,
     content: @Composable BoxScope.() -> Unit
 ) {
     val context = LocalContext.current
     val backgroundResId = remember(context, backgroundDrawableName) {
-        context.resources.getIdentifier(backgroundDrawableName, "drawable", context.packageName)
+        if (backgroundDrawableName.isNullOrBlank()) {
+            0
+        } else {
+            context.resources.getIdentifier(backgroundDrawableName, "drawable", context.packageName)
+        }
     }
 
-    Surface(modifier = modifier.fillMaxSize()) {
+    Surface(modifier = modifier.fillMaxSize(), color = Color.Transparent) {
         Box(modifier = Modifier.fillMaxSize()) {
             if (backgroundResId != 0) {
                 Image(

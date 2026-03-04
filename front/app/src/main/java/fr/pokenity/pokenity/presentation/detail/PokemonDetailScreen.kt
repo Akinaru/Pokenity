@@ -145,7 +145,7 @@ fun PokemonDetailScreen(
     }
     val effectiveShiny = shinyEnabled && imageType.supportsShiny && selectedPreset.supportsShiny
 
-    Surface(modifier = modifier.fillMaxSize()) {
+    Surface(modifier = modifier.fillMaxSize(), color = Color.Transparent) {
         when {
             uiState.isLoading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -291,7 +291,7 @@ private fun DetailHeader(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Retour",
-                tint = Color.White
+                tint = MaterialTheme.colorScheme.onSurface
             )
         }
 
@@ -347,13 +347,13 @@ private fun DetailHeader(
                 text = pokemon.name,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.ExtraBold,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = "#${pokemon.id.toString().padStart(3, '0')}",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color.White.copy(alpha = 0.7f)
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
         }
     }

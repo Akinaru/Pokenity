@@ -9,7 +9,14 @@ import androidx.compose.ui.graphics.Color
 private val DarkColorScheme = darkColorScheme(
     primary = PokeYellow,
     secondary = PokeBlue,
-    tertiary = PokeRed
+    tertiary = PokeRed,
+    background = Slate,
+    surface = Color(0xFF151515),
+    onPrimary = Color.Black,
+    onSecondary = MistWhite,
+    onBackground = MistWhite,
+    onSurface = MistWhite,
+    onSurfaceVariant = MistWhite
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -19,9 +26,10 @@ private val LightColorScheme = lightColorScheme(
     background = PokeWhite,
     surface = Color.White,
     onPrimary = Color.White,
-    onSecondary = Color.White,
-    onBackground = Slate,
-    onSurface = Slate
+    onSecondary = DarkInk,
+    onBackground = DarkInk,
+    onSurface = DarkInk,
+    onSurfaceVariant = DarkInk
 )
 
 @Composable
