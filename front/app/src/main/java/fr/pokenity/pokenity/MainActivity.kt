@@ -74,6 +74,7 @@ import fr.pokenity.data.core.AppThemeMode
 import fr.pokenity.data.core.AppThemeState
 import fr.pokenity.data.core.AuthSessionState
 import fr.pokenity.data.core.PokemonBrowseState
+import fr.pokenity.data.core.PokemonImageSettings
 import fr.pokenity.data.core.PokemonImageType
 import fr.pokenity.data.model.LootBox
 import fr.pokenity.data.model.PokemonFilterOption
@@ -1024,6 +1025,8 @@ private fun MoiProfileScreen(
     onPokemonClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val spriteType by PokemonImageSettings.imageType.collectAsState()
+    val shinyEnabled by PokemonImageSettings.isShiny.collectAsState()
     val ownedPokemon = remember(accountUiState.pokemonCollection) {
         accountUiState.pokemonCollection
             .asSequence()
@@ -1077,6 +1080,8 @@ private fun MoiProfileScreen(
                 OwnedPokemonCard(
                     pokemonId = pokemonId,
                     quantity = quantity,
+                    spriteType = spriteType,
+                    shinyEnabled = shinyEnabled,
                     onClick = { onPokemonClick(pokemonId) }
                 )
             }
@@ -1088,6 +1093,8 @@ private fun MoiProfileScreen(
 private fun OwnedPokemonCard(
     pokemonId: Int,
     quantity: Int,
+    spriteType: PokemonImageType,
+    shinyEnabled: Boolean,
     onClick: () -> Unit
 ) {
     Surface(
@@ -1107,8 +1114,8 @@ private fun OwnedPokemonCard(
             PokemonSpriteImage(
                 pokemonId = pokemonId,
                 contentDescription = "Pokemon #$pokemonId",
-                imageType = PokemonImageType.HOME,
-                shiny = false,
+                imageType = spriteType,
+                shiny = shinyEnabled,
                 modifier = Modifier.size(64.dp)
             )
             Text(

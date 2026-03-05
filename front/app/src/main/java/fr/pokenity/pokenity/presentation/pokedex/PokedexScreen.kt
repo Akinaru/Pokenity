@@ -19,7 +19,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
+import fr.pokenity.pokenity.ui.components.PrimaryButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -564,6 +564,8 @@ private fun androidx.compose.foundation.lazy.LazyListScope.PokemonListItems(
                             pokemon = item,
                             quantity = quantity,
                             owned = owned,
+                            spriteType = spriteType,
+                            shinyEnabled = shinyEnabled,
                             onClick = {
                                 if (owned) {
                                     onPokemonClick(item.id, ownedIds)
@@ -614,6 +616,8 @@ private fun CollectionPokemonCard(
     pokemon: PokemonSummary,
     quantity: Int,
     owned: Boolean,
+    spriteType: PokemonImageType,
+    shinyEnabled: Boolean,
     onClick: () -> Unit
 ) {
     Surface(
@@ -645,8 +649,8 @@ private fun CollectionPokemonCard(
             PokemonSpriteImage(
                 pokemonId = pokemon.id,
                 contentDescription = pokemon.name,
-                imageType = PokemonImageType.OFFICIAL_ARTWORK,
-                shiny = false,
+                imageType = spriteType,
+                shiny = shinyEnabled,
                 colorFilter = if (owned) null else ColorFilter.tint(Color.Black, BlendMode.SrcIn),
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize()
@@ -744,7 +748,7 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
     ) {
         Text(text = message, style = MaterialTheme.typography.bodyLarge)
         Spacer(modifier = Modifier.height(12.dp))
-        Button(onClick = onRetry) {
+        PrimaryButton(onClick = onRetry) {
             Text("Reessayer")
         }
     }

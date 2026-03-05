@@ -11,8 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import fr.pokenity.pokenity.ui.components.PrimaryButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -21,7 +20,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -39,7 +37,7 @@ fun RegisterScreen(
     onRegister: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val inputShape = RoundedCornerShape(16.dp)
+    val inputShape = RoundedCornerShape(0.dp)
     val inputColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = AuthInputText,
         unfocusedTextColor = AuthInputText,
@@ -52,8 +50,8 @@ fun RegisterScreen(
         unfocusedBorderColor = AuthInputBackground,
         disabledBorderColor = AuthInputBackground.copy(alpha = 0.8f),
         focusedLabelColor = AuthAccentYellow,
-        unfocusedLabelColor = AuthInputText.copy(alpha = 0.85f),
-        disabledLabelColor = AuthInputText.copy(alpha = 0.65f)
+        unfocusedLabelColor = AuthAccentYellow,
+        disabledLabelColor = AuthAccentYellow
     )
 
     AuthBackgroundContainer(
@@ -87,6 +85,13 @@ fun RegisterScreen(
                         style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily)
                     )
                 },
+                placeholder = {
+                    Text(
+                        text = "Email",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily),
+                        color = AuthInputPlaceholder
+                    )
+                },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthFontFamily),
@@ -116,14 +121,11 @@ fun RegisterScreen(
             }
 
             AnimatedVisibility(visible = !uiState.registerEmailConfirmed) {
-                Button(
+                PrimaryButton(
                     onClick = onConfirmEmail,
                     enabled = !uiState.isLoading && uiState.registerEmail.isNotBlank(),
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = AuthAccentYellow,
-                        contentColor = Color.Black
-                    )
+                    shape = RoundedCornerShape(0.dp)
                 ) {
                     Text(
                         text = "Continuer",
@@ -143,6 +145,13 @@ fun RegisterScreen(
                                 style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily)
                             )
                         },
+                        placeholder = {
+                            Text(
+                                text = "Username",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily),
+                                color = AuthInputPlaceholder
+                            )
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthFontFamily),
@@ -160,6 +169,13 @@ fun RegisterScreen(
                                 style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily)
                             )
                         },
+                        placeholder = {
+                            Text(
+                                text = "Mot de passe",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily),
+                                color = AuthInputPlaceholder
+                            )
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthFontFamily),
@@ -170,14 +186,11 @@ fun RegisterScreen(
                         keyboardActions = KeyboardActions(onDone = { onRegister() })
                     )
 
-                    Button(
+                    PrimaryButton(
                         onClick = onRegister,
                         enabled = !uiState.isLoading,
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = AuthAccentYellow,
-                            contentColor = Color.Black
-                        )
+                        shape = RoundedCornerShape(0.dp)
                     ) {
                         Text(
                             text = "Creer le compte",

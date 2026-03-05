@@ -23,7 +23,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
+import fr.pokenity.pokenity.ui.components.PrimaryButton
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -278,7 +278,7 @@ fun CharacterSelectionScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Button(
+                            PrimaryButton(
                                 onClick = onPrevious,
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = AuthAccentYellow,
@@ -290,7 +290,7 @@ fun CharacterSelectionScreen(
 
                             Spacer(Modifier.width(60.dp))
 
-                            Button(
+                            PrimaryButton(
                                 onClick = onNext,
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = AuthAccentYellow,
@@ -326,7 +326,7 @@ fun CharacterSelectionScreen(
                             Spacer(Modifier.height(8.dp))
                         }
 
-                        Button(
+                        PrimaryButton(
                             onClick = onValidate,
                             enabled = !uiState.isLoading,
                             modifier = Modifier

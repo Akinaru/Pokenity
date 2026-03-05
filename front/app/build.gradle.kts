@@ -45,6 +45,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.coil.compose)
+    implementation(libs.coil.gif)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.activity.compose)
     implementation(project(":data"))

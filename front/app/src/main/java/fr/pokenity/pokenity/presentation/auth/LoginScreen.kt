@@ -10,8 +10,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.shape.RoundedCornerShape
+import fr.pokenity.pokenity.ui.components.PrimaryButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -20,13 +20,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -38,7 +36,7 @@ fun LoginScreen(
     onLogin: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val inputShape = RoundedCornerShape(16.dp)
+    val inputShape = RoundedCornerShape(0.dp)
     val inputColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = AuthInputText,
         unfocusedTextColor = AuthInputText,
@@ -51,8 +49,8 @@ fun LoginScreen(
         unfocusedBorderColor = AuthInputBackground,
         disabledBorderColor = AuthInputBackground.copy(alpha = 0.8f),
         focusedLabelColor = AuthAccentYellow,
-        unfocusedLabelColor = AuthInputText.copy(alpha = 0.85f),
-        disabledLabelColor = AuthInputText.copy(alpha = 0.65f)
+        unfocusedLabelColor = AuthAccentYellow,
+        disabledLabelColor = AuthAccentYellow
     )
 
     AuthBackgroundContainer(
@@ -96,6 +94,13 @@ fun LoginScreen(
                         style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily)
                     )
                 },
+                placeholder = {
+                    Text(
+                        text = "Email",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily),
+                        color = AuthInputPlaceholder
+                    )
+                },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthFontFamily),
@@ -112,14 +117,11 @@ fun LoginScreen(
 
             // Phase 1 : email pas encore verifie -> bouton Connexion
             if (!uiState.emailChecked) {
-                Button(
+                PrimaryButton(
                     onClick = onCheckEmail,
                     enabled = !uiState.isLoading && uiState.email.isNotBlank(),
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = AuthAccentYellow,
-                        contentColor = Color.Black
-                    )
+                    shape = RoundedCornerShape(0.dp)
                 ) {
                     Text(
                         text = "Connexion",
@@ -140,6 +142,13 @@ fun LoginScreen(
                                 style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily)
                             )
                         },
+                        placeholder = {
+                            Text(
+                                text = "Mot de passe",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily),
+                                color = AuthInputPlaceholder
+                            )
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthFontFamily),
@@ -150,14 +159,11 @@ fun LoginScreen(
                         keyboardActions = KeyboardActions(onDone = { onLogin() })
                     )
 
-                    Button(
+                    PrimaryButton(
                         onClick = onLogin,
                         enabled = !uiState.isLoading && uiState.loginPassword.isNotBlank(),
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = AuthAccentYellow,
-                            contentColor = Color.Black
-                        )
+                        shape = RoundedCornerShape(0.dp)
                     ) {
                         Text(
                             text = "Se connecter",

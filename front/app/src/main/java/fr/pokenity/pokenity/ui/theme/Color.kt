@@ -10,3 +10,7 @@ val Slate = Color(0xFF1F2937)
 val SoftGray = Color(0xFF6B7280)
 val MistWhite = Color(0xFFD0EAFD)
 val DarkInk = Color(0xFF180707)
+
+val PrimaryButtonYellow = Color(0xFFFFCC18)
+val PrimaryButtonOrange = Color(0xFFEA9F08)
+val PrimaryButtonText = Color(0xFF000000)

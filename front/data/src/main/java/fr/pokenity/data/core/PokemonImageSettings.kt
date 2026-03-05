@@ -114,6 +114,13 @@ enum class PokemonImageType(
     val extension: String,
     val supportsShiny: Boolean
 ) {
+    SHOWDOWN(
+        key = "showdown",
+        label = "Showdown (GIF)",
+        folder = "showdown",
+        extension = "gif",
+        supportsShiny = true
+    ),
     OFFICIAL_ARTWORK(
         key = "official-artwork",
         label = "Official Artwork",
