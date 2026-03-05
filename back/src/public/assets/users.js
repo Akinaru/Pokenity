@@ -9,6 +9,7 @@
     notify,
     openModal,
     qs,
+    toTitleCase,
   } = window.AdminCommon;
 
   activateNav();
