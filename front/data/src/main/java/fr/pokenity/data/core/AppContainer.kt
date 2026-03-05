@@ -18,7 +18,8 @@ object AppContainer {
     }
 
     internal val pokeRetrofitApi: PokeRetrofitApi by lazy {
-        NetworkModule.pokeRetrofit.create(PokeRetrofitApi::class.java)
+        NetworkModule.pokeRetrofit
+            .create(PokeRetrofitApi::class.java)
     }
 
     internal val pokeApiService: PokeApiService by lazy {
