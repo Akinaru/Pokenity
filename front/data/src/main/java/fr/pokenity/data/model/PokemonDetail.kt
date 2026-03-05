@@ -8,6 +8,7 @@ data class PokemonDetail(
     val types: List<PokemonType>,
     val height: Int,
     val weight: Int,
+    val genderText: String = "",
     val stats: List<PokemonStat>,
     val abilities: List<PokemonAbility>,
     val moves: List<PokemonMove> = emptyList(),

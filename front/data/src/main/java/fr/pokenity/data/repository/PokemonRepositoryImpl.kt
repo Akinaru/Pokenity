@@ -15,6 +15,7 @@ import fr.pokenity.data.model.PokemonType
 import fr.pokenity.data.remote.poke.NamedResourceDto
 import fr.pokenity.data.remote.poke.PokeApiService
 import java.util.Locale
+import kotlin.math.abs
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -341,6 +342,7 @@ class PokemonRepositoryImpl(
              },
             height = dto.height,
             weight = dto.weight,
+            genderText = formatGenderText(dto.genderRate),
              stats = run {
                  val list = mutableListOf<PokemonStat>()
                  for (stat in dto.stats) {
@@ -361,6 +363,28 @@ class PokemonRepositoryImpl(
             evolutionChain = evolutionChain,
             megaEvolutions = megaEvolutions
         )
+    }
+
+    private fun formatGenderText(genderRate: Int?): String {
+        if (genderRate == null) {
+            return "Inconnu"
+        }
+        if (genderRate < 0) {
+            return "Sans genre"
+        }
+
+        val female = genderRate.coerceIn(0, 8) * 12.5f
+        val male = 100f - female
+        return "Male ${formatPercent(male)}% / Femelle ${formatPercent(female)}%"
+    }
+
+    private fun formatPercent(value: Float): String {
+        val rounded = value.toInt()
+        return if (abs(value - rounded.toFloat()) < 0.001f) {
+            rounded.toString()
+        } else {
+            String.format(Locale.getDefault(), "%.1f", value)
+        }
     }
 
     private suspend fun List<NamedResourceDto>.toPokemonSummaries(): List<PokemonSummary> {
