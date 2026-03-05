@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pokenity BO - Box Openings</title>
+    <link rel="stylesheet" href="/admin/assets/admin.css" />
+    <script defer src="/admin/assets/common.js"></script>
+    <script defer src="/admin/assets/box-openings.js"></script>
+  </head>
+  <body data-page="openings">
+    <div class="bo-layout">
+      <aside class="bo-sidebar">
+        <h2 class="bo-brand">Pokenity BO</h2>
+        <p class="bo-subtitle">Administration API</p>
+        <nav class="bo-nav">
+          <a class="bo-nav-link" data-page="dashboard" href="/admin/">Dashboard</a>
+          <a class="bo-nav-link" data-page="users" href="/admin/users.html">Users</a>
+          <a class="bo-nav-link" data-page="boxes" href="/admin/boxes.html">Boxes</a>
+          <a class="bo-nav-link" data-page="characters" href="/admin/characters.html">Characters</a>
+          <a class="bo-nav-link" data-page="trades" href="/admin/trades.html">Trades</a>
+          <a class="bo-nav-link" data-page="openings" href="/admin/box-openings.html">Openings</a>
+        </nav>
+      </aside>
+
+      <main class="bo-main">
+        <header class="bo-top">
+          <div>
+            <h1>Historique ouverture de box</h1>
+            <p>Journal global des ouvertures avec utilisateur, box et récompense.</p>
+          </div>
+          <div class="bo-top-actions">
+            <span class="bo-badge" id="openingsBadge">0 openings</span>
+            <button class="bo-btn soft" id="refreshOpeningsBtn" type="button">Rafraichir</button>
+          </div>
+        </header>
+
+        <section class="bo-panel">
+          <div class="bo-panel-head">
+            <h2>Historique</h2>
+            <div class="bo-split">
+              <label class="bo-search-inline" for="openingsSearch">
+                <span class="sr-only">Rechercher un opening</span>
+                <input id="openingsSearch" class="bo-input" type="search" placeholder="Rechercher user, box, pokemon, type, id" />
+              </label>
+              <span class="bo-counter" id="openingsCount">0</span>
+            </div>
+          </div>
+          <div class="bo-panel-content">
+            <div class="bo-actions" id="openingsSummary"></div>
+          </div>
+          <div class="bo-table-wrap" id="openingsTableWrap"></div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
