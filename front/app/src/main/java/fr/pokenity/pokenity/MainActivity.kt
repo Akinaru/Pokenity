@@ -328,11 +328,24 @@ class MainActivity : ComponentActivity() {
                                                     accountUiState = accountUiState,
                                                     pokedexUiState = pokedexUiState,
                                                     onRetry = pokedexViewModel::loadPokedexData,
+                                                    onFilterCategorySelected = pokedexViewModel::onFilterCategorySelected,
                                                     onLoadMore = pokedexViewModel::loadMorePokemonIfNeeded,
                                                     onPokemonClick = { id, ids ->
                                                         PokemonBrowseState.setList(ids)
                                                         navController.navigate("detail/$id")
                                                     },
+                                                    onTypeClicked = pokedexViewModel::onTypeClicked,
+                                                    onGenerationClicked = pokedexViewModel::onGenerationClicked,
+                                                    onAbilityClicked = pokedexViewModel::onAbilityClicked,
+                                                    onHabitatClicked = pokedexViewModel::onHabitatClicked,
+                                                    onRegionClicked = pokedexViewModel::onRegionClicked,
+                                                    onShapeClicked = pokedexViewModel::onShapeClicked,
+                                                    onClearTypeFilter = pokedexViewModel::clearTypeFilter,
+                                                    onClearGenerationFilter = pokedexViewModel::clearGenerationFilter,
+                                                    onClearAbilityFilter = pokedexViewModel::clearAbilityFilter,
+                                                    onClearHabitatFilter = pokedexViewModel::clearHabitatFilter,
+                                                    onClearRegionFilter = pokedexViewModel::clearRegionFilter,
+                                                    onClearShapeFilter = pokedexViewModel::clearShapeFilter,
                                                     modifier = Modifier.padding(innerPadding)
                                                 )
                                             }
@@ -603,171 +616,48 @@ private fun MoiProfileScreen(
     accountUiState: AccountUiState,
     pokedexUiState: PokedexUiState,
     onRetry: () -> Unit,
+    onFilterCategorySelected: (PokedexSection) -> Unit,
     onLoadMore: () -> Unit,
     onPokemonClick: (Int, List<Int>) -> Unit,
+    onTypeClicked: (PokemonFilterOption) -> Unit,
+    onGenerationClicked: (PokemonFilterOption) -> Unit,
+    onAbilityClicked: (PokemonFilterOption) -> Unit,
+    onHabitatClicked: (PokemonFilterOption) -> Unit,
+    onRegionClicked: (PokemonFilterOption) -> Unit,
+    onShapeClicked: (PokemonFilterOption) -> Unit,
+    onClearTypeFilter: () -> Unit,
+    onClearGenerationFilter: () -> Unit,
+    onClearAbilityFilter: () -> Unit,
+    onClearHabitatFilter: () -> Unit,
+    onClearRegionFilter: () -> Unit,
+    onClearShapeFilter: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val gridState = rememberLazyGridState()
-    val pokemon = pokedexUiState.pokemon
-    val collection = accountUiState.pokemonCollection
-    val collectedIds = pokemon.mapNotNull { summary ->
-        if ((collection[summary.id] ?: 0) > 0) summary.id else null
-    }
-
-    if (pokedexUiState.isLoading && pokemon.isEmpty()) {
-        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-        return
-    }
-
-    if (pokedexUiState.errorMessage != null && pokemon.isEmpty()) {
-        Box(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = pokedexUiState.errorMessage,
-                    style = MaterialTheme.typography.bodyLarge,
-                    textAlign = TextAlign.Center
-                )
-                OutlinedButton(
-                    onClick = onRetry,
-                    modifier = Modifier.padding(top = 12.dp)
-                ) {
-                    Text("Reessayer")
-                }
-            }
-        }
-        return
-    }
-
-    LaunchedEffect(gridState, pokemon.size, pokedexUiState.hasMorePokemon, pokedexUiState.isLoadingMore) {
-        snapshotFlow { gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
-            .collect { lastVisibleIndex ->
-                val threshold = (gridState.layoutInfo.totalItemsCount - 8).coerceAtLeast(0)
-                if (lastVisibleIndex >= threshold && pokedexUiState.hasMorePokemon && !pokedexUiState.isLoadingMore) {
-                    onLoadMore()
-                }
-            }
-    }
-
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 96.dp),
-        state = gridState,
+    PokedexScreen(
+        uiState = pokedexUiState,
+        onRetry = onRetry,
+        onFilterCategorySelected = onFilterCategorySelected,
+        onLoadMore = onLoadMore,
+        onPokemonClick = onPokemonClick,
+        onTypeClicked = onTypeClicked,
+        onGenerationClicked = onGenerationClicked,
+        onAbilityClicked = onAbilityClicked,
+        onHabitatClicked = onHabitatClicked,
+        onRegionClicked = onRegionClicked,
+        onShapeClicked = onShapeClicked,
+        onClearTypeFilter = onClearTypeFilter,
+        onClearGenerationFilter = onClearGenerationFilter,
+        onClearAbilityFilter = onClearAbilityFilter,
+        onClearHabitatFilter = onClearHabitatFilter,
+        onClearRegionFilter = onClearRegionFilter,
+        onClearShapeFilter = onClearShapeFilter,
+        collectionMode = true,
+        ownedQuantities = accountUiState.pokemonCollection,
+        showOwnershipFilter = true,
+        totalPokemonCount = pokedexUiState.totalPokemonCount,
+        headerContent = { MoiHeaderCard(uiState = accountUiState) },
         modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 14.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                MoiHeaderCard(uiState = accountUiState)
-                Text(
-                    text = "Collection: ${collectedIds.size}/${pokemon.size}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-
-        items(items = pokemon, key = { it.id }) { summary ->
-            val quantity = collection[summary.id] ?: 0
-            val owned = quantity > 0
-            PokemonCollectionCard(
-                pokemonId = summary.id,
-                pokemonName = summary.name,
-                quantity = quantity,
-                owned = owned,
-                onClick = {
-                    if (owned) {
-                        onPokemonClick(summary.id, collectedIds)
-                    }
-                }
-            )
-        }
-
-        if (pokedexUiState.isLoadingMore) {
-            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                }
-            }
-        } else {
-            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
-                Box(modifier = Modifier.height(10.dp))
-            }
-        }
-    }
-}
-
-@Composable
-private fun PokemonCollectionCard(
-    pokemonId: Int,
-    pokemonName: String,
-    quantity: Int,
-    owned: Boolean,
-    onClick: () -> Unit
-) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        tonalElevation = 2.dp,
-        modifier = Modifier
-            .size(104.dp)
-            .clickable(enabled = owned, onClick = onClick)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(6.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            PokemonSpriteImage(
-                pokemonId = pokemonId,
-                contentDescription = pokemonName,
-                imageType = PokemonImageType.OFFICIAL_ARTWORK,
-                shiny = false,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .then(if (owned) Modifier else Modifier.blur(6.dp))
-            )
-
-            if (!owned) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.28f))
-                )
-            }
-
-            if (quantity > 1) {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(3.dp)
-                ) {
-                    Text(
-                        text = "x$quantity",
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
-                    )
-                }
-            }
-        }
-    }
+    )
 }
 
 @Composable

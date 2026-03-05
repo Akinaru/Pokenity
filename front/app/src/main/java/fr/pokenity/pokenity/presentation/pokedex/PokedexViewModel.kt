@@ -19,6 +19,7 @@ import fr.pokenity.pokenity.domain.usecase.GetPokemonHabitatsUseCase
 import fr.pokenity.pokenity.domain.usecase.GetPokemonListUseCase
 import fr.pokenity.pokenity.domain.usecase.GetPokemonRegionsUseCase
 import fr.pokenity.pokenity.domain.usecase.GetPokemonShapesUseCase
+import fr.pokenity.pokenity.domain.usecase.GetPokemonTotalCountUseCase
 import fr.pokenity.pokenity.domain.usecase.GetPokemonTypesUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -30,6 +31,7 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 
 class PokedexViewModel(
+    private val getPokemonTotalCountUseCase: GetPokemonTotalCountUseCase,
     private val getPokemonListUseCase: GetPokemonListUseCase,
     private val getPokemonTypesUseCase: GetPokemonTypesUseCase,
     private val getPokemonGenerationsUseCase: GetPokemonGenerationsUseCase,
@@ -73,11 +75,16 @@ class PokedexViewModel(
         )
 
         viewModelScope.launch(Dispatchers.IO) {
-            runCatching { getPokemonListUseCase(limit = pageSize, offset = 0) }
-                .onSuccess { pokemon ->
+            runCatching {
+                val pokemon = getPokemonListUseCase(limit = pageSize, offset = 0)
+                val totalCount = runCatching { getPokemonTotalCountUseCase() }
+                    .getOrElse { maxOf(_uiState.value.totalPokemonCount, pokemon.size) }
+                pokemon to totalCount
+            }.onSuccess { (pokemon, totalCount) ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         pokemon = pokemon,
+                        totalPokemonCount = totalCount,
                         hasMorePokemon = pokemon.size == pageSize
                     )
                     currentOffset = pokemon.size
@@ -279,6 +286,7 @@ class PokedexViewModel(
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 val repository = AppContainer.pokemonRepository
                 return PokedexViewModel(
+                    getPokemonTotalCountUseCase = GetPokemonTotalCountUseCase(repository),
                     getPokemonListUseCase = GetPokemonListUseCase(repository),
                     getPokemonTypesUseCase = GetPokemonTypesUseCase(repository),
                     getPokemonGenerationsUseCase = GetPokemonGenerationsUseCase(repository),

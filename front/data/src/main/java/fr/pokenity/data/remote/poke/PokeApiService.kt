@@ -44,6 +44,9 @@ internal class PokeApiService(
     suspend fun fetchPokemonList(limit: Int, offset: Int): List<PokemonListItemDto> =
         api.getPokemons(limit, offset).parse().results
 
+    suspend fun fetchPokemonTotalCount(): Int =
+        api.getPokemons(limit = 1, offset = 0).parse().count
+
     // ------------------------------------------------------------------
     // Filter lists (returns NamedResourceDto for further use)
     // ------------------------------------------------------------------

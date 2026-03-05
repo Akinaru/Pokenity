@@ -16,6 +16,7 @@ data class PokedexUiState(
     val isLoading: Boolean = true,
     val isLoadingMore: Boolean = false,
     val hasMorePokemon: Boolean = true,
+    val totalPokemonCount: Int = 0,
     val pokemon: List<PokemonSummary> = emptyList(),
     val filteredPokemon: List<PokemonSummary> = emptyList(),
     val types: List<PokemonFilterOption> = emptyList(),
