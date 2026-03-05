@@ -35,6 +35,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -49,6 +50,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -513,13 +515,16 @@ private fun MoiTopBar(
     when (screen) {
         MoiScreen.PROFILE -> {
             TopAppBar(
-                title = { Text("Moi") },
+                title = { },
                 actions = {
                     IconButton(onClick = onOpenSettings) {
                         Icon(Icons.Filled.Settings, contentDescription = "Settings")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors()
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = Color.Transparent
+                )
             )
         }
 
@@ -663,26 +668,30 @@ private fun MoiProfileScreen(
 
 @Composable
 private fun MoiHeaderCard(uiState: AccountUiState) {
+    val levelProgress = remember(uiState.user?.xp) {
+        computeLevelProgress((uiState.user?.xp ?: 0).coerceAtLeast(0))
+    }
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
         color = Color(0x33180707)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 18.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             val avatarUrl = uiState.user?.characterAvatarUrl ?: uiState.user?.characterImageUrl
             val mediaModel = resolveCharacterMediaModel(avatarUrl)
             Box(
                 modifier = Modifier
-                    .size(72.dp)
+                    .size(160.dp)
                     .clip(CircleShape)
                     .background(Color(0x22180707))
-                    .border(1.dp, Color.White.copy(alpha = 0.5f), CircleShape),
+                    .border(2.dp, Color.White.copy(alpha = 0.55f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 if (mediaModel != null) {
@@ -701,24 +710,75 @@ private fun MoiHeaderCard(uiState: AccountUiState) {
                 }
             }
 
-            Column(modifier = Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
-                    text = uiState.user?.username ?: "Mon profil",
+                    text = "Niv. ${levelProgress.currentLevel}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = uiState.user?.characterName ?: "Dresseur",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
+                    text = "Niv. ${levelProgress.nextLevel}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
             }
+
+            LinearProgressIndicator(
+                progress = { levelProgress.progressFraction },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(999.dp)),
+                trackColor = Color.White.copy(alpha = 0.18f),
+                color = MaterialTheme.colorScheme.primary,
+                gapSize = 0.dp
+            )
+
+            Text(
+                text = "${levelProgress.xpInCurrentLevel}/${levelProgress.xpForNextLevel} XP",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+            )
 
             if (uiState.isLoading) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp))
             }
         }
     }
+}
+
+private data class LevelProgress(
+    val currentLevel: Int,
+    val nextLevel: Int,
+    val xpInCurrentLevel: Int,
+    val xpForNextLevel: Int,
+    val progressFraction: Float
+)
+
+private fun computeLevelProgress(totalXp: Int): LevelProgress {
+    var currentLevel = 1
+    var remainingXp = totalXp
+    var xpForNextLevel = 10
+
+    while (remainingXp >= xpForNextLevel) {
+        remainingXp -= xpForNextLevel
+        currentLevel += 1
+        xpForNextLevel += 1
+    }
+
+    val progressFraction = if (xpForNextLevel <= 0) 0f else remainingXp.toFloat() / xpForNextLevel.toFloat()
+
+    return LevelProgress(
+        currentLevel = currentLevel,
+        nextLevel = currentLevel + 1,
+        xpInCurrentLevel = remainingXp,
+        xpForNextLevel = xpForNextLevel,
+        progressFraction = progressFraction.coerceIn(0f, 1f)
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

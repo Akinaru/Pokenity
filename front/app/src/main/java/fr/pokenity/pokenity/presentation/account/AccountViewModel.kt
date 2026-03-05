@@ -112,6 +112,7 @@ private fun AuthenticatedUser.toUi(): AccountUser {
         id = id,
         username = username,
         email = email,
+        xp = xp,
         createdAt = createdAt,
         characterName = character?.name,
         characterAvatarUrl = character?.avatarUrl,
