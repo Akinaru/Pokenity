@@ -3,6 +3,7 @@ package fr.pokenity.pokenity.presentation.pokedex
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,6 +40,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.BlendMode
@@ -48,10 +50,12 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.painterResource
 import fr.pokenity.data.core.PokemonImageSettings
 import fr.pokenity.data.core.PokemonImageType
 import fr.pokenity.data.model.PokemonFilterOption
 import fr.pokenity.data.model.PokemonSummary
+import fr.pokenity.pokenity.R
 import fr.pokenity.pokenity.ui.components.PokemonSpriteImage
 
 private enum class OwnershipFilter {
@@ -176,12 +180,19 @@ fun PokedexScreen(
                             horizontalArrangement = Arrangement.End,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            OutlinedButton(
-                                onClick = { PokemonImageSettings.toggleShiny() },
-                                enabled = spriteType.supportsShiny
-                            ) {
-                                Text(if (shinyEnabled) "Shiny ON" else "Shiny OFF")
-                            }
+                            Image(
+                                painter = painterResource(
+                                    id = if (shinyEnabled) R.drawable.shiny_on else R.drawable.shiny_off
+                                ),
+                                contentDescription = if (shinyEnabled) "Shiny ON" else "Shiny OFF",
+                                modifier = Modifier
+                                    .size(width = 112.dp, height = 40.dp)
+                                    .alpha(if (spriteType.supportsShiny) 1f else 0.45f)
+                                    .clickable(enabled = spriteType.supportsShiny) {
+                                        PokemonImageSettings.toggleShiny()
+                                    },
+                                contentScale = ContentScale.Fit
+                            )
                         }
                     }
 

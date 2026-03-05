@@ -145,7 +145,7 @@ enum class PokemonImageType(
 }
 
 object PokemonImageSettings {
-    private val _imageType = MutableStateFlow(PokemonImageType.OFFICIAL_ARTWORK)
+    private val _imageType = MutableStateFlow(PokemonImageType.SHOWDOWN)
     val imageType: StateFlow<PokemonImageType> = _imageType.asStateFlow()
 
     private val _isShiny = MutableStateFlow(false)

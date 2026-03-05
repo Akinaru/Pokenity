@@ -1,6 +1,7 @@
 package fr.pokenity.pokenity.presentation.auth
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -20,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -49,9 +51,9 @@ fun RegisterScreen(
         focusedBorderColor = AuthAccentYellow,
         unfocusedBorderColor = AuthInputBackground,
         disabledBorderColor = AuthInputBackground.copy(alpha = 0.8f),
-        focusedLabelColor = AuthAccentYellow,
-        unfocusedLabelColor = AuthAccentYellow,
-        disabledLabelColor = AuthAccentYellow
+        focusedLabelColor = AuthInputText,
+        unfocusedLabelColor = AuthInputText,
+        disabledLabelColor = AuthInputText
     )
 
     AuthBackgroundContainer(
@@ -80,21 +82,18 @@ fun RegisterScreen(
                 value = uiState.registerEmail,
                 onValueChange = onEmailChange,
                 label = {
-                    Text(
-                        text = "Email",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily)
-                    )
+                    AuthInputLabel(text = "Email")
                 },
                 placeholder = {
                     Text(
                         text = "Email",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthBodyFontFamily),
                         color = AuthInputPlaceholder
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthFontFamily),
+                textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthBodyFontFamily),
                 shape = inputShape,
                 colors = inputColors,
                 keyboardOptions = KeyboardOptions(
@@ -114,7 +113,7 @@ fun RegisterScreen(
                 Text(
                     text = uiState.errorMessage,
                     color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthBodyFontFamily),
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -140,21 +139,18 @@ fun RegisterScreen(
                         value = uiState.registerUsername,
                         onValueChange = onUsernameChange,
                         label = {
-                            Text(
-                                text = "Username",
-                                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily)
-                            )
+                            AuthInputLabel(text = "Username")
                         },
                         placeholder = {
                             Text(
                                 text = "Username",
-                                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily),
-                                color = AuthInputPlaceholder
+                                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthBodyFontFamily),
+                        color = AuthInputPlaceholder
                             )
                         },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthFontFamily),
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthBodyFontFamily),
                         shape = inputShape,
                         colors = inputColors,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
@@ -164,21 +160,18 @@ fun RegisterScreen(
                         value = uiState.registerPassword,
                         onValueChange = onPasswordChange,
                         label = {
-                            Text(
-                                text = "Mot de passe",
-                                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily)
-                            )
+                            AuthInputLabel(text = "Mot de passe")
                         },
                         placeholder = {
                             Text(
                                 text = "Mot de passe",
-                                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily),
-                                color = AuthInputPlaceholder
+                                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthBodyFontFamily),
+                        color = AuthInputPlaceholder
                             )
                         },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthFontFamily),
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthBodyFontFamily),
                         shape = inputShape,
                         colors = inputColors,
                         visualTransformation = PasswordVisualTransformation(),
@@ -206,4 +199,18 @@ fun RegisterScreen(
             }
         }
     }
+}
+
+@Composable
+private fun AuthInputLabel(
+    text: String
+) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthBodyFontFamily),
+        color = AuthInputText,
+        modifier = Modifier
+            .background(AuthInputBackground)
+            .padding(horizontal = 4.dp)
+    )
 }
