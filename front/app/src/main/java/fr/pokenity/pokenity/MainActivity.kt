@@ -525,6 +525,9 @@ class MainActivity : ComponentActivity() {
                                 BoxDetailScreen(
                                     uiState = boxDetailUiState,
                                     onRetry = { boxDetailViewModel.loadBox(boxId) },
+                                    onOpenBox = boxDetailViewModel::openBox,
+                                    onSpinAnimationCompleted = boxDetailViewModel::onSpinAnimationCompleted,
+                                    onDismissRewardDialog = boxDetailViewModel::dismissRewardDialog,
                                     modifier = Modifier.padding(innerPadding)
                                 )
                             }

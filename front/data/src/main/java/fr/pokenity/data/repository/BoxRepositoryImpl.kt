@@ -1,14 +1,27 @@
 package fr.pokenity.data.repository
 
+import fr.pokenity.data.core.AuthSessionState
+import fr.pokenity.data.model.BoxOpenBox
+import fr.pokenity.data.model.BoxOpenHistory
+import fr.pokenity.data.model.BoxOpenInventoryItem
+import fr.pokenity.data.model.BoxOpenResult
+import fr.pokenity.data.model.BoxOpenReward
+import fr.pokenity.data.model.BoxOpenUser
 import fr.pokenity.data.model.LootBox
 import fr.pokenity.data.model.LootBoxEntry
 import fr.pokenity.data.remote.box.BoxApiService
 import fr.pokenity.data.remote.box.BoxDto
 import fr.pokenity.data.remote.box.BoxEntryDto
+import fr.pokenity.data.remote.box.OpenBoxResponseDto
 
 class BoxRepositoryImpl internal constructor(
     private val boxApiService: BoxApiService
 ) : BoxRepository {
+
+    private fun requireToken(): String {
+        return AuthSessionState.token.value
+            ?: throw IllegalStateException("Aucune session active.")
+    }
 
     override suspend fun getBoxes(): List<LootBox> {
         return boxApiService.getBoxes().map { it.toDomain() }
@@ -16,6 +29,11 @@ class BoxRepositoryImpl internal constructor(
 
     override suspend fun getBoxById(boxId: String): LootBox {
         return boxApiService.getBoxById(boxId).toDomain()
+    }
+
+    override suspend fun openBox(boxId: String): BoxOpenResult {
+        val token = requireToken()
+        return boxApiService.openBox(token = token, boxId = boxId).toDomain()
     }
 
     private fun BoxDto.toDomain(): LootBox {
@@ -39,6 +57,40 @@ class BoxRepositoryImpl internal constructor(
             dropRate = dropRate ?: 0.0,
             createdAt = createdAt,
             updatedAt = updatedAt
+        )
+    }
+
+    private fun OpenBoxResponseDto.toDomain(): BoxOpenResult {
+        val rewardDto = reward ?: throw IllegalStateException("Recompense manquante dans la reponse.")
+        val boxDto = box
+        return BoxOpenResult(
+            box = BoxOpenBox(
+                id = boxDto?.id ?: "",
+                name = boxDto?.name ?: "",
+                pokeballImage = boxDto?.pokeballImage ?: ""
+            ),
+            reward = BoxOpenReward(
+                resourceType = rewardDto.resourceType ?: "pokemon",
+                resourceId = rewardDto.resourceId ?: 0,
+                resourceName = rewardDto.resourceName ?: "pokemon",
+                dropRate = rewardDto.dropRate ?: 0.0
+            ),
+            inventoryItem = inventoryItem?.let { inventory ->
+                BoxOpenInventoryItem(
+                    id = inventory.id ?: "",
+                    quantity = inventory.quantity ?: 0,
+                    lastObtainedAt = inventory.lastObtainedAt
+                )
+            },
+            boxOpening = boxOpening?.let { opening ->
+                BoxOpenHistory(
+                    id = opening.id ?: "",
+                    openedAt = opening.openedAt
+                )
+            },
+            user = user?.let { openUser ->
+                BoxOpenUser(xp = openUser.xp ?: 0)
+            }
         )
     }
 }
