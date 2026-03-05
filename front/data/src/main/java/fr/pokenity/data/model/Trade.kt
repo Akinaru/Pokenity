@@ -9,6 +9,7 @@ data class Trade(
     val recipient: UserProfile?,
     val offeredPokemon: TradePokemon?,
     val receivedPokemon: TradePokemon?,
+    val requestedPokemons: List<TradePokemon> = emptyList(),
     val createdAt: String?,
     val expiresAt: String?
 )

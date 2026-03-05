@@ -41,6 +41,11 @@ function serializeTrade(trade) {
             resourceName: trade.receivedResourceName,
           }
         : null,
+    requestedPokemons: (trade.requestedItems || []).map((item) => ({
+      resourceType: item.resourceType,
+      resourceId: item.resourceId,
+      resourceName: item.resourceName,
+    })),
     acceptedAt: trade.acceptedAt,
     confirmedAt: trade.confirmedAt,
     completedAt: trade.completedAt,
@@ -78,6 +83,7 @@ const tradeInclude = {
       xp: true,
     },
   },
+  requestedItems: true,
 };
 
 router.get("/admin/current", async (req, res) => {
@@ -203,13 +209,34 @@ async function increaseInventory(tx, userId, resourceType, resourceId, resourceN
 
 router.post("/", authRequired, async (req, res) => {
   const offeredInventoryItemId = String(req.body.offeredInventoryItemId || "").trim();
-  const targetUserId =
-    req.body.targetUserId === undefined || req.body.targetUserId === null
-      ? null
-      : String(req.body.targetUserId).trim();
+  const rawRequestedPokemons = req.body.requestedPokemons;
 
   if (!offeredInventoryItemId) {
     return res.status(400).json({ error: "offeredInventoryItemId is required." });
+  }
+
+  // Validate requestedPokemons: must be an array of 1-5 items with resourceId and resourceName
+  if (!Array.isArray(rawRequestedPokemons) || rawRequestedPokemons.length < 1) {
+    return res.status(400).json({ error: "requestedPokemons must be an array with at least 1 item." });
+  }
+
+  if (rawRequestedPokemons.length > 5) {
+    return res.status(400).json({ error: "requestedPokemons must have at most 5 items." });
+  }
+
+  const requestedPokemons = [];
+  for (const item of rawRequestedPokemons) {
+    const resourceId = Number(item.resourceId);
+    const resourceName = String(item.resourceName || "").trim();
+
+    if (!Number.isFinite(resourceId) || resourceId <= 0) {
+      return res.status(400).json({ error: "Each requestedPokemon must have a valid resourceId." });
+    }
+    if (!resourceName) {
+      return res.status(400).json({ error: "Each requestedPokemon must have a resourceName." });
+    }
+
+    requestedPokemons.push({ resourceId, resourceName });
   }
 
   const offeredItem = await findPokemonInventoryItem(
@@ -223,25 +250,6 @@ router.post("/", authRequired, async (req, res) => {
       error:
         "Offered pokemon not found in your inventory (or quantity is 0).",
     });
-  }
-
-  if (targetUserId && targetUserId === req.user.sub) {
-    return res.status(400).json({ error: "You cannot create a trade with yourself." });
-  }
-
-  if (targetUserId) {
-    const targetUser = await prisma.user.findUnique({
-      where: {
-        id: targetUserId,
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    if (!targetUser) {
-      return res.status(404).json({ error: "Target user not found." });
-    }
   }
 
   const expiresAtRaw =
@@ -264,12 +272,18 @@ router.post("/", authRequired, async (req, res) => {
   const trade = await prisma.trade.create({
     data: {
       proposerId: req.user.sub,
-      recipientId: targetUserId || null,
       status: TRADE_STATUS.PENDING,
       offeredResourceType: offeredItem.resourceType,
       offeredResourceId: offeredItem.resourceId,
       offeredResourceName: offeredItem.resourceName,
       expiresAt,
+      requestedItems: {
+        create: requestedPokemons.map((rp) => ({
+          resourceType: "POKEMON",
+          resourceId: rp.resourceId,
+          resourceName: rp.resourceName,
+        })),
+      },
     },
     include: tradeInclude,
   });
@@ -393,6 +407,9 @@ router.post("/:tradeId/accept", authRequired, async (req, res) => {
     where: {
       id: tradeId,
     },
+    include: {
+      requestedItems: true,
+    },
   });
 
   if (!trade) {
@@ -428,6 +445,18 @@ router.post("/:tradeId/accept", authRequired, async (req, res) => {
       error:
         "Selected pokemon not found in your inventory (or quantity is 0).",
     });
+  }
+
+  // Validate offered pokemon matches one of the requested pokemons
+  if (trade.requestedItems && trade.requestedItems.length > 0) {
+    const matches = trade.requestedItems.some(
+      (ri) => ri.resourceId === offeredItem.resourceId && ri.resourceType === offeredItem.resourceType
+    );
+    if (!matches) {
+      return res.status(400).json({
+        error: "The offered Pokemon does not match any of the requested Pokemon.",
+      });
+    }
   }
 
   const acceptedAt = new Date();

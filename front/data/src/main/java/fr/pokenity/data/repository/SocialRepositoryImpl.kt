@@ -13,6 +13,7 @@ import fr.pokenity.data.remote.auth.AuthCharacterDto
 import fr.pokenity.data.remote.auth.AuthUserDto
 import fr.pokenity.data.remote.auth.CreateTradeRequestBody
 import fr.pokenity.data.remote.auth.InventoryItemDto
+import fr.pokenity.data.remote.auth.RequestedPokemonBody
 import fr.pokenity.data.remote.auth.TradeDto
 import fr.pokenity.data.remote.auth.TradePokemonDto
 import fr.pokenity.data.remote.auth.TradeUserLightDto
@@ -36,11 +37,16 @@ class SocialRepositoryImpl internal constructor(
         return authApiService.getMyTrades(token).map { it.toDomain() }
     }
 
-    override suspend fun createTrade(offeredInventoryItemId: String, targetUserId: String?): Trade {
+    override suspend fun createTrade(offeredInventoryItemId: String, requestedPokemons: List<TradePokemon>): Trade {
         val token = requireToken()
         val body = CreateTradeRequestBody(
             offeredInventoryItemId = offeredInventoryItemId,
-            targetUserId = targetUserId
+            requestedPokemons = requestedPokemons.map { rp ->
+                RequestedPokemonBody(
+                    resourceId = rp.resourceId,
+                    resourceName = rp.resourceName
+                )
+            }
         )
         return authApiService.createTrade(token, body).toDomain()
     }
@@ -87,6 +93,7 @@ class SocialRepositoryImpl internal constructor(
             recipient = recipient?.toDomain(),
             offeredPokemon = offeredPokemon?.toDomain(),
             receivedPokemon = receivedPokemon?.toDomain(),
+            requestedPokemons = requestedPokemons?.map { it.toDomain() } ?: emptyList(),
             createdAt = createdAt,
             expiresAt = expiresAt
         )

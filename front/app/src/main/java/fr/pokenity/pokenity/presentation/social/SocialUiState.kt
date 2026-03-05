@@ -1,11 +1,14 @@
 package fr.pokenity.pokenity.presentation.social
 
 import fr.pokenity.data.model.InventoryItem
+import fr.pokenity.data.model.PokemonSummary
 import fr.pokenity.data.model.Trade
+import fr.pokenity.data.model.TradePokemon
 import fr.pokenity.data.model.UserProfile
 
 enum class SocialTab {
     OPEN_TRADES,
+    MY_TRADES,
     PROPOSE_TRADE,
     ACCOUNTS
 }
@@ -16,6 +19,9 @@ data class SocialUiState(
     val errorMessage: String? = null,
     val successMessage: String? = null,
 
+    // Current user id (to determine trade role: proposer vs recipient)
+    val currentUserId: String? = null,
+
     // Open trades tab
     val openTrades: List<Trade> = emptyList(),
 
@@ -25,8 +31,21 @@ data class SocialUiState(
     // Propose trade tab
     val myInventory: List<InventoryItem> = emptyList(),
     val selectedInventoryItem: InventoryItem? = null,
-    val selectedTargetUser: UserProfile? = null,
+
+    // Wishlist: Pokemon requested by the proposer (1-5)
+    val selectedRequestedPokemons: List<TradePokemon> = emptyList(),
+    val pokemonSearchQuery: String = "",
+    val pokemonSearchResults: List<PokemonSummary> = emptyList(),
+    val allPokemonList: List<PokemonSummary> = emptyList(),
+    val isPokemonListLoading: Boolean = false,
 
     // Accounts tab
-    val users: List<UserProfile> = emptyList()
+    val users: List<UserProfile> = emptyList(),
+
+    // Accept trade dialog
+    val acceptingTradeId: String? = null,
+
+    // Incremented when a trade action changes inventory (accept/confirm),
+    // observed by MainActivity to refresh AccountViewModel
+    val inventoryVersion: Int = 0
 )

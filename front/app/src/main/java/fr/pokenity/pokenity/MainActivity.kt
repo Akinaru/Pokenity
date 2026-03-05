@@ -289,6 +289,18 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
 
+                            // Refresh account data (pokemon collection) when a trade changes inventory
+                            LaunchedEffect(socialUiState.inventoryVersion) {
+                                if (socialUiState.inventoryVersion > 0) {
+                                    accountViewModel.fetchMe()
+                                }
+                            }
+
+                            // Sync current user id into SocialViewModel for trade role detection
+                            LaunchedEffect(accountUiState.user?.id) {
+                                socialViewModel.setCurrentUserId(accountUiState.user?.id)
+                            }
+
                             Scaffold(
                                 modifier = Modifier.fillMaxSize(),
                                 containerColor = Color.Transparent,
@@ -324,14 +336,17 @@ class MainActivity : ComponentActivity() {
                                         SocialScreen(
                                             uiState = socialUiState,
                                             onSelectTab = socialViewModel::selectTab,
-                                            onAcceptTrade = { tradeId ->
-                                                // For accepting, we need user to pick an inventory item first.
-                                                // For now, navigate to propose tab to pick, or accept directly
-                                                // with a placeholder — will require inventory selection dialog in future.
-                                                // Simplified: accept with empty string triggers server-side validation.
-                                            },
+                                            onAcceptTrade = socialViewModel::showAcceptDialog,
+                                            onAcceptTradeWithItem = socialViewModel::acceptTrade,
+                                            onDismissAcceptDialog = socialViewModel::dismissAcceptDialog,
+                                            onConfirmTrade = socialViewModel::confirmTrade,
+                                            onCancelTrade = socialViewModel::cancelTrade,
+                                            onDeclineTrade = socialViewModel::declineTrade,
+                                            onRefreshMyTrades = socialViewModel::loadMyTrades,
                                             onSelectInventoryItem = socialViewModel::selectInventoryItem,
-                                            onSelectTargetUser = socialViewModel::selectTargetUser,
+                                            onPokemonSearchQueryChange = socialViewModel::updatePokemonSearchQuery,
+                                            onAddRequestedPokemon = socialViewModel::addRequestedPokemon,
+                                            onRemoveRequestedPokemon = socialViewModel::removeRequestedPokemon,
                                             onCreateTrade = socialViewModel::createTrade,
                                             onRefreshOpenTrades = socialViewModel::loadOpenTrades,
                                             onClearMessages = socialViewModel::clearMessages,

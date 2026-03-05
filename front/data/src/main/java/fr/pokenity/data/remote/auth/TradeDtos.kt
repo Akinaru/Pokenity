@@ -23,6 +23,7 @@ internal data class TradeDto(
     @SerializedName("recipient") val recipient: TradeUserLightDto?,
     @SerializedName("offeredPokemon") val offeredPokemon: TradePokemonDto?,
     @SerializedName("receivedPokemon") val receivedPokemon: TradePokemonDto?,
+    @SerializedName("requestedPokemons") val requestedPokemons: List<TradePokemonDto>?,
     @SerializedName("acceptedAt") val acceptedAt: String?,
     @SerializedName("confirmedAt") val confirmedAt: String?,
     @SerializedName("completedAt") val completedAt: String?,
@@ -49,8 +50,12 @@ internal data class TradePokemonDto(
 
 internal data class CreateTradeRequestBody(
     @SerializedName("offeredInventoryItemId") val offeredInventoryItemId: String,
-    @SerializedName("targetUserId") val targetUserId: String? = null,
-    @SerializedName("expiresAt") val expiresAt: String? = null
+    @SerializedName("requestedPokemons") val requestedPokemons: List<RequestedPokemonBody>
+)
+
+internal data class RequestedPokemonBody(
+    @SerializedName("resourceId") val resourceId: Int,
+    @SerializedName("resourceName") val resourceName: String
 )
 
 internal data class AcceptTradeRequestBody(
