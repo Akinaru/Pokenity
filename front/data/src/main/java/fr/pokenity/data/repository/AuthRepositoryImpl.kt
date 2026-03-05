@@ -16,6 +16,10 @@ class AuthRepositoryImpl internal constructor(
 
     override val token: StateFlow<String?> = AuthSessionState.token
 
+    override suspend fun checkEmailExists(email: String): Boolean {
+        return authApiService.checkEmailExists(email = email)
+    }
+
     override suspend fun login(identifier: String, password: String): AuthenticatedSession {
         val session = authApiService.login(identifier = identifier, password = password)
         AuthSessionState.setToken(session.token)

@@ -1,5 +1,6 @@
 package fr.pokenity.pokenity.presentation.auth
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -17,7 +18,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,9 +34,9 @@ fun RegisterScreen(
     uiState: AuthFlowUiState,
     onUsernameChange: (String) -> Unit,
     onEmailChange: (String) -> Unit,
+    onConfirmEmail: () -> Unit,
     onPasswordChange: (String) -> Unit,
     onRegister: () -> Unit,
-    onBackToLogin: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val inputShape = RoundedCornerShape(16.dp)
@@ -48,10 +48,10 @@ fun RegisterScreen(
         unfocusedContainerColor = AuthInputBackground,
         disabledContainerColor = AuthInputBackground.copy(alpha = 0.8f),
         cursorColor = AuthInputText,
-        focusedBorderColor = AuthInputBackground,
+        focusedBorderColor = AuthAccentYellow,
         unfocusedBorderColor = AuthInputBackground,
         disabledBorderColor = AuthInputBackground.copy(alpha = 0.8f),
-        focusedLabelColor = AuthInputText,
+        focusedLabelColor = AuthAccentYellow,
         unfocusedLabelColor = AuthInputText.copy(alpha = 0.85f),
         disabledLabelColor = AuthInputText.copy(alpha = 0.65f)
     )
@@ -78,33 +78,6 @@ fun RegisterScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            if (uiState.errorMessage != null) {
-                Text(
-                    text = uiState.errorMessage,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            OutlinedTextField(
-                value = uiState.registerUsername,
-                onValueChange = onUsernameChange,
-                label = {
-                    Text(
-                        text = "Username",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily)
-                    )
-                },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthFontFamily),
-                shape = inputShape,
-                colors = inputColors,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
-            )
-
             OutlinedTextField(
                 value = uiState.registerEmail,
                 onValueChange = onEmailChange,
@@ -121,56 +94,97 @@ fun RegisterScreen(
                 colors = inputColors,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Email,
-                    imeAction = ImeAction.Next
+                    imeAction = if (uiState.registerEmailConfirmed) ImeAction.Next else ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        if (!uiState.registerEmailConfirmed) {
+                            onConfirmEmail()
+                        }
+                    }
                 )
             )
 
-            OutlinedTextField(
-                value = uiState.registerPassword,
-                onValueChange = onPasswordChange,
-                label = {
-                    Text(
-                        text = "Mot de passe",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily)
-                    )
-                },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthFontFamily),
-                shape = inputShape,
-                colors = inputColors,
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { onRegister() })
-            )
-
-            Button(
-                onClick = onRegister,
-                enabled = !uiState.isLoading
-                        && uiState.registerUsername.isNotBlank()
-                        && uiState.registerEmail.isNotBlank()
-                        && uiState.registerPassword.isNotBlank(),
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = AuthAccentYellow,
-                    contentColor = Color.Black
-                )
-            ) {
+            if (uiState.errorMessage != null) {
                 Text(
-                    text = "Creer le compte",
-                    style = MaterialTheme.typography.titleMedium.copy(fontFamily = AuthFontFamily)
+                    text = uiState.errorMessage,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
 
-            TextButton(
-                onClick = onBackToLogin,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            ) {
-                Text(
-                    text = "Deja un compte ? Se connecter",
-                    style = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthFontFamily),
-                    color = AuthAccentYellow
-                )
+            AnimatedVisibility(visible = !uiState.registerEmailConfirmed) {
+                Button(
+                    onClick = onConfirmEmail,
+                    enabled = !uiState.isLoading && uiState.registerEmail.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AuthAccentYellow,
+                        contentColor = Color.Black
+                    )
+                ) {
+                    Text(
+                        text = "Continuer",
+                        style = MaterialTheme.typography.titleMedium.copy(fontFamily = AuthFontFamily)
+                    )
+                }
+            }
+
+            AnimatedVisibility(visible = uiState.registerEmailConfirmed) {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    OutlinedTextField(
+                        value = uiState.registerUsername,
+                        onValueChange = onUsernameChange,
+                        label = {
+                            Text(
+                                text = "Username",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily)
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthFontFamily),
+                        shape = inputShape,
+                        colors = inputColors,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+                    )
+
+                    OutlinedTextField(
+                        value = uiState.registerPassword,
+                        onValueChange = onPasswordChange,
+                        label = {
+                            Text(
+                                text = "Mot de passe",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily)
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthFontFamily),
+                        shape = inputShape,
+                        colors = inputColors,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { onRegister() })
+                    )
+
+                    Button(
+                        onClick = onRegister,
+                        enabled = !uiState.isLoading,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AuthAccentYellow,
+                            contentColor = Color.Black
+                        )
+                    ) {
+                        Text(
+                            text = "Creer le compte",
+                            style = MaterialTheme.typography.titleMedium.copy(fontFamily = AuthFontFamily)
+                        )
+                    }
+                }
             }
 
             if (uiState.isLoading) {

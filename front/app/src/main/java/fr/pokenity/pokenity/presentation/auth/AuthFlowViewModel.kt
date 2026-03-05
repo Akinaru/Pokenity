@@ -6,17 +6,18 @@ import androidx.lifecycle.viewModelScope
 import fr.pokenity.data.core.AppContainer
 import fr.pokenity.data.core.AuthSessionState
 import fr.pokenity.data.model.AuthCharacter
+import fr.pokenity.pokenity.domain.usecase.AuthCheckEmailExistsUseCase
 import fr.pokenity.pokenity.domain.usecase.AuthFetchCharactersUseCase
 import fr.pokenity.pokenity.domain.usecase.AuthLoginUseCase
 import fr.pokenity.pokenity.domain.usecase.AuthRegisterUseCase
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class AuthFlowViewModel(
+    private val authCheckEmailExistsUseCase: AuthCheckEmailExistsUseCase,
     private val authLoginUseCase: AuthLoginUseCase,
     private val authRegisterUseCase: AuthRegisterUseCase,
     private val authFetchCharactersUseCase: AuthFetchCharactersUseCase
@@ -38,6 +39,7 @@ class AuthFlowViewModel(
             email = value,
             emailChecked = false,
             emailExists = false,
+            loginPassword = "",
             errorMessage = null
         )
     }
@@ -46,11 +48,7 @@ class AuthFlowViewModel(
         _uiState.value = _uiState.value.copy(loginPassword = value, errorMessage = null)
     }
 
-    /**
-     * Fake check email: simule une verification puis retourne toujours true (compte existe).
-     * TODO: remplacer par un vrai appel API quand l'endpoint sera pret.
-     */
-    fun checkEmail() {
+    fun checkEmail(onEmailNotFound: () -> Unit) {
         val state = _uiState.value
         val email = state.email.trim()
 
@@ -58,26 +56,45 @@ class AuthFlowViewModel(
             _uiState.value = state.copy(errorMessage = "Veuillez entrer votre email.")
             return
         }
+        if (!email.contains("@")) {
+            _uiState.value = state.copy(errorMessage = "Format d'email invalide.")
+            return
+        }
 
         _uiState.value = state.copy(isLoading = true, errorMessage = null)
-        viewModelScope.launch {
-            delay(400) // fake delai reseau
-            _uiState.value = _uiState.value.copy(
-                isLoading = false,
-                emailChecked = true,
-                emailExists = true // TODO: remplacer par le vrai resultat
-            )
-        }
-    }
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                authCheckEmailExistsUseCase(email = email)
+            }.onSuccess { exists ->
+                if (exists) {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        emailChecked = true,
+                        emailExists = true,
+                        loginPassword = "",
+                        errorMessage = null
+                    )
+                    return@onSuccess
+                }
 
-    fun prepareRegisterWithEmail() {
-        val email = _uiState.value.email.trim()
-        _uiState.value = _uiState.value.copy(
-            registerEmail = email,
-            registerUsername = "",
-            registerPassword = "",
-            errorMessage = null
-        )
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    emailChecked = false,
+                    emailExists = false,
+                    registerEmail = email,
+                    registerUsername = "",
+                    registerPassword = "",
+                    registerEmailConfirmed = true,
+                    errorMessage = null
+                )
+                launch(Dispatchers.Main) { onEmailNotFound() }
+            }.onFailure {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = it.message ?: "Erreur lors de la verification de l'email"
+                )
+            }
+        }
     }
 
     fun login(onSuccess: () -> Unit) {
@@ -116,17 +133,84 @@ class AuthFlowViewModel(
     }
 
     fun updateRegisterEmail(value: String) {
-        _uiState.value = _uiState.value.copy(registerEmail = value, errorMessage = null)
+        _uiState.value = _uiState.value.copy(
+            registerEmail = value,
+            registerUsername = "",
+            registerPassword = "",
+            registerEmailConfirmed = false,
+            errorMessage = null
+        )
     }
 
     fun updateRegisterPassword(value: String) {
         _uiState.value = _uiState.value.copy(registerPassword = value, errorMessage = null)
     }
 
+    fun confirmRegisterEmail(onExistingAccount: () -> Unit) {
+        val state = _uiState.value
+        val email = state.registerEmail.trim()
+
+        if (email.isBlank()) {
+            _uiState.value = state.copy(errorMessage = "Veuillez entrer votre email.")
+            return
+        }
+        if (!email.contains("@")) {
+            _uiState.value = state.copy(errorMessage = "Format d'email invalide.")
+            return
+        }
+
+        _uiState.value = state.copy(isLoading = true, errorMessage = null)
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                authCheckEmailExistsUseCase(email = email)
+            }.onSuccess { exists ->
+                if (exists) {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        email = email,
+                        emailChecked = true,
+                        emailExists = true,
+                        loginPassword = "",
+                        registerEmailConfirmed = false,
+                        registerUsername = "",
+                        registerPassword = "",
+                        errorMessage = null
+                    )
+                    launch(Dispatchers.Main) { onExistingAccount() }
+                    return@onSuccess
+                }
+
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    registerEmail = email,
+                    registerEmailConfirmed = true,
+                    errorMessage = null
+                )
+            }.onFailure {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = it.message ?: "Erreur lors de la verification de l'email"
+                )
+            }
+        }
+    }
+
     fun goToCharacterSelection(onSuccess: () -> Unit) {
         val state = _uiState.value
+        if (!state.registerEmailConfirmed) {
+            _uiState.value = state.copy(errorMessage = "Valide d'abord ton email.")
+            return
+        }
         if (state.registerUsername.isBlank() || state.registerEmail.isBlank() || state.registerPassword.isBlank()) {
             _uiState.value = state.copy(errorMessage = "Username, email et mot de passe requis.")
+            return
+        }
+        if (!state.registerEmail.trim().contains("@")) {
+            _uiState.value = state.copy(errorMessage = "Format d'email invalide.")
+            return
+        }
+        if (state.registerPassword.length < 6) {
+            _uiState.value = state.copy(errorMessage = "Le mot de passe doit contenir au moins 6 caracteres.")
             return
         }
 
@@ -180,13 +264,11 @@ class AuthFlowViewModel(
         _uiState.value = state.copy(selectedCharacterIndex = nextIndex)
     }
 
-    fun registerWithSelectedCharacter(onSuccess: () -> Unit) {
+    fun registerWithSelectedCharacter(
+        onSuccess: () -> Unit,
+        onFormError: () -> Unit
+    ) {
         val state = _uiState.value
-        if (state.registerUsername.isBlank() || state.registerEmail.isBlank() || state.registerPassword.isBlank()) {
-            _uiState.value = state.copy(errorMessage = "Username, email et mot de passe requis.")
-            return
-        }
-
         val selectedCharacter = state.characters.getOrNull(state.selectedCharacterIndex)
         if (selectedCharacter == null) {
             _uiState.value = state.copy(errorMessage = "Choisis un dresseur.")
@@ -210,10 +292,14 @@ class AuthFlowViewModel(
                 )
                 launch(Dispatchers.Main) { onSuccess() }
             }.onFailure {
+                val message = it.message ?: "Erreur lors de la creation du compte"
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = it.message ?: "Erreur lors de la creation du compte"
+                    errorMessage = message
                 )
+                if (isFormErrorMessage(message)) {
+                    launch(Dispatchers.Main) { onFormError() }
+                }
             }
         }
     }
@@ -224,23 +310,13 @@ class AuthFlowViewModel(
         AuthSessionState.setNewAccount(false)
     }
 
-    // --- Reset ---
-
-    fun resetLoginState() {
-        _uiState.value = _uiState.value.copy(
-            emailChecked = false,
-            emailExists = false,
-            loginPassword = "",
-            errorMessage = null
-        )
-    }
-
     companion object {
         val factory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 val repository = AppContainer.authRepository
                 return AuthFlowViewModel(
+                    authCheckEmailExistsUseCase = AuthCheckEmailExistsUseCase(repository),
                     authLoginUseCase = AuthLoginUseCase(repository),
                     authRegisterUseCase = AuthRegisterUseCase(repository),
                     authFetchCharactersUseCase = AuthFetchCharactersUseCase(repository)
@@ -248,6 +324,14 @@ class AuthFlowViewModel(
             }
         }
     }
+}
+
+private fun isFormErrorMessage(message: String): Boolean {
+    val normalized = message.lowercase()
+    return normalized.contains("email") ||
+        normalized.contains("username") ||
+        normalized.contains("password") ||
+        normalized.contains("mot de passe")
 }
 
 private fun AuthCharacter.toUi(): AuthCharacterUiModel {
