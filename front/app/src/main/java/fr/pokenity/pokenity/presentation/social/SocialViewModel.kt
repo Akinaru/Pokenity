@@ -85,6 +85,10 @@ class SocialViewModel(
                         isLoading = false,
                         myTrades = trades
                     )
+                    val currentUserId = _uiState.value.currentUserId
+                    trades
+                        .filter { it.status == fr.pokenity.data.model.TradeStatus.WAITING_CONFIRMATION && it.proposerId == currentUserId }
+                        .forEach { trade -> confirmTrade(trade.id) }
                 }
                 .onFailure {
                     _uiState.value = _uiState.value.copy(
