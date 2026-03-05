@@ -312,7 +312,8 @@ fun PokedexScreen(
                     ) {
                         snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
                             .collect { lastVisibleIndex ->
-                                val threshold = (displayedPokemon.size - 4).coerceAtLeast(0)
+                                val totalRenderedItems = listState.layoutInfo.totalItemsCount
+                                val threshold = (totalRenderedItems - 4).coerceAtLeast(0)
                                 if (lastVisibleIndex >= threshold && uiState.hasMorePokemon && !uiState.isLoadingMore) {
                                     onLoadMore()
                                 }
