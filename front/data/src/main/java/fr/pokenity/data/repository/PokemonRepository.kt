@@ -8,6 +8,7 @@ import fr.pokenity.data.model.PokemonSummary
 
 interface PokemonRepository {
     suspend fun getAvailableLanguages(): List<LanguageOption>
+    suspend fun getPokemonTotalCount(): Int
     suspend fun getPokemonList(limit: Int = 80, offset: Int = 0): List<PokemonSummary>
     suspend fun getPokemonTypes(): List<PokemonFilterOption>
     suspend fun getPokemonGenerations(): List<PokemonFilterOption>

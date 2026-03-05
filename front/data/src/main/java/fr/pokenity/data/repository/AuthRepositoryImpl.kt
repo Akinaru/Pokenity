@@ -2,10 +2,12 @@ package fr.pokenity.data.repository
 
 import fr.pokenity.data.core.AuthSessionState
 import fr.pokenity.data.model.AuthCharacter
+import fr.pokenity.data.model.AuthInventoryItem
 import fr.pokenity.data.model.AuthenticatedSession
 import fr.pokenity.data.model.AuthenticatedUser
 import fr.pokenity.data.remote.auth.AuthApiService
 import fr.pokenity.data.remote.auth.AuthCharacterDto
+import fr.pokenity.data.remote.auth.AuthInventoryItemDto
 import fr.pokenity.data.remote.auth.AuthSessionDto
 import fr.pokenity.data.remote.auth.AuthUserDto
 import kotlinx.coroutines.flow.StateFlow
@@ -51,6 +53,11 @@ class AuthRepositoryImpl internal constructor(
         return authApiService.me(token = currentToken).toDomain()
     }
 
+    override suspend fun fetchInventory(): List<AuthInventoryItem> {
+        val currentToken = token.value ?: throw IllegalStateException("Aucune session active.")
+        return authApiService.inventory(token = currentToken).map { it.toDomain() }
+    }
+
     override fun logout() {
         AuthSessionState.clear()
     }
@@ -84,6 +91,14 @@ class AuthRepositoryImpl internal constructor(
             name = name,
             avatarUrl = resolvedAvatar,
             imageUrl = resolvedImage
+        )
+    }
+
+    private fun AuthInventoryItemDto.toDomain(): AuthInventoryItem {
+        return AuthInventoryItem(
+            resourceType = resourceType,
+            resourceId = resourceId,
+            quantity = quantity
         )
     }
 }

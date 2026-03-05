@@ -9,6 +9,7 @@
     notify,
     openModal,
     qs,
+    toTitleCase,
   } = window.AdminCommon;
 
   activateNav();
@@ -25,6 +26,13 @@
   const userForm = qs("#userForm");
   const submitUserFormBtn = qs("#submitUserForm");
   const openCreateUserModalBtn = qs("#openCreateUserModal");
+  const userPokemonGrantSection = qs("#userPokemonGrantSection");
+  const userPokemonSearchInput = qs("#userPokemonSearchInput");
+  const userPokemonSearchResults = qs("#userPokemonSearchResults");
+  const userPokemonQuantity = qs("#userPokemonQuantity");
+  const addUserPokemonBtn = qs("#addUserPokemonBtn");
+  const userPokemonSelectionMeta = qs("#userPokemonSelectionMeta");
+  const userPokemonCollectionWrap = qs("#userPokemonCollectionWrap");
 
   const inventoryModal = qs("#inventoryModal");
   const inventoryModalTitle = qs("#inventoryModalTitle");
@@ -40,7 +48,18 @@
     mode: "create",
     filter: "",
     editingUser: null,
+    pokemonSearchResults: [],
+    selectedPokemon: null,
+    editingUserPokemonCollection: [],
   };
+
+  function debounce(callback, delay = 300) {
+    let timer;
+    return (...args) => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => callback(...args), delay);
+    };
+  }
 
   function userCharacterName(user) {
     return user.character?.name || "-";
@@ -131,6 +150,142 @@
     `;
   }
 
+  function resetPokemonPickerState() {
+    state.pokemonSearchResults = [];
+    state.selectedPokemon = null;
+    userPokemonSearchInput.value = "";
+    userPokemonQuantity.value = "1";
+    userPokemonSelectionMeta.textContent = "Aucun Pokemon selectionne.";
+    addUserPokemonBtn.disabled = true;
+    userPokemonSearchResults.innerHTML =
+      '<div class="bo-empty">Tapez un nom ou un id pour rechercher un Pokemon.</div>';
+  }
+
+  function setSelectedPokemon(pokemon) {
+    state.selectedPokemon = pokemon || null;
+    if (!state.selectedPokemon) {
+      userPokemonSelectionMeta.textContent = "Aucun Pokemon selectionne.";
+      addUserPokemonBtn.disabled = true;
+      return;
+    }
+
+    userPokemonSelectionMeta.textContent = `Pokemon selectionne: ${toTitleCase(
+      state.selectedPokemon.name
+    )} (#${state.selectedPokemon.id})`;
+    addUserPokemonBtn.disabled = false;
+  }
+
+  function renderPokemonSearchResults(results) {
+    state.pokemonSearchResults = Array.isArray(results) ? results : [];
+
+    if (!state.pokemonSearchResults.length) {
+      userPokemonSearchResults.innerHTML = '<div class="bo-empty">Aucun resultat.</div>';
+      return;
+    }
+
+    userPokemonSearchResults.innerHTML = state.pokemonSearchResults
+      .map((entry) => {
+        return `
+          <button
+            class="bo-search-row"
+            type="button"
+            data-action="pick-user-pokemon"
+            data-id="${entry.id}"
+          >
+            <img src="${escapeHtml(entry.image || "")}" alt="" onerror="this.style.visibility='hidden'" />
+            <div>
+              <strong>${escapeHtml(toTitleCase(entry.name))}</strong>
+            </div>
+            <span class="bo-pill">#${entry.id}</span>
+          </button>
+        `;
+      })
+      .join("");
+  }
+
+  function renderEditingUserPokemonCollection() {
+    const collection = state.editingUserPokemonCollection || [];
+    if (!collection.length) {
+      userPokemonCollectionWrap.innerHTML =
+        '<div class="bo-empty">Aucun Pokemon dans la collection.</div>';
+      return;
+    }
+
+    const rows = collection
+      .sort((a, b) => a.resourceId - b.resourceId)
+      .map((item) => {
+        const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${item.resourceId}.png`;
+        return `
+          <tr>
+            <td>
+              <div style="display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:center;">
+                <img src="${escapeHtml(sprite)}" alt="" style="width:28px;height:28px;object-fit:contain;" onerror="this.style.visibility='hidden'" />
+                <span>${escapeHtml(toTitleCase(item.resourceName || "pokemon"))}</span>
+              </div>
+            </td>
+            <td>#${item.resourceId}</td>
+            <td>${item.quantity}</td>
+            <td>${formatDate(item.lastObtainedAt)}</td>
+          </tr>
+        `;
+      })
+      .join("");
+
+    userPokemonCollectionWrap.innerHTML = `
+      <table class="bo-table">
+        <thead>
+          <tr>
+            <th>Pokemon</th>
+            <th>ID</th>
+            <th>Quantite</th>
+            <th>Derniere obtention</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  }
+
+  async function loadEditingUserPokemonCollection() {
+    if (!state.editingUser) {
+      state.editingUserPokemonCollection = [];
+      renderEditingUserPokemonCollection();
+      return;
+    }
+
+    userPokemonCollectionWrap.innerHTML = '<div class="bo-empty">Chargement...</div>';
+
+    const data = await api(`/api/inventory/users/${state.editingUser.id}`);
+    const inventory = Array.isArray(data.inventory) ? data.inventory : [];
+    state.editingUserPokemonCollection = inventory.filter(
+      (item) => String(item.resourceType || "").toUpperCase() === "POKEMON"
+    );
+    renderEditingUserPokemonCollection();
+  }
+
+  const searchPokemonCatalogDebounced = debounce(async () => {
+    if (state.mode !== "edit") {
+      return;
+    }
+
+    const query = String(userPokemonSearchInput.value || "").trim();
+    if (!query) {
+      renderPokemonSearchResults([]);
+      return;
+    }
+
+    try {
+      const data = await api(
+        `/api/catalog/pokemon?search=${encodeURIComponent(query)}&limit=20`
+      );
+      renderPokemonSearchResults(data.results || []);
+    } catch (error) {
+      userPokemonSearchResults.innerHTML =
+        '<div class="bo-empty">Impossible de charger les Pokemon.</div>';
+      notify(error.message, "err");
+    }
+  });
+
   function openCreateUserModal() {
     state.mode = "create";
     state.editingUser = null;
@@ -143,10 +298,14 @@
     userForm.reset();
     userForm.xp.value = "0";
     renderUserCharacterOptions("");
+    userPokemonGrantSection.hidden = true;
+    resetPokemonPickerState();
+    userPokemonCollectionWrap.innerHTML =
+      '<div class="bo-empty">Disponible en mode edition utilisateur.</div>';
     openModal(userModal, "#userUsername");
   }
 
-  function openEditUserModal(user) {
+  async function openEditUserModal(user) {
     state.mode = "edit";
     state.editingUser = user;
 
@@ -160,8 +319,11 @@
     userForm.password.value = "";
     userForm.xp.value = String(Number(user.xp || 0));
     renderUserCharacterOptions(user.characterId || "");
+    userPokemonGrantSection.hidden = false;
+    resetPokemonPickerState();
 
     openModal(userModal, "#userUsername");
+    await loadEditingUserPokemonCollection();
   }
 
   function buildCreatePayload() {
@@ -304,6 +466,48 @@
     renderUsersTable();
   });
 
+  userPokemonSearchInput.addEventListener("input", () => {
+    setSelectedPokemon(null);
+    searchPokemonCatalogDebounced();
+  });
+
+  addUserPokemonBtn.addEventListener("click", async () => {
+    if (!state.editingUser) {
+      notify("Aucun utilisateur en cours d'edition.", "err");
+      return;
+    }
+
+    if (!state.selectedPokemon) {
+      notify("Selectionnez un Pokemon avant ajout.", "err");
+      return;
+    }
+
+    const quantity = Math.trunc(Number(userPokemonQuantity.value || 0));
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      notify("La quantite doit etre un entier positif.", "err");
+      return;
+    }
+
+    try {
+      await api(`/api/users/${state.editingUser.id}/pokemon`, {
+        method: "POST",
+        body: JSON.stringify({
+          pokemonId: state.selectedPokemon.id,
+          quantity,
+        }),
+      });
+
+      notify(
+        `${toTitleCase(state.selectedPokemon.name)} ajoute x${quantity} a ${state.editingUser.username}.`
+      );
+      await loadEditingUserPokemonCollection();
+      await loadUsers();
+      userPokemonQuantity.value = "1";
+    } catch (error) {
+      notify(error.message, "err");
+    }
+  });
+
   submitUserFormBtn.addEventListener("click", async () => {
     try {
       if (state.mode === "create") {
@@ -344,7 +548,7 @@
     }
 
     if (button.dataset.action === "edit") {
-      openEditUserModal(user);
+      await openEditUserModal(user);
       return;
     }
 
@@ -366,6 +570,25 @@
         notify(error.message, "err");
       }
     }
+  });
+
+  userPokemonSearchResults.addEventListener("click", (event) => {
+    const button = event.target.closest('button[data-action="pick-user-pokemon"]');
+    if (!button) {
+      return;
+    }
+
+    const pokemonId = Number(button.dataset.id);
+    if (!Number.isInteger(pokemonId)) {
+      return;
+    }
+
+    const selected = state.pokemonSearchResults.find((entry) => entry.id === pokemonId);
+    if (!selected) {
+      return;
+    }
+
+    setSelectedPokemon(selected);
   });
 
   Promise.all([loadCharacters(), loadUsers()]).catch((error) => notify(error.message, "err"));

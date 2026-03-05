@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,8 +15,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -45,7 +51,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -62,6 +70,7 @@ import fr.pokenity.data.core.AppThemeMode
 import fr.pokenity.data.core.AppThemeState
 import fr.pokenity.data.core.AuthSessionState
 import fr.pokenity.data.core.PokemonBrowseState
+import fr.pokenity.data.core.PokemonImageType
 import fr.pokenity.data.model.PokemonFilterOption
 import fr.pokenity.pokenity.presentation.account.AccountScreen
 import fr.pokenity.pokenity.presentation.account.AccountUiState
@@ -86,6 +95,7 @@ import fr.pokenity.pokenity.presentation.settings.SettingsScreen
 import fr.pokenity.pokenity.presentation.settings.SettingsViewModel
 import fr.pokenity.pokenity.presentation.social.SocialScreen
 import fr.pokenity.pokenity.presentation.social.SocialViewModel
+import fr.pokenity.pokenity.ui.components.PokemonSpriteImage
 import fr.pokenity.pokenity.ui.media.resolveCharacterMediaModel
 import fr.pokenity.pokenity.ui.theme.AppBackground
 import fr.pokenity.pokenity.ui.theme.PokenityTheme
@@ -644,9 +654,11 @@ private fun MoiProfileScreen(
         onClearHabitatFilter = onClearHabitatFilter,
         onClearRegionFilter = onClearRegionFilter,
         onClearShapeFilter = onClearShapeFilter,
-        headerContent = {
-            MoiHeaderCard(uiState = accountUiState)
-        },
+        collectionMode = true,
+        ownedQuantities = accountUiState.pokemonCollection,
+        showOwnershipFilter = true,
+        totalPokemonCount = pokedexUiState.totalPokemonCount,
+        headerContent = { MoiHeaderCard(uiState = accountUiState) },
         modifier = modifier
     )
 }

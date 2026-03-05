@@ -14,6 +14,7 @@ data class AccountUiState(
     val isLoading: Boolean = false,
     val token: String? = null,
     val user: AccountUser? = null,
+    val pokemonCollection: Map<Int, Int> = emptyMap(),
     val errorMessage: String? = null,
     val infoMessage: String? = null
 )
