@@ -1,6 +1,7 @@
 package fr.pokenity.pokenity.domain.usecase
 
 import fr.pokenity.data.model.Trade
+import fr.pokenity.data.model.TradePokemon
 import fr.pokenity.data.repository.SocialRepository
 
 class CreateTradeUseCase(
@@ -8,8 +9,8 @@ class CreateTradeUseCase(
 ) {
     suspend operator fun invoke(
         offeredInventoryItemId: String,
-        targetUserId: String? = null
+        requestedPokemons: List<TradePokemon>
     ): Trade {
-        return socialRepository.createTrade(offeredInventoryItemId, targetUserId)
+        return socialRepository.createTrade(offeredInventoryItemId, requestedPokemons)
     }
 }

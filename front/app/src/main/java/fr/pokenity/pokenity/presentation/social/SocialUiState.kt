@@ -1,7 +1,9 @@
 package fr.pokenity.pokenity.presentation.social
 
 import fr.pokenity.data.model.InventoryItem
+import fr.pokenity.data.model.PokemonSummary
 import fr.pokenity.data.model.Trade
+import fr.pokenity.data.model.TradePokemon
 import fr.pokenity.data.model.UserProfile
 
 enum class SocialTab {
@@ -29,7 +31,13 @@ data class SocialUiState(
     // Propose trade tab
     val myInventory: List<InventoryItem> = emptyList(),
     val selectedInventoryItem: InventoryItem? = null,
-    val selectedTargetUser: UserProfile? = null,
+
+    // Wishlist: Pokemon requested by the proposer (1-5)
+    val selectedRequestedPokemons: List<TradePokemon> = emptyList(),
+    val pokemonSearchQuery: String = "",
+    val pokemonSearchResults: List<PokemonSummary> = emptyList(),
+    val allPokemonList: List<PokemonSummary> = emptyList(),
+    val isPokemonListLoading: Boolean = false,
 
     // Accounts tab
     val users: List<UserProfile> = emptyList(),

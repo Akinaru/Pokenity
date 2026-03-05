@@ -21,7 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import fr.pokenity.data.model.InventoryItem
-import fr.pokenity.data.model.UserProfile
+import fr.pokenity.data.model.PokemonSummary
+import fr.pokenity.data.model.TradePokemon
 
 @Composable
 fun SocialScreen(
@@ -35,7 +36,9 @@ fun SocialScreen(
     onDeclineTrade: (tradeId: String) -> Unit,
     onRefreshMyTrades: () -> Unit,
     onSelectInventoryItem: (InventoryItem?) -> Unit,
-    onSelectTargetUser: (UserProfile?) -> Unit,
+    onPokemonSearchQueryChange: (String) -> Unit,
+    onAddRequestedPokemon: (PokemonSummary) -> Unit,
+    onRemoveRequestedPokemon: (TradePokemon) -> Unit,
     onCreateTrade: () -> Unit,
     onRefreshOpenTrades: () -> Unit,
     onClearMessages: () -> Unit,
@@ -126,7 +129,9 @@ fun SocialScreen(
                 ProposeTradeScreen(
                     uiState = uiState,
                     onSelectInventoryItem = onSelectInventoryItem,
-                    onSelectTargetUser = onSelectTargetUser,
+                    onPokemonSearchQueryChange = onPokemonSearchQueryChange,
+                    onAddRequestedPokemon = onAddRequestedPokemon,
+                    onRemoveRequestedPokemon = onRemoveRequestedPokemon,
                     onCreateTrade = onCreateTrade
                 )
             }

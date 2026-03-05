@@ -5,7 +5,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import fr.pokenity.data.core.AppContainer
 import fr.pokenity.data.model.InventoryItem
-import fr.pokenity.data.model.UserProfile
+import fr.pokenity.data.model.PokemonSummary
+import fr.pokenity.data.model.TradePokemon
 import fr.pokenity.pokenity.domain.usecase.AcceptTradeUseCase
 import fr.pokenity.pokenity.domain.usecase.CancelTradeUseCase
 import fr.pokenity.pokenity.domain.usecase.ConfirmTradeUseCase
@@ -14,6 +15,7 @@ import fr.pokenity.pokenity.domain.usecase.DeclineTradeUseCase
 import fr.pokenity.pokenity.domain.usecase.GetMyInventoryUseCase
 import fr.pokenity.pokenity.domain.usecase.GetMyTradesUseCase
 import fr.pokenity.pokenity.domain.usecase.GetOpenTradesUseCase
+import fr.pokenity.pokenity.domain.usecase.GetPokemonListUseCase
 import fr.pokenity.pokenity.domain.usecase.GetUsersUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,7 +32,8 @@ class SocialViewModel(
     private val cancelTradeUseCase: CancelTradeUseCase,
     private val declineTradeUseCase: DeclineTradeUseCase,
     private val getUsersUseCase: GetUsersUseCase,
-    private val getMyInventoryUseCase: GetMyInventoryUseCase
+    private val getMyInventoryUseCase: GetMyInventoryUseCase,
+    private val getPokemonListUseCase: GetPokemonListUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SocialUiState())
@@ -45,7 +48,7 @@ class SocialViewModel(
         when (tab) {
             SocialTab.OPEN_TRADES -> loadOpenTrades()
             SocialTab.MY_TRADES -> loadMyTrades()
-            SocialTab.PROPOSE_TRADE -> loadInventoryAndUsers()
+            SocialTab.PROPOSE_TRADE -> loadInventoryAndPokemonList()
             SocialTab.ACCOUNTS -> loadUsers()
         }
     }
@@ -92,25 +95,45 @@ class SocialViewModel(
         }
     }
 
-    private fun loadInventoryAndUsers() {
+    private fun loadInventoryAndPokemonList() {
         _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
         viewModelScope.launch(Dispatchers.IO) {
             runCatching {
                 val inventory = getMyInventoryUseCase()
-                val users = getUsersUseCase()
-                Pair(inventory, users)
+                inventory
             }
-                .onSuccess { (inventory, users) ->
+                .onSuccess { inventory ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        myInventory = inventory,
-                        users = users
+                        myInventory = inventory
                     )
                 }
                 .onFailure {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         errorMessage = it.message ?: "Erreur lors du chargement"
+                    )
+                }
+        }
+        // Load full Pokemon list for autocomplete if not already loaded
+        if (_uiState.value.allPokemonList.isEmpty()) {
+            loadAllPokemonList()
+        }
+    }
+
+    private fun loadAllPokemonList() {
+        _uiState.value = _uiState.value.copy(isPokemonListLoading = true)
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { getPokemonListUseCase(limit = 1302, offset = 0) }
+                .onSuccess { list ->
+                    _uiState.value = _uiState.value.copy(
+                        isPokemonListLoading = false,
+                        allPokemonList = list
+                    )
+                }
+                .onFailure {
+                    _uiState.value = _uiState.value.copy(
+                        isPokemonListLoading = false
                     )
                 }
         }
@@ -139,23 +162,72 @@ class SocialViewModel(
         _uiState.value = _uiState.value.copy(selectedInventoryItem = item)
     }
 
-    fun selectTargetUser(user: UserProfile?) {
-        _uiState.value = _uiState.value.copy(selectedTargetUser = user)
+    // --- Pokemon search for wishlist ---
+
+    fun updatePokemonSearchQuery(query: String) {
+        val allList = _uiState.value.allPokemonList
+        val alreadySelected = _uiState.value.selectedRequestedPokemons.map { it.resourceId }.toSet()
+
+        val results = if (query.isBlank()) {
+            emptyList()
+        } else {
+            val lowerQuery = query.lowercase().trim()
+            val asNumber = lowerQuery.toIntOrNull()
+            allList.filter { pokemon ->
+                pokemon.id !in alreadySelected && (
+                    pokemon.name.lowercase().contains(lowerQuery) ||
+                    (asNumber != null && pokemon.id == asNumber)
+                )
+            }.take(10)
+        }
+
+        _uiState.value = _uiState.value.copy(
+            pokemonSearchQuery = query,
+            pokemonSearchResults = results
+        )
+    }
+
+    fun addRequestedPokemon(pokemon: PokemonSummary) {
+        val current = _uiState.value.selectedRequestedPokemons
+        if (current.size >= 5) return
+        if (current.any { it.resourceId == pokemon.id }) return
+
+        val tradePokemon = TradePokemon(
+            resourceType = "POKEMON",
+            resourceId = pokemon.id,
+            resourceName = pokemon.name,
+            imageUrl = pokemon.imageUrl
+        )
+        _uiState.value = _uiState.value.copy(
+            selectedRequestedPokemons = current + tradePokemon,
+            pokemonSearchQuery = "",
+            pokemonSearchResults = emptyList()
+        )
+    }
+
+    fun removeRequestedPokemon(pokemon: TradePokemon) {
+        val current = _uiState.value.selectedRequestedPokemons
+        _uiState.value = _uiState.value.copy(
+            selectedRequestedPokemons = current.filter { it.resourceId != pokemon.resourceId }
+        )
     }
 
     fun createTrade() {
         val item = _uiState.value.selectedInventoryItem ?: return
-        val targetUserId = _uiState.value.selectedTargetUser?.id
+        val requestedPokemons = _uiState.value.selectedRequestedPokemons
+        if (requestedPokemons.isEmpty()) return
 
         _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null, successMessage = null)
         viewModelScope.launch(Dispatchers.IO) {
-            runCatching { createTradeUseCase(item.id, targetUserId) }
+            runCatching { createTradeUseCase(item.id, requestedPokemons) }
                 .onSuccess {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         successMessage = "Echange propose !",
                         selectedInventoryItem = null,
-                        selectedTargetUser = null
+                        selectedRequestedPokemons = emptyList(),
+                        pokemonSearchQuery = "",
+                        pokemonSearchResults = emptyList()
                     )
                 }
                 .onFailure {
@@ -289,17 +361,19 @@ class SocialViewModel(
         val factory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                val repository = AppContainer.socialRepository
+                val socialRepository = AppContainer.socialRepository
+                val pokemonRepository = AppContainer.pokemonRepository
                 return SocialViewModel(
-                    getOpenTradesUseCase = GetOpenTradesUseCase(repository),
-                    getMyTradesUseCase = GetMyTradesUseCase(repository),
-                    createTradeUseCase = CreateTradeUseCase(repository),
-                    acceptTradeUseCase = AcceptTradeUseCase(repository),
-                    confirmTradeUseCase = ConfirmTradeUseCase(repository),
-                    cancelTradeUseCase = CancelTradeUseCase(repository),
-                    declineTradeUseCase = DeclineTradeUseCase(repository),
-                    getUsersUseCase = GetUsersUseCase(repository),
-                    getMyInventoryUseCase = GetMyInventoryUseCase(repository)
+                    getOpenTradesUseCase = GetOpenTradesUseCase(socialRepository),
+                    getMyTradesUseCase = GetMyTradesUseCase(socialRepository),
+                    createTradeUseCase = CreateTradeUseCase(socialRepository),
+                    acceptTradeUseCase = AcceptTradeUseCase(socialRepository),
+                    confirmTradeUseCase = ConfirmTradeUseCase(socialRepository),
+                    cancelTradeUseCase = CancelTradeUseCase(socialRepository),
+                    declineTradeUseCase = DeclineTradeUseCase(socialRepository),
+                    getUsersUseCase = GetUsersUseCase(socialRepository),
+                    getMyInventoryUseCase = GetMyInventoryUseCase(socialRepository),
+                    getPokemonListUseCase = GetPokemonListUseCase(pokemonRepository)
                 ) as T
             }
         }

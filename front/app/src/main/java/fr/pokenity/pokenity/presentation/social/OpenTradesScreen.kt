@@ -4,6 +4,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -46,9 +48,21 @@ fun OpenTradesScreen(
     // Inventory picker dialog for accepting a trade
     val acceptingTradeId = uiState.acceptingTradeId
     if (acceptingTradeId != null) {
+        // Find the trade being accepted to filter inventory by requestedPokemons
+        val acceptingTrade = uiState.openTrades.find { it.id == acceptingTradeId }
+        val requestedIds = acceptingTrade?.requestedPokemons?.map { it.resourceId }?.toSet()
+
+        // Filter inventory: only show items whose resourceId matches a requested Pokemon
+        val filteredInventory = if (requestedIds != null && requestedIds.isNotEmpty()) {
+            uiState.myInventory.filter { it.resourceId in requestedIds }
+        } else {
+            uiState.myInventory
+        }
+
         AcceptTradeDialog(
-            inventory = uiState.myInventory,
+            inventory = filteredInventory,
             isLoading = uiState.isLoading && uiState.myInventory.isEmpty(),
+            hasNoMatchingPokemon = requestedIds != null && requestedIds.isNotEmpty() && filteredInventory.isEmpty() && uiState.myInventory.isNotEmpty(),
             onItemSelected = { item -> onSelectInventoryItemForAccept(acceptingTradeId, item) },
             onDismiss = onDismissAcceptDialog
         )
@@ -96,6 +110,7 @@ fun OpenTradesScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TradeCard(
     trade: Trade,
@@ -161,7 +176,7 @@ fun TradeCard(
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
 
-                // Received pokemon
+                // Received pokemon (if trade accepted/confirmed)
                 val received = trade.receivedPokemon
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     if (received != null) {
@@ -182,6 +197,37 @@ fun TradeCard(
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+            }
+
+            // Show requested Pokemon wishlist
+            if (trade.requestedPokemons.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Pokemon souhaites :",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    trade.requestedPokemons.forEach { pokemon ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            AsyncImage(
+                                model = pokemon.imageUrl,
+                                contentDescription = pokemon.resourceName,
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Spacer(modifier = Modifier.width(2.dp))
+                            Text(
+                                text = pokemon.resourceName,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    }
                 }
             }
 
@@ -222,6 +268,7 @@ fun TradeStatusBadge(status: TradeStatus, modifier: Modifier = Modifier) {
 private fun AcceptTradeDialog(
     inventory: List<InventoryItem>,
     isLoading: Boolean,
+    hasNoMatchingPokemon: Boolean,
     onItemSelected: (InventoryItem) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -238,6 +285,13 @@ private fun AcceptTradeDialog(
                 ) {
                     CircularProgressIndicator()
                 }
+            } else if (hasNoMatchingPokemon) {
+                Text(
+                    text = "Vous ne possedez aucun des Pokemon souhaites.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
             } else if (inventory.isEmpty()) {
                 Text(
                     text = "Votre inventaire est vide.",
