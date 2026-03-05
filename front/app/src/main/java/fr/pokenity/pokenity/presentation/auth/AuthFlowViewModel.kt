@@ -129,6 +129,14 @@ class AuthFlowViewModel(
             _uiState.value = state.copy(errorMessage = "Username, email et mot de passe requis.")
             return
         }
+        if (!state.registerEmail.trim().contains("@")) {
+            _uiState.value = state.copy(errorMessage = "Format d'email invalide.")
+            return
+        }
+        if (state.registerPassword.length < 6) {
+            _uiState.value = state.copy(errorMessage = "Le mot de passe doit contenir au moins 6 caracteres.")
+            return
+        }
 
         _uiState.value = state.copy(isLoading = true, errorMessage = null)
         viewModelScope.launch(Dispatchers.IO) {
@@ -180,13 +188,11 @@ class AuthFlowViewModel(
         _uiState.value = state.copy(selectedCharacterIndex = nextIndex)
     }
 
-    fun registerWithSelectedCharacter(onSuccess: () -> Unit) {
+    fun registerWithSelectedCharacter(
+        onSuccess: () -> Unit,
+        onFormError: () -> Unit
+    ) {
         val state = _uiState.value
-        if (state.registerUsername.isBlank() || state.registerEmail.isBlank() || state.registerPassword.isBlank()) {
-            _uiState.value = state.copy(errorMessage = "Username, email et mot de passe requis.")
-            return
-        }
-
         val selectedCharacter = state.characters.getOrNull(state.selectedCharacterIndex)
         if (selectedCharacter == null) {
             _uiState.value = state.copy(errorMessage = "Choisis un dresseur.")
@@ -210,10 +216,14 @@ class AuthFlowViewModel(
                 )
                 launch(Dispatchers.Main) { onSuccess() }
             }.onFailure {
+                val message = it.message ?: "Erreur lors de la creation du compte"
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = it.message ?: "Erreur lors de la creation du compte"
+                    errorMessage = message
                 )
+                if (isFormErrorMessage(message)) {
+                    launch(Dispatchers.Main) { onFormError() }
+                }
             }
         }
     }
@@ -248,6 +258,14 @@ class AuthFlowViewModel(
             }
         }
     }
+}
+
+private fun isFormErrorMessage(message: String): Boolean {
+    val normalized = message.lowercase()
+    return normalized.contains("email") ||
+        normalized.contains("username") ||
+        normalized.contains("password") ||
+        normalized.contains("mot de passe")
 }
 
 private fun AuthCharacter.toUi(): AuthCharacterUiModel {

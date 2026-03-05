@@ -49,10 +49,10 @@ fun LoginScreen(
         unfocusedContainerColor = AuthInputBackground,
         disabledContainerColor = AuthInputBackground.copy(alpha = 0.8f),
         cursorColor = AuthInputText,
-        focusedBorderColor = AuthInputBackground,
+        focusedBorderColor = AuthAccentYellow,
         unfocusedBorderColor = AuthInputBackground,
         disabledBorderColor = AuthInputBackground.copy(alpha = 0.8f),
-        focusedLabelColor = AuthInputText,
+        focusedLabelColor = AuthAccentYellow,
         unfocusedLabelColor = AuthInputText.copy(alpha = 0.85f),
         disabledLabelColor = AuthInputText.copy(alpha = 0.65f)
     )

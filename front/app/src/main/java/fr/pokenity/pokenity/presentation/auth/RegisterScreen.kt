@@ -48,10 +48,10 @@ fun RegisterScreen(
         unfocusedContainerColor = AuthInputBackground,
         disabledContainerColor = AuthInputBackground.copy(alpha = 0.8f),
         cursorColor = AuthInputText,
-        focusedBorderColor = AuthInputBackground,
+        focusedBorderColor = AuthAccentYellow,
         unfocusedBorderColor = AuthInputBackground,
         disabledBorderColor = AuthInputBackground.copy(alpha = 0.8f),
-        focusedLabelColor = AuthInputText,
+        focusedLabelColor = AuthAccentYellow,
         unfocusedLabelColor = AuthInputText.copy(alpha = 0.85f),
         disabledLabelColor = AuthInputText.copy(alpha = 0.65f)
     )
@@ -77,16 +77,6 @@ fun RegisterScreen(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
-
-            if (uiState.errorMessage != null) {
-                Text(
-                    text = uiState.errorMessage,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
 
             OutlinedTextField(
                 value = uiState.registerUsername,
@@ -144,12 +134,19 @@ fun RegisterScreen(
                 keyboardActions = KeyboardActions(onDone = { onRegister() })
             )
 
+            if (uiState.errorMessage != null) {
+                Text(
+                    text = uiState.errorMessage,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
             Button(
                 onClick = onRegister,
-                enabled = !uiState.isLoading
-                        && uiState.registerUsername.isNotBlank()
-                        && uiState.registerEmail.isNotBlank()
-                        && uiState.registerPassword.isNotBlank(),
+                enabled = !uiState.isLoading,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = AuthAccentYellow,

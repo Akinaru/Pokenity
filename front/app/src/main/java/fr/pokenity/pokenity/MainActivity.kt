@@ -173,11 +173,16 @@ class MainActivity : ComponentActivity() {
                             onPrevious = authFlowViewModel::selectPreviousCharacter,
                             onNext = authFlowViewModel::selectNextCharacter,
                             onValidate = {
-                                authFlowViewModel.registerWithSelectedCharacter {
-                                    navController.navigate("home") {
-                                        popUpTo("login") { inclusive = true }
+                                authFlowViewModel.registerWithSelectedCharacter(
+                                    onSuccess = {
+                                        navController.navigate("home") {
+                                            popUpTo("login") { inclusive = true }
+                                        }
+                                    },
+                                    onFormError = {
+                                        navController.popBackStack()
                                     }
-                                }
+                                )
                             },
                             onBack = { navController.popBackStack() }
                         )

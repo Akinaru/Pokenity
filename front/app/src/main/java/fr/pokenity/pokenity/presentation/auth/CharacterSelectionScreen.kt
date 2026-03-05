@@ -233,6 +233,16 @@ fun CharacterSelectionScreen(
                         textAlign = TextAlign.Center
                     )
 
+                    if (uiState.errorMessage != null) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = uiState.errorMessage,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily),
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
                     if (characterCount > 0) {
                         Spacer(Modifier.height(10.dp))
                         Row(
