@@ -44,9 +44,14 @@ class SocialViewModel(
         _uiState.value = _uiState.value.copy(selectedTab = tab, errorMessage = null, successMessage = null)
         when (tab) {
             SocialTab.OPEN_TRADES -> loadOpenTrades()
+            SocialTab.MY_TRADES -> loadMyTrades()
             SocialTab.PROPOSE_TRADE -> loadInventoryAndUsers()
             SocialTab.ACCOUNTS -> loadUsers()
         }
+    }
+
+    fun setCurrentUserId(userId: String?) {
+        _uiState.value = _uiState.value.copy(currentUserId = userId)
     }
 
     fun loadOpenTrades() {
@@ -163,15 +168,17 @@ class SocialViewModel(
     }
 
     fun acceptTrade(tradeId: String, offeredInventoryItemId: String) {
-        _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null, successMessage = null)
+        _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null, successMessage = null, acceptingTradeId = null)
         viewModelScope.launch(Dispatchers.IO) {
             runCatching { acceptTradeUseCase(tradeId, offeredInventoryItemId) }
                 .onSuccess {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        successMessage = "Echange accepte !"
+                        successMessage = "Echange accepte !",
+                        inventoryVersion = _uiState.value.inventoryVersion + 1
                     )
                     loadOpenTrades()
+                    loadMyInventory()
                 }
                 .onFailure {
                     _uiState.value = _uiState.value.copy(
@@ -189,9 +196,11 @@ class SocialViewModel(
                 .onSuccess {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        successMessage = "Echange confirme !"
+                        successMessage = "Echange confirme !",
+                        inventoryVersion = _uiState.value.inventoryVersion + 1
                     )
                     loadMyTrades()
+                    loadMyInventory()
                 }
                 .onFailure {
                     _uiState.value = _uiState.value.copy(
@@ -237,6 +246,36 @@ class SocialViewModel(
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         errorMessage = it.message ?: "Erreur lors du refus"
+                    )
+                }
+        }
+    }
+
+    fun showAcceptDialog(tradeId: String) {
+        _uiState.value = _uiState.value.copy(acceptingTradeId = tradeId)
+        if (_uiState.value.myInventory.isEmpty()) {
+            loadMyInventory()
+        }
+    }
+
+    fun dismissAcceptDialog() {
+        _uiState.value = _uiState.value.copy(acceptingTradeId = null)
+    }
+
+    private fun loadMyInventory() {
+        _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { getMyInventoryUseCase() }
+                .onSuccess { inventory ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        myInventory = inventory
+                    )
+                }
+                .onFailure {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = it.message ?: "Erreur lors du chargement de l'inventaire"
                     )
                 }
         }

@@ -6,6 +6,7 @@ import fr.pokenity.data.model.UserProfile
 
 enum class SocialTab {
     OPEN_TRADES,
+    MY_TRADES,
     PROPOSE_TRADE,
     ACCOUNTS
 }
@@ -15,6 +16,9 @@ data class SocialUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val successMessage: String? = null,
+
+    // Current user id (to determine trade role: proposer vs recipient)
+    val currentUserId: String? = null,
 
     // Open trades tab
     val openTrades: List<Trade> = emptyList(),
@@ -28,5 +32,12 @@ data class SocialUiState(
     val selectedTargetUser: UserProfile? = null,
 
     // Accounts tab
-    val users: List<UserProfile> = emptyList()
+    val users: List<UserProfile> = emptyList(),
+
+    // Accept trade dialog
+    val acceptingTradeId: String? = null,
+
+    // Incremented when a trade action changes inventory (accept/confirm),
+    // observed by MainActivity to refresh AccountViewModel
+    val inventoryVersion: Int = 0
 )

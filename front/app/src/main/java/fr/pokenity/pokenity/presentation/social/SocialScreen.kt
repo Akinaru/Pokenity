@@ -28,6 +28,12 @@ fun SocialScreen(
     uiState: SocialUiState,
     onSelectTab: (SocialTab) -> Unit,
     onAcceptTrade: (tradeId: String) -> Unit,
+    onAcceptTradeWithItem: (tradeId: String, inventoryItemId: String) -> Unit,
+    onDismissAcceptDialog: () -> Unit,
+    onConfirmTrade: (tradeId: String) -> Unit,
+    onCancelTrade: (tradeId: String) -> Unit,
+    onDeclineTrade: (tradeId: String) -> Unit,
+    onRefreshMyTrades: () -> Unit,
     onSelectInventoryItem: (InventoryItem?) -> Unit,
     onSelectTargetUser: (UserProfile?) -> Unit,
     onCreateTrade: () -> Unit,
@@ -78,6 +84,7 @@ fun SocialScreen(
                             Text(
                                 text = when (tab) {
                                     SocialTab.OPEN_TRADES -> "Echanges"
+                                    SocialTab.MY_TRADES -> "Mes echanges"
                                     SocialTab.PROPOSE_TRADE -> "Proposer"
                                     SocialTab.ACCOUNTS -> "Comptes"
                                 },
@@ -97,7 +104,21 @@ fun SocialScreen(
                 OpenTradesScreen(
                     uiState = uiState,
                     onAcceptTrade = onAcceptTrade,
+                    onSelectInventoryItemForAccept = { tradeId, item ->
+                        onAcceptTradeWithItem(tradeId, item.id)
+                    },
+                    onDismissAcceptDialog = onDismissAcceptDialog,
                     onRefresh = onRefreshOpenTrades
+                )
+            }
+
+            SocialTab.MY_TRADES -> {
+                MyTradesScreen(
+                    uiState = uiState,
+                    onConfirmTrade = onConfirmTrade,
+                    onCancelTrade = onCancelTrade,
+                    onDeclineTrade = onDeclineTrade,
+                    onRefresh = onRefreshMyTrades
                 )
             }
 
