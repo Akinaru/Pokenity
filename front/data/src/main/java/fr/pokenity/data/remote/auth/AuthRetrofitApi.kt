@@ -24,6 +24,9 @@ internal interface AuthRetrofitApi {
     @GET("auth/me")
     suspend fun me(@Header("Authorization") authorization: String): Response<AuthMeResponseDto>
 
+    @GET("inventory/me")
+    suspend fun inventory(@Header("Authorization") authorization: String): Response<AuthInventoryResponseDto>
+
     @GET("characters")
     suspend fun characters(): Response<AuthCharactersResponseDto>
 }

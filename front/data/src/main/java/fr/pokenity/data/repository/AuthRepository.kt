@@ -1,6 +1,7 @@
 package fr.pokenity.data.repository
 
 import fr.pokenity.data.model.AuthCharacter
+import fr.pokenity.data.model.AuthInventoryItem
 import fr.pokenity.data.model.AuthenticatedSession
 import fr.pokenity.data.model.AuthenticatedUser
 import kotlinx.coroutines.flow.StateFlow
@@ -18,5 +19,6 @@ interface AuthRepository {
     ): AuthenticatedSession
     suspend fun fetchCharacters(): List<AuthCharacter>
     suspend fun fetchAuthenticatedUser(): AuthenticatedUser
+    suspend fun fetchInventory(): List<AuthInventoryItem>
     fun logout()
 }

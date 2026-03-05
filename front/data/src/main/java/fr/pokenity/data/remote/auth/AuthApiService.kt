@@ -76,6 +76,15 @@ internal class AuthApiService(
             ?: throw IllegalStateException("Reponse vide du serveur")
     }
 
+    suspend fun inventory(token: String): List<AuthInventoryItemDto> {
+        val response = api.inventory("Bearer $token")
+        if (!response.isSuccessful) {
+            val errorBody = response.errorBody()?.string() ?: ""
+            throw IllegalStateException(parseApiError(errorBody, "Erreur API (${response.code()})"))
+        }
+        return response.body()?.inventory ?: emptyList()
+    }
+
     internal suspend fun characters(): List<AuthCharacterDto> {
         val response = api.characters()
         if (!response.isSuccessful) {
