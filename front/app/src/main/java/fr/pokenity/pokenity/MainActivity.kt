@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CatchingPokemon
 import androidx.compose.material.icons.filled.Map
@@ -111,6 +113,7 @@ class MainActivity : ComponentActivity() {
     private val compareViewModel: PokemonCompareViewModel by viewModels { PokemonCompareViewModel.factory }
     private val authFlowViewModel: AuthFlowViewModel by viewModels { AuthFlowViewModel.factory }
 
+    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -294,19 +297,10 @@ class MainActivity : ComponentActivity() {
                                     }
 
                                     MainDestination.ACCUEIL -> {
-                                        MapScreen(
-                                            uiState = mapUiState,
-                                            onRetry = mapViewModel::loadRegions,
-                                            onPokemonClick = { id, ids ->
-                                                PokemonBrowseState.setList(ids)
-                                                navController.navigate("detail/$id")
+                                        HomeScreen(
+                                            onOpenMapExplorer = {
+                                                navController.navigate("map-explorer")
                                             },
-                                            onRegionSelected = mapViewModel::onRegionSelected,
-                                            onLocationSelected = mapViewModel::onLocationSelected,
-                                            onAreaSelected = mapViewModel::onAreaSelected,
-                                            onBackToRegions = mapViewModel::backToRegions,
-                                            onBackToLocations = mapViewModel::backToLocations,
-                                            onBackToAreas = mapViewModel::backToAreas,
                                             modifier = Modifier.padding(innerPadding)
                                         )
                                     }
@@ -382,6 +376,42 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
                                 }
+                            }
+                        }
+
+                        composable("map-explorer") {
+                            Scaffold(
+                                containerColor = Color.Transparent,
+                                topBar = {
+                                    TopAppBar(
+                                        title = { Text("World Map Explorer") },
+                                        navigationIcon = {
+                                            IconButton(onClick = { navController.popBackStack() }) {
+                                                Icon(
+                                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                                    contentDescription = "Retour"
+                                                )
+                                            }
+                                        },
+                                        colors = TopAppBarDefaults.topAppBarColors()
+                                    )
+                                }
+                            ) { innerPadding ->
+                                MapScreen(
+                                    uiState = mapUiState,
+                                    onRetry = mapViewModel::loadRegions,
+                                    onPokemonClick = { id, ids ->
+                                        PokemonBrowseState.setList(ids)
+                                        navController.navigate("detail/$id")
+                                    },
+                                    onRegionSelected = mapViewModel::onRegionSelected,
+                                    onLocationSelected = mapViewModel::onLocationSelected,
+                                    onAreaSelected = mapViewModel::onAreaSelected,
+                                    onBackToRegions = mapViewModel::backToRegions,
+                                    onBackToLocations = mapViewModel::backToLocations,
+                                    onBackToAreas = mapViewModel::backToAreas,
+                                    modifier = Modifier.padding(innerPadding)
+                                )
                             }
                         }
 
@@ -563,6 +593,64 @@ private fun SocialScreen(modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.titleLarge,
             textAlign = TextAlign.Center
         )
+    }
+}
+
+@Composable
+private fun HomeScreen(
+    onOpenMapExplorer: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Text(
+            text = "Accueil",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold
+        )
+
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .clickable(onClick = onOpenMapExplorer),
+            shape = RoundedCornerShape(20.dp),
+            tonalElevation = 2.dp
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 18.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Map,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "World Map Explorer",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Acceder a la page des cartes et des regions",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
+                    )
+                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = "Ouvrir"
+                )
+            }
+        }
     }
 }
 
