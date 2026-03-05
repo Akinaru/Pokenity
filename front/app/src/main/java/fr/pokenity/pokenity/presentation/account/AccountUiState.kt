@@ -4,6 +4,7 @@ data class AccountUser(
     val id: String,
     val username: String,
     val email: String,
+    val xp: Int = 0,
     val createdAt: String? = null,
     val characterName: String? = null,
     val characterAvatarUrl: String? = null,

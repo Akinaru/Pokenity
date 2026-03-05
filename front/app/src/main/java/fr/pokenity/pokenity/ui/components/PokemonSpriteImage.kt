@@ -7,6 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 import fr.pokenity.data.core.PokemonImageType
@@ -20,6 +21,7 @@ fun PokemonSpriteImage(
     imageType: PokemonImageType,
     shiny: Boolean,
     visualPreset: PokemonVisualPreset? = null,
+    colorFilter: ColorFilter? = null,
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Fit
 ) {
@@ -36,6 +38,7 @@ fun PokemonSpriteImage(
     AsyncImage(
         model = candidates[candidateIndex],
         contentDescription = contentDescription,
+        colorFilter = colorFilter,
         contentScale = contentScale,
         modifier = modifier,
         onError = {

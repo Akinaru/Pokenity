@@ -74,6 +74,7 @@ class AuthRepositoryImpl internal constructor(
             id = id,
             username = username,
             email = email,
+            xp = xp,
             createdAt = createdAt,
             character = character?.toDomain()
         )

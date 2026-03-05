@@ -84,6 +84,7 @@ internal data class PokemonDetailDto(
     val name: String,
     val height: Int,
     val weight: Int,
+    val genderRate: Int? = null,
     val types: List<PokemonTypeDto>,
     val stats: List<PokemonStatDto>,
     val abilities: List<NamedResourceDto>,
@@ -223,6 +224,7 @@ internal data class MoveDetailResponseDto(
 
 internal data class PokemonSpeciesResponseDto(
     val name: String,
+    @SerializedName("gender_rate") val genderRate: Int?,
     val names: List<LocalizedNameEntryDto>?,
     @SerializedName("evolution_chain") val evolutionChain: EvolutionChainLinkDto,
     val varieties: List<SpeciesVarietyDto>

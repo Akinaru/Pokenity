@@ -96,20 +96,6 @@ fun MapScreen(
                     }
 
                     item {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            OutlinedButton(
-                                onClick = { PokemonImageSettings.toggleShiny() },
-                                enabled = spriteType.supportsShiny
-                            ) {
-                                Text(if (shinyEnabled) "Shiny ON" else "Shiny OFF")
-                            }
-                        }
-                    }
-
-                    item {
                         StepRow(
                             region = uiState.selectedRegion?.label,
                             location = uiState.selectedLocation?.label,

@@ -11,6 +11,7 @@ internal data class AuthUserDto(
     @SerializedName("id") val id: String,
     @SerializedName("username") val username: String,
     @SerializedName("email") val email: String,
+    @SerializedName("xp") val xp: Int = 0,
     @SerializedName("createdAt") val createdAt: String? = null,
     @SerializedName("characterId") val characterId: String? = null,
     @SerializedName("character") val character: AuthCharacterDto? = null

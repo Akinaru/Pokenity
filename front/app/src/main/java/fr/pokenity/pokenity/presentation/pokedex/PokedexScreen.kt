@@ -2,6 +2,7 @@ package fr.pokenity.pokenity.presentation.pokedex
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,9 +39,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -308,7 +312,8 @@ fun PokedexScreen(
                     ) {
                         snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
                             .collect { lastVisibleIndex ->
-                                val threshold = (displayedPokemon.size - 4).coerceAtLeast(0)
+                                val totalRenderedItems = listState.layoutInfo.totalItemsCount
+                                val threshold = (totalRenderedItems - 4).coerceAtLeast(0)
                                 if (lastVisibleIndex >= threshold && uiState.hasMorePokemon && !uiState.isLoadingMore) {
                                     onLoadMore()
                                 }
@@ -613,7 +618,10 @@ private fun CollectionPokemonCard(
 ) {
     Surface(
         shape = RoundedCornerShape(16.dp),
-        tonalElevation = 2.dp,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.18f),
+        tonalElevation = 0.dp,
+        shadowElevation = 8.dp,
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.30f)),
         modifier = Modifier
             .size(108.dp)
             .clickable(enabled = owned, onClick = onClick)
@@ -621,6 +629,16 @@ private fun CollectionPokemonCard(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .clip(RoundedCornerShape(16.dp))
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.16f),
+                            Color.White.copy(alpha = 0.06f),
+                            Color.Black.copy(alpha = 0.08f)
+                        )
+                    )
+                )
                 .padding(6.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -629,19 +647,10 @@ private fun CollectionPokemonCard(
                 contentDescription = pokemon.name,
                 imageType = PokemonImageType.OFFICIAL_ARTWORK,
                 shiny = false,
+                colorFilter = if (owned) null else ColorFilter.tint(Color.Black, BlendMode.SrcIn),
                 contentScale = ContentScale.Fit,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .then(if (owned) Modifier else Modifier.blur(6.dp))
+                modifier = Modifier.fillMaxSize()
             )
-
-            if (!owned) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.28f))
-                )
-            }
 
             if (quantity > 1) {
                 Surface(
@@ -673,7 +682,10 @@ private fun PokemonRow(
 ) {
     Surface(
         shape = RoundedCornerShape(20.dp),
-        tonalElevation = 3.dp,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.18f),
+        tonalElevation = 0.dp,
+        shadowElevation = 8.dp,
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.28f)),
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
@@ -681,6 +693,16 @@ private fun PokemonRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.14f),
+                            Color.White.copy(alpha = 0.05f),
+                            Color.Black.copy(alpha = 0.06f)
+                        )
+                    )
+                )
                 .padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
