@@ -56,7 +56,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
@@ -134,6 +136,7 @@ fun PokemonDetailScreen(
     onOpenComparator: (Int) -> Unit,
     onPreviousPokemon: (() -> Unit)? = null,
     onNextPokemon: (() -> Unit)? = null,
+    ownedQuantities: Map<Int, Int> = emptyMap(),
     onPokemonClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -203,6 +206,7 @@ fun PokemonDetailScreen(
                 ) {
                     DetailHeader(
                         pokemon = pokemon,
+                        isOwned = (ownedQuantities[pokemon.id] ?: 0) > 0,
                         primaryTypeColor = primaryTypeColor,
                         imageType = imageType,
                         shinyEnabled = effectiveShiny,
@@ -241,6 +245,7 @@ fun PokemonDetailScreen(
                             primaryTypeColor = primaryTypeColor,
                             imageType = imageType,
                             shinyEnabled = effectiveShiny,
+                            ownedQuantities = ownedQuantities,
                             visualPreset = selectedPreset,
                             onOpenComparator = onOpenComparator,
                             onPokemonClick = onPokemonClick
@@ -257,6 +262,7 @@ fun PokemonDetailScreen(
 @Composable
 private fun DetailHeader(
     pokemon: PokemonDetail,
+    isOwned: Boolean,
     primaryTypeColor: Color,
     imageType: PokemonImageType,
     shinyEnabled: Boolean,
@@ -319,6 +325,7 @@ private fun DetailHeader(
                 imageType = imageType,
                 shiny = shinyEnabled,
                 visualPreset = visualPreset,
+                colorFilter = if (isOwned) null else ColorFilter.tint(Color.Black, BlendMode.SrcIn),
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.size(200.dp)
             )
@@ -367,6 +374,7 @@ private fun SheetTabContent(
     primaryTypeColor: Color,
     imageType: PokemonImageType,
     shinyEnabled: Boolean,
+    ownedQuantities: Map<Int, Int>,
     visualPreset: PokemonVisualPreset,
     onOpenComparator: (Int) -> Unit,
     onPokemonClick: (Int) -> Unit
@@ -431,6 +439,7 @@ private fun SheetTabContent(
                     primaryTypeColor = primaryTypeColor,
                     imageType = imageType,
                     shinyEnabled = shinyEnabled,
+                    ownedQuantities = ownedQuantities,
                     visualPreset = visualPreset,
                     onPokemonClick = onPokemonClick
                 )
@@ -542,6 +551,7 @@ private fun EvolutionsTabContent(
     primaryTypeColor: Color,
     imageType: PokemonImageType,
     shinyEnabled: Boolean,
+    ownedQuantities: Map<Int, Int>,
     visualPreset: PokemonVisualPreset,
     onPokemonClick: (Int) -> Unit
 ) {
@@ -551,6 +561,7 @@ private fun EvolutionsTabContent(
             primaryTypeColor = primaryTypeColor,
             imageType = imageType,
             shinyEnabled = shinyEnabled,
+            ownedQuantities = ownedQuantities,
             visualPreset = visualPreset,
             onPokemonClick = onPokemonClick
         )
@@ -744,6 +755,7 @@ private fun EvolutionSection(
     primaryTypeColor: Color,
     imageType: PokemonImageType,
     shinyEnabled: Boolean,
+    ownedQuantities: Map<Int, Int>,
     visualPreset: PokemonVisualPreset,
     onPokemonClick: (Int) -> Unit
 ) {
@@ -774,6 +786,7 @@ private fun EvolutionSection(
                 evolutionChain.forEachIndexed { index, stage ->
                     EvolutionStageItem(
                         stage = stage,
+                        isOwned = (ownedQuantities[stage.id] ?: 0) > 0,
                         primaryTypeColor = primaryTypeColor,
                         imageType = imageType,
                         shinyEnabled = shinyEnabled,
@@ -798,6 +811,7 @@ private fun EvolutionSection(
 @Composable
 private fun EvolutionStageItem(
     stage: EvolutionStage,
+    isOwned: Boolean,
     primaryTypeColor: Color,
     imageType: PokemonImageType,
     shinyEnabled: Boolean,
@@ -829,6 +843,7 @@ private fun EvolutionStageItem(
                 imageType = imageType,
                 shiny = shinyEnabled,
                 visualPreset = visualPreset,
+                colorFilter = if (isOwned) null else ColorFilter.tint(Color.Black, BlendMode.SrcIn),
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.size(64.dp)
             )

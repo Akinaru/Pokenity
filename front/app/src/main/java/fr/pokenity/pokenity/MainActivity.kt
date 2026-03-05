@@ -420,6 +420,7 @@ class MainActivity : ComponentActivity() {
                                 onNextPokemon = if (nextId != null) {
                                     { navController.navigate("detail/$nextId") }
                                 } else null,
+                                ownedQuantities = accountUiState.pokemonCollection,
                                 onPokemonClick = { id ->
                                     navController.navigate("detail/$id")
                                 }

@@ -38,9 +38,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -629,19 +630,10 @@ private fun CollectionPokemonCard(
                 contentDescription = pokemon.name,
                 imageType = PokemonImageType.OFFICIAL_ARTWORK,
                 shiny = false,
+                colorFilter = if (owned) null else ColorFilter.tint(Color.Black, BlendMode.SrcIn),
                 contentScale = ContentScale.Fit,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .then(if (owned) Modifier else Modifier.blur(6.dp))
+                modifier = Modifier.fillMaxSize()
             )
-
-            if (!owned) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.28f))
-                )
-            }
 
             if (quantity > 1) {
                 Surface(
