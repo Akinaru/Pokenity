@@ -71,6 +71,7 @@ function cleanUser(req, user) {
     id: user.id,
     username: user.username,
     email: user.email,
+    xp: user.xp,
     characterId: user.characterId ?? null,
     character: user.character
       ? {

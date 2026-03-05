@@ -7,7 +7,9 @@ const authRoutes = require("./routes/authRoutes");
 const boxRoutes = require("./routes/boxRoutes");
 const catalogRoutes = require("./routes/catalogRoutes");
 const inventoryRoutes = require("./routes/inventoryRoutes");
+const boxOpeningRoutes = require("./routes/boxOpeningRoutes");
 const pokemonRoutes = require("./routes/pokemonRoutes");
+const tradeRoutes = require("./routes/tradeRoutes");
 const userManagementRoutes = require("./routes/userManagementRoutes");
 const characterRoutes = require("./routes/characterRoutes");
 
@@ -43,7 +45,9 @@ app.use("/api/auth", authRoutes);
 app.use("/api/boxes", boxRoutes);
 app.use("/api/catalog", catalogRoutes);
 app.use("/api/inventory", inventoryRoutes);
+app.use("/api/box-openings", boxOpeningRoutes);
 app.use("/api/pokemon", pokemonRoutes);
+app.use("/api/trades", tradeRoutes);
 app.use("/api/users", userManagementRoutes);
 app.use("/api/characters", characterRoutes);
 

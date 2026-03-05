@@ -11,44 +11,56 @@
     <div class="bo-layout">
       <aside class="bo-sidebar">
         <h2 class="bo-brand">Pokenity BO</h2>
-        <p class="bo-subtitle">Gestion interne API</p>
+        <p class="bo-subtitle">Administration API</p>
         <nav class="bo-nav">
           <a class="bo-nav-link" data-page="dashboard" href="/admin/">Dashboard</a>
           <a class="bo-nav-link" data-page="users" href="/admin/users.html">Users</a>
           <a class="bo-nav-link" data-page="boxes" href="/admin/boxes.html">Boxes</a>
           <a class="bo-nav-link" data-page="characters" href="/admin/characters.html">Characters</a>
+          <a class="bo-nav-link" data-page="trades" href="/admin/trades.html">Trades</a>
+          <a class="bo-nav-link" data-page="openings" href="/admin/box-openings.html">Openings</a>
         </nav>
       </aside>
 
       <main class="bo-main">
         <header class="bo-top">
           <div>
-            <h1>Back Office Dashboard</h1>
-            <p>Navigation rapide vers les ecrans de gestion.</p>
+            <h1>Back Office Pokenity</h1>
+            <p>Interface admin propre pour gerer utilisateurs, boxes et personnages.</p>
           </div>
-          <span class="bo-badge">Public (temporaire)</span>
+          <span class="bo-badge">Mode public temporaire</span>
         </header>
 
         <section class="bo-card-grid">
           <article class="bo-card">
-            <h3>Gestion utilisateurs</h3>
-            <p>Creation, edition, suppression et consultation des inventaires.</p>
-            <a href="/admin/users.html">Ouvrir la page users</a>
+            <h3>Utilisateurs</h3>
+            <p>Creation, edition complete, suppression et lecture de l'inventaire.</p>
+            <a href="/admin/users.html">Ouvrir Users</a>
           </article>
           <article class="bo-card">
-            <h3>Gestion boxes</h3>
-            <p>Creation de box visuelles avec pokeballs, drops et probabilites.</p>
-            <a href="/admin/boxes.html">Ouvrir la page boxes</a>
+            <h3>Boxes</h3>
+            <p>Creation et edition complete: pokeball + drops + probabilites.</p>
+            <a href="/admin/boxes.html">Ouvrir Boxes</a>
           </article>
           <article class="bo-card">
-            <h3>Gestion personnages</h3>
-            <p>CRUD personnages avec noms de fichiers d'images locales (front).</p>
-            <a href="/admin/characters.html">Ouvrir la page characters</a>
+            <h3>Characters</h3>
+            <p>Gestion des personnages et des fichiers d'images utilises dans l'app.</p>
+            <a href="/admin/characters.html">Ouvrir Characters</a>
           </article>
           <article class="bo-card">
-            <h3>API base URL</h3>
-            <p><code>http://localhost:3000/api</code></p>
-            <a href="/api/health" target="_blank" rel="noreferrer">Voir healthcheck</a>
+            <h3>Echanges en cours</h3>
+            <p>Suivi global des trades en attente et en confirmation.</p>
+            <a href="/admin/trades.html">Ouvrir Trades</a>
+          </article>
+          <article class="bo-card">
+            <h3>Historique openings</h3>
+            <p>Journal des ouvertures de box avec user, box, drop et dates.</p>
+            <a href="/admin/box-openings.html">Ouvrir Openings</a>
+          </article>
+          <article class="bo-card">
+            <h3>API Health</h3>
+            <p>Verifier rapidement la sante de l'API.</p>
+            <a href="/api/health" target="_blank" rel="noreferrer">Ouvrir /api/health</a>
           </article>
         </section>
       </main>

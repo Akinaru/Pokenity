@@ -12,66 +12,88 @@
     <div class="bo-layout">
       <aside class="bo-sidebar">
         <h2 class="bo-brand">Pokenity BO</h2>
-        <p class="bo-subtitle">Gestion interne API</p>
+        <p class="bo-subtitle">Administration API</p>
         <nav class="bo-nav">
           <a class="bo-nav-link" data-page="dashboard" href="/admin/">Dashboard</a>
           <a class="bo-nav-link" data-page="users" href="/admin/users.html">Users</a>
           <a class="bo-nav-link" data-page="boxes" href="/admin/boxes.html">Boxes</a>
           <a class="bo-nav-link" data-page="characters" href="/admin/characters.html">Characters</a>
+          <a class="bo-nav-link" data-page="trades" href="/admin/trades.html">Trades</a>
+          <a class="bo-nav-link" data-page="openings" href="/admin/box-openings.html">Openings</a>
         </nav>
       </aside>
 
       <main class="bo-main">
         <header class="bo-top">
           <div>
-            <h1>Boxes</h1>
-            <p>Create visual boxes with pokeballs and searchable drops.</p>
+            <h1>Gestion des boxes</h1>
+            <p>Edition complete des boxes: nom, pokeball, drops et probabilites.</p>
           </div>
-          <span class="bo-badge" id="boxesBadge">0 boxes</span>
+          <div class="bo-top-actions">
+            <span class="bo-badge" id="boxesBadge">0 boxes</span>
+            <button class="bo-btn primary" id="openCreateBoxModal" type="button">+ Nouvelle box</button>
+          </div>
         </header>
 
-        <section class="bo-grid two">
-          <article class="bo-panel">
-            <h2>Create box</h2>
-            <form id="createBoxForm" class="bo-form-grid">
-              <div class="bo-field">
-                <label for="boxName">Box name</label>
-                <input id="boxName" name="name" required placeholder="ex: legendary-box" />
-              </div>
-
-              <div class="bo-field">
-                <label for="pokeballSearch">Search pokeball</label>
-                <input id="pokeballSearch" type="text" placeholder="ex: ultra, master..." />
-              </div>
-              <div class="bo-pokeball-grid" id="pokeballGrid"></div>
-              <input id="pokeballImageInput" name="pokeballImage" type="hidden" required />
-              <p class="bo-help" id="selectedPokeballText">No pokeball selected.</p>
-
-              <hr class="bo-separator" />
-
-              <h3>Drops</h3>
-              <p class="bo-help">Search and pick Pokemon or Items for each row.</p>
-              <div id="dropRows" class="bo-grid"></div>
-              <p class="bo-help" id="dropRateTotal">Total drop rate: 0%</p>
-              <div class="bo-actions">
-                <button class="bo-btn soft" id="addDropBtn" type="button">Add drop</button>
-                <button class="bo-btn primary" type="submit">Create box</button>
-              </div>
-            </form>
-          </article>
-
-          <article class="bo-panel">
-            <div class="bo-panel-head">
-              <h2>Box list</h2>
+        <section class="bo-panel">
+          <div class="bo-panel-head">
+            <h2>Liste boxes</h2>
+            <div class="bo-split">
+              <label class="bo-search-inline" for="boxesSearch">
+                <span class="sr-only">Rechercher une box</span>
+                <input id="boxesSearch" class="bo-input" type="search" placeholder="Rechercher box ou drop" />
+              </label>
               <span class="bo-counter" id="boxesCount">0</span>
             </div>
-            <p class="bo-help" style="margin-bottom: 10px">
-              Chaque box affiche ses drops en visuel, tries du plus rare au plus commun.
-            </p>
-            <div class="bo-table-wrap" id="boxesTableWrap"></div>
-          </article>
+          </div>
+          <div class="bo-table-wrap" id="boxesTableWrap"></div>
         </section>
       </main>
+    </div>
+
+    <div class="bo-modal" id="boxModal" hidden>
+      <div class="bo-modal-card">
+        <div class="bo-modal-head">
+          <h2 id="boxModalTitle">Nouvelle box</h2>
+          <button class="bo-btn ghost" data-modal-close type="button">Fermer</button>
+        </div>
+
+        <div class="bo-modal-body">
+          <form id="boxForm" class="bo-form-grid">
+            <div class="bo-grid two">
+              <div class="bo-field">
+                <label for="boxNameInput">Nom de box</label>
+                <input class="bo-input" id="boxNameInput" name="name" required />
+              </div>
+              <div class="bo-field">
+                <label for="pokeballSearchInput">Recherche pokeball</label>
+                <input class="bo-input" id="pokeballSearchInput" type="search" placeholder="master, ultra, premiere..." />
+              </div>
+            </div>
+
+            <div class="bo-field">
+              <label>Selection pokeball</label>
+              <div class="bo-pokeball-grid" id="pokeballGrid"></div>
+              <p class="bo-help" id="selectedPokeballText">Aucune pokeball selectionnee.</p>
+            </div>
+
+            <div class="bo-split">
+              <h3 style="margin: 0">Drops de la box</h3>
+              <button class="bo-btn soft" id="addDropBtn" type="button">+ Ajouter un drop</button>
+            </div>
+            <div id="dropRows" class="bo-drop-rows"></div>
+            <p id="dropRateTotal" class="bo-rate-total">Total drop rate: 0%</p>
+          </form>
+        </div>
+
+        <div class="bo-modal-foot">
+          <span class="bo-help" id="boxModalMeta">Le total des probabilites doit etre exactement 100%.</span>
+          <div class="bo-actions">
+            <button class="bo-btn ghost" data-modal-close type="button">Annuler</button>
+            <button class="bo-btn primary" id="submitBoxForm" type="button">Enregistrer</button>
+          </div>
+        </div>
+      </div>
     </div>
   </body>
 </html>

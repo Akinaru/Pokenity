@@ -39,6 +39,7 @@ function cleanUser(user) {
     id: user.id,
     username: user.username,
     email: user.email,
+    xp: user.xp,
     characterId: user.characterId ?? null,
     character: user.character
       ? {
@@ -105,6 +106,8 @@ router.post("/", async (req, res) => {
   const username = String(req.body.username || "").trim().toLowerCase();
   const email = String(req.body.email || "").trim().toLowerCase();
   const password = String(req.body.password || "");
+  const hasCustomXp = req.body.xp !== undefined;
+  const parsedXp = Number(req.body.xp);
 
   if (!username || !email || !password) {
     return res.status(400).json({
@@ -120,6 +123,12 @@ router.post("/", async (req, res) => {
     return res
       .status(400)
       .json({ error: "password must be at least 6 characters long." });
+  }
+
+  if (hasCustomXp && (!Number.isInteger(parsedXp) || parsedXp < 0)) {
+    return res
+      .status(400)
+      .json({ error: "xp must be an integer greater than or equal to 0." });
   }
 
   const resolvedCharacter = await ensureCharacterIdOrDefault(req.body.characterId);
@@ -139,6 +148,7 @@ router.post("/", async (req, res) => {
       email,
       passwordHash: await createPasswordHash(password),
       characterId: resolvedCharacter.characterId,
+      ...(hasCustomXp ? { xp: parsedXp } : {}),
     });
     return res.status(201).json({ user: cleanUser(user) });
   } catch (error) {
@@ -206,9 +216,20 @@ router.patch("/:id", async (req, res) => {
     patch.characterId = character.id;
   }
 
+  if (req.body.xp !== undefined) {
+    const xp = Number(req.body.xp);
+    if (!Number.isInteger(xp) || xp < 0) {
+      return res
+        .status(400)
+        .json({ error: "xp must be an integer greater than or equal to 0." });
+    }
+    patch.xp = xp;
+  }
+
   if (Object.keys(patch).length === 0) {
     return res.status(400).json({
-      error: "Provide at least one field to update: username, email, password, characterId.",
+      error:
+        "Provide at least one field to update: username, email, password, characterId, xp.",
     });
   }
 

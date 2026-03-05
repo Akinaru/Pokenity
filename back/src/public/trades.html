@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pokenity BO - Trades</title>
+    <link rel="stylesheet" href="/admin/assets/admin.css" />
+    <script defer src="/admin/assets/common.js"></script>
+    <script defer src="/admin/assets/trades.js"></script>
+  </head>
+  <body data-page="trades">
+    <div class="bo-layout">
+      <aside class="bo-sidebar">
+        <h2 class="bo-brand">Pokenity BO</h2>
+        <p class="bo-subtitle">Administration API</p>
+        <nav class="bo-nav">
+          <a class="bo-nav-link" data-page="dashboard" href="/admin/">Dashboard</a>
+          <a class="bo-nav-link" data-page="users" href="/admin/users.html">Users</a>
+          <a class="bo-nav-link" data-page="boxes" href="/admin/boxes.html">Boxes</a>
+          <a class="bo-nav-link" data-page="characters" href="/admin/characters.html">Characters</a>
+          <a class="bo-nav-link" data-page="trades" href="/admin/trades.html">Trades</a>
+          <a class="bo-nav-link" data-page="openings" href="/admin/box-openings.html">Openings</a>
+        </nav>
+      </aside>
+
+      <main class="bo-main">
+        <header class="bo-top">
+          <div>
+            <h1>Echanges en cours</h1>
+            <p>Suivi global des échanges en attente et en confirmation.</p>
+          </div>
+          <div class="bo-top-actions">
+            <span class="bo-badge" id="tradesBadge">0 actifs</span>
+            <button class="bo-btn soft" id="refreshTradesBtn" type="button">Rafraichir</button>
+          </div>
+        </header>
+
+        <section class="bo-panel">
+          <div class="bo-panel-head">
+            <h2>Liste des trades en cours</h2>
+            <div class="bo-split">
+              <label class="bo-search-inline" for="tradesSearch">
+                <span class="sr-only">Rechercher un trade</span>
+                <input id="tradesSearch" class="bo-input" type="search" placeholder="Rechercher user, pokemon, status, id" />
+              </label>
+              <span class="bo-counter" id="tradesCount">0</span>
+            </div>
+          </div>
+          <div class="bo-panel-content">
+            <div class="bo-actions" id="tradesSummary"></div>
+          </div>
+          <div class="bo-table-wrap" id="tradesTableWrap"></div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

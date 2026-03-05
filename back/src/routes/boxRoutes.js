@@ -342,31 +342,67 @@ router.post("/:boxId/open", authRequired, async (req, res) => {
   const selectedEntry = pickWeightedEntry(box.entries);
   const now = new Date();
 
-  const inventoryItem = await prisma.inventoryItem.upsert({
-    where: {
-      userId_resourceType_resourceId: {
-        userId: req.user.sub,
-        resourceType: selectedEntry.resourceType,
-        resourceId: selectedEntry.resourceId,
-      },
-    },
-    update: {
-      resourceName: selectedEntry.resourceName,
-      quantity: {
-        increment: 1,
-      },
-      lastObtainedAt: now,
-    },
-    create: {
-      userId: req.user.sub,
-      resourceType: selectedEntry.resourceType,
-      resourceId: selectedEntry.resourceId,
-      resourceName: selectedEntry.resourceName,
-      quantity: 1,
-      firstObtainedAt: now,
-      lastObtainedAt: now,
-    },
-  });
+  const { inventoryItem, boxOpening, userWithXp } = await prisma.$transaction(
+    async (tx) => {
+      const nextInventoryItem = await tx.inventoryItem.upsert({
+        where: {
+          userId_resourceType_resourceId: {
+            userId: req.user.sub,
+            resourceType: selectedEntry.resourceType,
+            resourceId: selectedEntry.resourceId,
+          },
+        },
+        update: {
+          resourceName: selectedEntry.resourceName,
+          quantity: {
+            increment: 1,
+          },
+          lastObtainedAt: now,
+        },
+        create: {
+          userId: req.user.sub,
+          resourceType: selectedEntry.resourceType,
+          resourceId: selectedEntry.resourceId,
+          resourceName: selectedEntry.resourceName,
+          quantity: 1,
+          firstObtainedAt: now,
+          lastObtainedAt: now,
+        },
+      });
+
+      const nextBoxOpening = await tx.boxOpening.create({
+        data: {
+          userId: req.user.sub,
+          boxId: box.id,
+          boxName: box.name,
+          boxPokeballImage: box.pokeballImage,
+          resourceType: selectedEntry.resourceType,
+          resourceId: selectedEntry.resourceId,
+          resourceName: selectedEntry.resourceName,
+          dropRate: selectedEntry.dropRate,
+          openedAt: now,
+        },
+      });
+
+      const nextUser = await tx.user.update({
+        where: { id: req.user.sub },
+        data: {
+          xp: {
+            increment: 1,
+          },
+        },
+        select: {
+          xp: true,
+        },
+      });
+
+      return {
+        inventoryItem: nextInventoryItem,
+        boxOpening: nextBoxOpening,
+        userWithXp: nextUser,
+      };
+    }
+  );
 
   return res.json({
     box: {
@@ -384,6 +420,13 @@ router.post("/:boxId/open", authRequired, async (req, res) => {
       id: inventoryItem.id,
       quantity: inventoryItem.quantity,
       lastObtainedAt: inventoryItem.lastObtainedAt,
+    },
+    boxOpening: {
+      id: boxOpening.id,
+      openedAt: boxOpening.openedAt,
+    },
+    user: {
+      xp: userWithXp.xp,
     },
   });
 });
