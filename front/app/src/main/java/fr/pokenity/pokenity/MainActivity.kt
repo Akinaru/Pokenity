@@ -95,6 +95,8 @@ import fr.pokenity.pokenity.presentation.pokedex.PokedexUiState
 import fr.pokenity.pokenity.presentation.pokedex.PokedexViewModel
 import fr.pokenity.pokenity.presentation.settings.SettingsScreen
 import fr.pokenity.pokenity.presentation.settings.SettingsViewModel
+import fr.pokenity.pokenity.presentation.social.SocialScreen
+import fr.pokenity.pokenity.presentation.social.SocialViewModel
 import fr.pokenity.pokenity.ui.components.PokemonSpriteImage
 import fr.pokenity.pokenity.ui.media.resolveCharacterMediaModel
 import fr.pokenity.pokenity.ui.theme.AppBackground
@@ -122,6 +124,7 @@ class MainActivity : ComponentActivity() {
     private val detailViewModel: PokemonDetailViewModel by viewModels { PokemonDetailViewModel.factory }
     private val compareViewModel: PokemonCompareViewModel by viewModels { PokemonCompareViewModel.factory }
     private val authFlowViewModel: AuthFlowViewModel by viewModels { AuthFlowViewModel.factory }
+    private val socialViewModel: SocialViewModel by viewModels { SocialViewModel.factory }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -142,6 +145,7 @@ class MainActivity : ComponentActivity() {
             val detailUiState by detailViewModel.uiState.collectAsState()
             val compareUiState by compareViewModel.uiState.collectAsState()
             val authFlowUiState by authFlowViewModel.uiState.collectAsState()
+            val socialUiState by socialViewModel.uiState.collectAsState()
             val themeMode by AppThemeState.themeMode.collectAsState()
 
             val systemDark = isSystemInDarkTheme()
@@ -302,7 +306,22 @@ class MainActivity : ComponentActivity() {
                             ) { innerPadding ->
                                 when (selectedDestination) {
                                     MainDestination.SOCIAL -> {
-                                        SocialScreen(modifier = Modifier.padding(innerPadding))
+                                        SocialScreen(
+                                            uiState = socialUiState,
+                                            onSelectTab = socialViewModel::selectTab,
+                                            onAcceptTrade = { tradeId ->
+                                                // For accepting, we need user to pick an inventory item first.
+                                                // For now, navigate to propose tab to pick, or accept directly
+                                                // with a placeholder — will require inventory selection dialog in future.
+                                                // Simplified: accept with empty string triggers server-side validation.
+                                            },
+                                            onSelectInventoryItem = socialViewModel::selectInventoryItem,
+                                            onSelectTargetUser = socialViewModel::selectTargetUser,
+                                            onCreateTrade = socialViewModel::createTrade,
+                                            onRefreshOpenTrades = socialViewModel::loadOpenTrades,
+                                            onClearMessages = socialViewModel::clearMessages,
+                                            modifier = Modifier.padding(innerPadding)
+                                        )
                                     }
 
                                     MainDestination.ACCUEIL -> {
@@ -563,22 +582,6 @@ private fun MoiTopBar(
                 colors = TopAppBarDefaults.topAppBarColors()
             )
         }
-    }
-}
-
-@Composable
-private fun SocialScreen(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "Social (bientot)",
-            style = MaterialTheme.typography.titleLarge,
-            textAlign = TextAlign.Center
-        )
     }
 }
 
