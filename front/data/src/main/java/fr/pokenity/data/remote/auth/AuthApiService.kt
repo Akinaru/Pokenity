@@ -37,6 +37,35 @@ internal class AuthApiService(
         return handleResponse(response)
     }
 
+    suspend fun checkEmailExists(email: String): Boolean {
+        val normalizedEmail = email.trim().lowercase()
+        val response = api.emailExists(email = normalizedEmail)
+        if (response.isSuccessful) {
+            return response.body()?.exists ?: false
+        }
+
+        // Compat fallback: older API versions may not expose /auth/email-exists yet.
+        val errorBody = response.errorBody()?.string() ?: ""
+        val isMissingRoute = response.code() == 404 &&
+            parseApiError(errorBody, "").lowercase().contains("route not found")
+        if (!isMissingRoute) {
+            throw IllegalStateException(parseApiError(errorBody, "Erreur API (${response.code()})"))
+        }
+
+        val usersResponse = api.users()
+        if (!usersResponse.isSuccessful) {
+            val usersErrorBody = usersResponse.errorBody()?.string() ?: ""
+            throw IllegalStateException(
+                parseApiError(usersErrorBody, "Erreur API (${usersResponse.code()})")
+            )
+        }
+
+        return usersResponse.body()
+            ?.users
+            ?.any { it.email.equals(normalizedEmail, ignoreCase = true) }
+            ?: false
+    }
+
     suspend fun me(token: String): AuthUserDto {
         val response = api.me("Bearer $token")
         if (!response.isSuccessful) {

@@ -17,7 +17,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,7 +36,6 @@ fun LoginScreen(
     onCheckEmail: () -> Unit,
     onPasswordChange: (String) -> Unit,
     onLogin: () -> Unit,
-    onGoToRegister: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val inputShape = RoundedCornerShape(16.dp)
@@ -109,8 +107,7 @@ fun LoginScreen(
                 ),
                 keyboardActions = KeyboardActions(
                     onDone = { if (!uiState.emailChecked) onCheckEmail() }
-                ),
-                enabled = !uiState.emailChecked
+                )
             )
 
             // Phase 1 : email pas encore verifie -> bouton Connexion
@@ -168,42 +165,6 @@ fun LoginScreen(
                         )
                     }
                 }
-            }
-
-            // Phase 2 : email verifie et pas de compte -> message + bouton inscription
-            AnimatedVisibility(visible = uiState.emailChecked && !uiState.emailExists) {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Text(
-                        text = "Aucun compte associe a cet email.",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthFontFamily),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Button(
-                        onClick = onGoToRegister,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = AuthAccentYellow,
-                            contentColor = Color.Black
-                        )
-                    ) {
-                        Text(
-                            text = "Creer un compte",
-                            style = MaterialTheme.typography.titleMedium.copy(fontFamily = AuthFontFamily)
-                        )
-                    }
-                }
-            }
-
-            TextButton(
-                onClick = onGoToRegister,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            ) {
-                Text(
-                    text = "Pas de compte ? S'inscrire",
-                    style = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthFontFamily),
-                    color = AuthAccentYellow
-                )
             }
 
             if (uiState.isLoading) {

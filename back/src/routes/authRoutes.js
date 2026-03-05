@@ -225,6 +225,24 @@ router.post("/login", async (req, res) => {
   });
 });
 
+router.get("/email-exists", async (req, res) => {
+  const email = String(req.query.email || "")
+    .trim()
+    .toLowerCase();
+
+  if (!email) {
+    return res.status(400).json({ error: "email query param is required." });
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ error: "email format is invalid." });
+  }
+
+  const user = await findUserByEmail(email);
+  return res.json({ exists: Boolean(user) });
+});
+
 router.get("/me", authRequired, async (req, res) => {
   const user = await findUserById(req.user.sub);
   if (!user) {

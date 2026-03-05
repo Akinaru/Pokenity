@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.StateFlow
 interface AuthRepository {
     val token: StateFlow<String?>
 
+    suspend fun checkEmailExists(email: String): Boolean
     suspend fun login(identifier: String, password: String): AuthenticatedSession
     suspend fun register(
         username: String,

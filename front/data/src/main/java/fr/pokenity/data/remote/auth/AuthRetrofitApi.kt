@@ -5,6 +5,7 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
+import retrofit2.http.Query
 
 internal interface AuthRetrofitApi {
 
@@ -13,6 +14,12 @@ internal interface AuthRetrofitApi {
 
     @POST("auth/login")
     suspend fun login(@Body body: LoginRequestBody): Response<AuthSessionDto>
+
+    @GET("auth/email-exists")
+    suspend fun emailExists(@Query("email") email: String): Response<AuthEmailExistsResponseDto>
+
+    @GET("users")
+    suspend fun users(): Response<AuthUsersResponseDto>
 
     @GET("auth/me")
     suspend fun me(@Header("Authorization") authorization: String): Response<AuthMeResponseDto>
