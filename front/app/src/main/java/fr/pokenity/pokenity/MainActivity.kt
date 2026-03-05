@@ -8,7 +8,6 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -75,6 +74,7 @@ import fr.pokenity.data.core.AppThemeState
 import fr.pokenity.data.core.AuthSessionState
 import fr.pokenity.data.core.PokemonBrowseState
 import fr.pokenity.data.core.PokemonImageType
+import fr.pokenity.data.model.LootBox
 import fr.pokenity.data.model.PokemonFilterOption
 import fr.pokenity.pokenity.presentation.account.AccountScreen
 import fr.pokenity.pokenity.presentation.account.AccountUiState
@@ -85,12 +85,18 @@ import fr.pokenity.pokenity.presentation.auth.LoginScreen
 import fr.pokenity.pokenity.presentation.auth.ProfileSetupScreen
 import fr.pokenity.pokenity.presentation.auth.RegisterScreen
 import fr.pokenity.pokenity.presentation.auth.WelcomeScreen
+import fr.pokenity.pokenity.presentation.box.BoxDetailScreen
+import fr.pokenity.pokenity.presentation.box.BoxDetailViewModel
+import fr.pokenity.pokenity.presentation.box.BoxListScreen
+import fr.pokenity.pokenity.presentation.box.BoxListViewModel
 import fr.pokenity.pokenity.presentation.compare.PokemonCompareScreen
 import fr.pokenity.pokenity.presentation.compare.PokemonCompareViewModel
 import fr.pokenity.pokenity.presentation.detail.PokemonDetailScreen
 import fr.pokenity.pokenity.presentation.detail.PokemonDetailViewModel
 import fr.pokenity.pokenity.presentation.map.MapScreen
 import fr.pokenity.pokenity.presentation.map.MapViewModel
+import fr.pokenity.pokenity.presentation.home.HomeUiState
+import fr.pokenity.pokenity.presentation.home.HomeViewModel
 import fr.pokenity.pokenity.presentation.pokedex.PokedexScreen
 import fr.pokenity.pokenity.presentation.pokedex.PokedexSection
 import fr.pokenity.pokenity.presentation.pokedex.PokedexUiState
@@ -127,6 +133,9 @@ class MainActivity : ComponentActivity() {
     private val compareViewModel: PokemonCompareViewModel by viewModels { PokemonCompareViewModel.factory }
     private val authFlowViewModel: AuthFlowViewModel by viewModels { AuthFlowViewModel.factory }
     private val socialViewModel: SocialViewModel by viewModels { SocialViewModel.factory }
+    private val homeViewModel: HomeViewModel by viewModels { HomeViewModel.factory }
+    private val boxListViewModel: BoxListViewModel by viewModels { BoxListViewModel.factory }
+    private val boxDetailViewModel: BoxDetailViewModel by viewModels { BoxDetailViewModel.factory }
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -149,6 +158,9 @@ class MainActivity : ComponentActivity() {
             val compareUiState by compareViewModel.uiState.collectAsState()
             val authFlowUiState by authFlowViewModel.uiState.collectAsState()
             val socialUiState by socialViewModel.uiState.collectAsState()
+            val homeUiState by homeViewModel.uiState.collectAsState()
+            val boxListUiState by boxListViewModel.uiState.collectAsState()
+            val boxDetailUiState by boxDetailViewModel.uiState.collectAsState()
             val themeMode by AppThemeState.themeMode.collectAsState()
 
             val systemDark = isSystemInDarkTheme()
@@ -329,8 +341,16 @@ class MainActivity : ComponentActivity() {
 
                                     MainDestination.ACCUEIL -> {
                                         HomeScreen(
+                                            uiState = homeUiState,
+                                            onRetry = homeViewModel::loadLatestBoxes,
                                             onOpenMapExplorer = {
                                                 navController.navigate("map-explorer")
+                                            },
+                                            onOpenAllBoxes = {
+                                                navController.navigate("boxes")
+                                            },
+                                            onOpenBox = { boxId ->
+                                                navController.navigate("box-detail/$boxId")
                                             },
                                             modifier = Modifier.padding(innerPadding)
                                         )
@@ -441,6 +461,70 @@ class MainActivity : ComponentActivity() {
                                     onBackToRegions = mapViewModel::backToRegions,
                                     onBackToLocations = mapViewModel::backToLocations,
                                     onBackToAreas = mapViewModel::backToAreas,
+                                    modifier = Modifier.padding(innerPadding)
+                                )
+                            }
+                        }
+
+                        composable("boxes") {
+                            Scaffold(
+                                containerColor = Color.Transparent,
+                                topBar = {
+                                    TopAppBar(
+                                        title = { Text("Toutes les boxes") },
+                                        navigationIcon = {
+                                            IconButton(onClick = { navController.popBackStack() }) {
+                                                Icon(
+                                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                                    contentDescription = "Retour"
+                                                )
+                                            }
+                                        },
+                                        colors = TopAppBarDefaults.topAppBarColors()
+                                    )
+                                }
+                            ) { innerPadding ->
+                                BoxListScreen(
+                                    uiState = boxListUiState,
+                                    onRetry = boxListViewModel::loadBoxes,
+                                    onBoxClick = { boxId ->
+                                        navController.navigate("box-detail/$boxId")
+                                    },
+                                    modifier = Modifier.padding(innerPadding)
+                                )
+                            }
+                        }
+
+                        composable(
+                            route = "box-detail/{boxId}",
+                            arguments = listOf(navArgument("boxId") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            val boxId = backStackEntry.arguments?.getString("boxId")
+                                ?: return@composable
+                            LaunchedEffect(boxId) {
+                                boxDetailViewModel.loadBox(boxId)
+                            }
+
+                            Scaffold(
+                                containerColor = Color.Transparent,
+                                topBar = {
+                                    TopAppBar(
+                                        title = { Text(boxDetailUiState.box?.name ?: "Detail box") },
+                                        navigationIcon = {
+                                            IconButton(onClick = { navController.popBackStack() }) {
+                                                Icon(
+                                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                                    contentDescription = "Retour"
+                                                )
+                                            }
+                                        },
+                                        colors = TopAppBarDefaults.topAppBarColors()
+                                    )
+                                }
+                            ) { innerPadding ->
+                                BoxDetailScreen(
+                                    uiState = boxDetailUiState,
+                                    onRetry = { boxDetailViewModel.loadBox(boxId) },
                                     modifier = Modifier.padding(innerPadding)
                                 )
                             }
@@ -633,7 +717,11 @@ private fun SocialScreen(modifier: Modifier = Modifier) {
 
 @Composable
 private fun HomeScreen(
+    uiState: HomeUiState,
+    onRetry: () -> Unit,
     onOpenMapExplorer: () -> Unit,
+    onOpenAllBoxes: () -> Unit,
+    onOpenBox: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -685,6 +773,114 @@ private fun HomeScreen(
                     contentDescription = "Ouvrir"
                 )
             }
+        }
+
+        Text(
+            text = "Dernieres boxes",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            OutlinedButton(onClick = onOpenAllBoxes) {
+                Text("Voir toutes les boxes")
+            }
+        }
+
+        when {
+            uiState.isLoading -> {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+
+            uiState.errorMessage != null -> {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    tonalElevation = 1.dp
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = uiState.errorMessage,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        OutlinedButton(onClick = onRetry) {
+                            Text("Reessayer")
+                        }
+                    }
+                }
+            }
+
+            uiState.latestBoxes.isEmpty() -> {
+                Text(
+                    text = "Aucune box trouvee.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            else -> {
+                uiState.latestBoxes.forEach { box ->
+                    HomeBoxCard(
+                        box = box,
+                        onClick = { onOpenBox(box.id) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeBoxCard(
+    box: LootBox,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(14.dp),
+        tonalElevation = 1.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AsyncImage(
+                model = box.pokeballImage,
+                contentDescription = box.name,
+                modifier = Modifier.size(46.dp)
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = box.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "${box.entries.size} drops",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            Text(
+                text = "${"%.2f".format(box.totalDropRate)}%",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
         }
     }
 }
