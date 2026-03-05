@@ -20,7 +20,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -115,40 +114,31 @@ fun AccountScreen(
                             color = MistWhite,
                             fontWeight = FontWeight.SemiBold
                         )
-                        AccountInfoRow(label = "Username", value = uiState.user.username)
+                        AccountInfoRow(label = "Pseudo", value = uiState.user.username)
                         AccountInfoRow(label = "Email", value = uiState.user.email)
                         AccountInfoRow(
                             label = "Dresseur",
                             value = uiState.user.characterName ?: "Non defini"
                         )
                         if (!uiState.user.createdAt.isNullOrBlank()) {
-                            AccountInfoRow(label = "Compte cree", value = uiState.user.createdAt)
+                            AccountInfoRow(
+                                label = "Date de creation de compte",
+                                value = uiState.user.createdAt
+                            )
                         }
                     }
                 }
 
-                Row(
+                Button(
+                    onClick = onLogout,
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AuthAccentYellow,
+                        contentColor = AuthInputText
+                    )
                 ) {
-                    OutlinedButton(
-                        onClick = onFetchMe,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Text("Rafraichir")
-                    }
-                    Button(
-                        onClick = onLogout,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = AuthAccentYellow,
-                            contentColor = AuthInputText
-                        )
-                    ) {
-                        Text("Deconnexion", fontWeight = FontWeight.Bold)
-                    }
+                    Text("Deconnexion", fontWeight = FontWeight.Bold)
                 }
 
                 if (uiState.isLoading) {

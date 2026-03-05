@@ -67,6 +67,7 @@ fun PokedexScreen(
     onClearHabitatFilter: () -> Unit,
     onClearRegionFilter: () -> Unit,
     onClearShapeFilter: () -> Unit,
+    headerContent: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var query by rememberSaveable { mutableStateOf("") }
@@ -110,6 +111,12 @@ fun PokedexScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    if (headerContent != null) {
+                        item {
+                            headerContent()
+                        }
+                    }
+
                     item {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
