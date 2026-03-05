@@ -20,7 +20,7 @@ function serializeItem(item) {
 router.get("/me", authRequired, async (req, res) => {
   const user = await prisma.user.findUnique({
     where: { id: req.user.sub },
-    select: { id: true, username: true, email: true },
+    select: { id: true, username: true, email: true, xp: true },
   });
 
   if (!user) {
@@ -51,7 +51,7 @@ router.get("/users/:userId", async (req, res) => {
   const userId = String(req.params.userId || "");
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, username: true, email: true },
+    select: { id: true, username: true, email: true, xp: true },
   });
 
   if (!user) {
