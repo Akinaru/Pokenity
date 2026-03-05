@@ -43,6 +43,8 @@
       trade.receivedPokemon?.resourceType,
       trade.offeredPokemon?.resourceId,
       trade.receivedPokemon?.resourceId,
+      ...(trade.requestedPokemons || []).map((rp) => rp.resourceName),
+      ...(trade.requestedPokemons || []).map((rp) => rp.resourceId),
     ]
       .map(normalized)
       .join(" ");
@@ -90,6 +92,10 @@
           ? `${trade.recipient.username} (XP ${trade.recipient.xp})`
           : "En attente d'un joueur";
 
+        const requestedLabel = (trade.requestedPokemons || []).length > 0
+          ? (trade.requestedPokemons || []).map((rp) => escapeHtml(resourceLabel(rp))).join("<br>")
+          : "-";
+
         return `
           <tr>
             <td>
@@ -102,6 +108,7 @@
               <div class="bo-meta">${escapeHtml(trade.proposer?.id || trade.proposerId)}</div>
             </td>
             <td>${escapeHtml(resourceLabel(trade.offeredPokemon))}</td>
+            <td>${requestedLabel}</td>
             <td>
               ${escapeHtml(recipientLabel)}
               <div class="bo-meta">${escapeHtml(trade.recipient?.id || trade.recipientId || "-")}</div>
@@ -125,8 +132,9 @@
             <th>Status</th>
             <th>Proposer</th>
             <th>Pokemon offert</th>
+            <th>Pokémons demandés</th>
             <th>Recipient</th>
-            <th>Pokemon attendu</th>
+            <th>Pokemon reçu</th>
             <th>Dates</th>
           </tr>
         </thead>
