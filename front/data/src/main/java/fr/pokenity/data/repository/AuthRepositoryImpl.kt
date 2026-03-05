@@ -6,14 +6,13 @@ import fr.pokenity.data.model.AuthenticatedSession
 import fr.pokenity.data.model.AuthenticatedUser
 import fr.pokenity.data.remote.auth.AuthApiService
 import fr.pokenity.data.remote.auth.AuthCharacterDto
-
 import fr.pokenity.data.remote.auth.AuthSessionDto
 import fr.pokenity.data.remote.auth.AuthUserDto
 import kotlinx.coroutines.flow.StateFlow
 
-class AuthRepositoryImpl(
+class AuthRepositoryImpl internal constructor(
+    private val authApiService: AuthApiService
 ) : AuthRepository {
-    internal val authApiService: AuthApiService by lazy { AuthApiService() }
 
     override val token: StateFlow<String?> = AuthSessionState.token
 
@@ -70,11 +69,17 @@ class AuthRepositoryImpl(
     }
 
     private fun AuthCharacterDto.toDomain(): AuthCharacter {
+        val resolvedAvatar = authApiService.normalizeMediaUrl(
+            avatarFileName?.ifBlank { null } ?: avatarUrlRaw
+        )
+        val resolvedImage = authApiService.normalizeMediaUrl(
+            imageFileName?.ifBlank { null } ?: imageUrlRaw
+        )
         return AuthCharacter(
             id = id,
             name = name,
-            avatarUrl = avatarUrl,
-            imageUrl = imageUrl
+            avatarUrl = resolvedAvatar,
+            imageUrl = resolvedImage
         )
     }
 }

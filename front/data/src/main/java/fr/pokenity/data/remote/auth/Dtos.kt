@@ -1,22 +1,51 @@
 package fr.pokenity.data.remote.auth
 
+import com.google.gson.annotations.SerializedName
+
 internal data class AuthSessionDto(
-    val token: String,
-    val user: AuthUserDto
+    @SerializedName("token") val token: String,
+    @SerializedName("user") val user: AuthUserDto
 )
 
 internal data class AuthUserDto(
-    val id: String,
-    val username: String,
-    val email: String,
-    val createdAt: String? = null,
-    val characterId: String? = null,
-    val character: AuthCharacterDto? = null
+    @SerializedName("id") val id: String,
+    @SerializedName("username") val username: String,
+    @SerializedName("email") val email: String,
+    @SerializedName("createdAt") val createdAt: String? = null,
+    @SerializedName("characterId") val characterId: String? = null,
+    @SerializedName("character") val character: AuthCharacterDto? = null
 )
 
 internal data class AuthCharacterDto(
-    val id: String,
-    val name: String,
-    val avatarUrl: String,
-    val imageUrl: String
+    @SerializedName("id") val id: String,
+    @SerializedName("name") val name: String,
+    @SerializedName("avatarFileName") val avatarFileName: String? = null,
+    @SerializedName("avatarUrl") val avatarUrlRaw: String? = null,
+    @SerializedName("imageFileName") val imageFileName: String? = null,
+    @SerializedName("imageUrl") val imageUrlRaw: String? = null
+)
+
+internal data class AuthMeResponseDto(
+    @SerializedName("user") val user: AuthUserDto
+)
+
+internal data class AuthCharactersResponseDto(
+    @SerializedName("characters") val characters: List<AuthCharacterDto>?
+)
+
+internal data class AuthErrorDto(
+    @SerializedName("error") val error: String?
+)
+
+// Request bodies
+internal data class LoginRequestBody(
+    @SerializedName("identifier") val identifier: String,
+    @SerializedName("password") val password: String
+)
+
+internal data class RegisterRequestBody(
+    @SerializedName("username") val username: String,
+    @SerializedName("email") val email: String,
+    @SerializedName("password") val password: String,
+    @SerializedName("characterId") val characterId: String? = null
 )

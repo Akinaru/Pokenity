@@ -1,13 +1,17 @@
 package fr.pokenity.data.remote.poke
 
 import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
 
-internal class PokeApiService {
+/**
+ * Service PokeAPI basé sur Retrofit, mais avec un parsing manuel via JSONObject.
+ * Toutes les fonctions réseau sont `suspend` et s'appuient sur une seule méthode générique.
+ */
+internal class PokeApiService(
+    private val api: PokeRetrofitApi
+) {
     private val localizedNameCache = mutableMapOf<String, String>()
 
-    fun fetchAvailableLanguages(): List<LanguageDto> {
+    suspend fun fetchAvailableLanguages(): List<LanguageDto> {
         return fetchNamedResults("https://pokeapi.co/api/v2/language/").map { resource ->
             val json = fetchObject(resource.url)
             val names = json.optJSONArray("names")
@@ -25,38 +29,37 @@ internal class PokeApiService {
         }
     }
 
-    fun fetchPokemonList(limit: Int, offset: Int): List<PokemonListItemDto> {
+    suspend fun fetchPokemonList(limit: Int, offset: Int): List<PokemonListItemDto> {
         val endpoint = "https://pokeapi.co/api/v2/pokemon?limit=$limit&offset=$offset"
         return fetchNamedResults(endpoint).map { PokemonListItemDto(name = it.name, url = it.url) }
     }
 
-    fun fetchPokemonTypes(): List<NamedResourceDto> {
+    suspend fun fetchPokemonTypes(): List<NamedResourceDto> {
         return fetchNamedResults("https://pokeapi.co/api/v2/type?limit=100")
     }
 
-    fun fetchPokemonGenerations(): List<NamedResourceDto> {
+    suspend fun fetchPokemonGenerations(): List<NamedResourceDto> {
         return fetchNamedResults("https://pokeapi.co/api/v2/generation?limit=100")
     }
 
-    fun fetchPokemonAbilities(): List<NamedResourceDto> {
+    suspend fun fetchPokemonAbilities(): List<NamedResourceDto> {
         return fetchNamedResults("https://pokeapi.co/api/v2/ability?limit=1000")
     }
 
-    fun fetchPokemonHabitats(): List<NamedResourceDto> {
+    suspend fun fetchPokemonHabitats(): List<NamedResourceDto> {
         return fetchNamedResults("https://pokeapi.co/api/v2/pokemon-habitat?limit=100")
     }
 
-    fun fetchPokemonRegions(): List<NamedResourceDto> {
+    suspend fun fetchPokemonRegions(): List<NamedResourceDto> {
         return fetchNamedResults("https://pokeapi.co/api/v2/region?limit=100")
     }
 
-    fun fetchPokemonShapes(): List<NamedResourceDto> {
+    suspend fun fetchPokemonShapes(): List<NamedResourceDto> {
         return fetchNamedResults("https://pokeapi.co/api/v2/pokemon-shape?limit=100")
     }
 
-    fun fetchPokemonByType(typeName: String): List<NamedResourceDto> {
-        val endpoint = "https://pokeapi.co/api/v2/type/$typeName"
-        val root = fetchObject(endpoint)
+    suspend fun fetchPokemonByType(typeName: String): List<NamedResourceDto> {
+        val root = fetchObject("https://pokeapi.co/api/v2/type/$typeName")
         val pokemonArray = root.getJSONArray("pokemon")
 
         return List(pokemonArray.length()) { index ->
@@ -68,9 +71,8 @@ internal class PokeApiService {
         }
     }
 
-    fun fetchPokemonByGeneration(generationName: String): List<NamedResourceDto> {
-        val endpoint = "https://pokeapi.co/api/v2/generation/$generationName"
-        val root = fetchObject(endpoint)
+    suspend fun fetchPokemonByGeneration(generationName: String): List<NamedResourceDto> {
+        val root = fetchObject("https://pokeapi.co/api/v2/generation/$generationName")
         val speciesArray = root.getJSONArray("pokemon_species")
 
         return List(speciesArray.length()) { index ->
@@ -82,9 +84,8 @@ internal class PokeApiService {
         }
     }
 
-    fun fetchPokemonByAbility(abilityName: String): List<NamedResourceDto> {
-        val endpoint = "https://pokeapi.co/api/v2/ability/$abilityName"
-        val root = fetchObject(endpoint)
+    suspend fun fetchPokemonByAbility(abilityName: String): List<NamedResourceDto> {
+        val root = fetchObject("https://pokeapi.co/api/v2/ability/$abilityName")
         val pokemonArray = root.getJSONArray("pokemon")
 
         return List(pokemonArray.length()) { index ->
@@ -96,9 +97,8 @@ internal class PokeApiService {
         }
     }
 
-    fun fetchPokemonByHabitat(habitatName: String): List<NamedResourceDto> {
-        val endpoint = "https://pokeapi.co/api/v2/pokemon-habitat/$habitatName"
-        val root = fetchObject(endpoint)
+    suspend fun fetchPokemonByHabitat(habitatName: String): List<NamedResourceDto> {
+        val root = fetchObject("https://pokeapi.co/api/v2/pokemon-habitat/$habitatName")
         val speciesArray = root.getJSONArray("pokemon_species")
 
         return List(speciesArray.length()) { index ->
@@ -110,9 +110,8 @@ internal class PokeApiService {
         }
     }
 
-    fun fetchPokemonByShape(shapeName: String): List<NamedResourceDto> {
-        val endpoint = "https://pokeapi.co/api/v2/pokemon-shape/$shapeName"
-        val root = fetchObject(endpoint)
+    suspend fun fetchPokemonByShape(shapeName: String): List<NamedResourceDto> {
+        val root = fetchObject("https://pokeapi.co/api/v2/pokemon-shape/$shapeName")
         val speciesArray = root.getJSONArray("pokemon_species")
 
         return List(speciesArray.length()) { index ->
@@ -124,9 +123,8 @@ internal class PokeApiService {
         }
     }
 
-    fun fetchPokemonByRegion(regionName: String): List<NamedResourceDto> {
-        val endpoint = "https://pokeapi.co/api/v2/region/$regionName"
-        val root = fetchObject(endpoint)
+    suspend fun fetchPokemonByRegion(regionName: String): List<NamedResourceDto> {
+        val root = fetchObject("https://pokeapi.co/api/v2/region/$regionName")
         val pokedexArray = root.getJSONArray("pokedexes")
         val allSpecies = linkedMapOf<String, NamedResourceDto>()
 
@@ -148,9 +146,8 @@ internal class PokeApiService {
         return allSpecies.values.toList()
     }
 
-    fun fetchLocationsByRegion(regionName: String): List<NamedResourceDto> {
-        val endpoint = "https://pokeapi.co/api/v2/region/$regionName"
-        val root = fetchObject(endpoint)
+    suspend fun fetchLocationsByRegion(regionName: String): List<NamedResourceDto> {
+        val root = fetchObject("https://pokeapi.co/api/v2/region/$regionName")
         val locationsArray = root.getJSONArray("locations")
 
         return List(locationsArray.length()) { index ->
@@ -162,9 +159,8 @@ internal class PokeApiService {
         }
     }
 
-    fun fetchLocationAreasByLocation(locationName: String): List<NamedResourceDto> {
-        val endpoint = "https://pokeapi.co/api/v2/location/$locationName"
-        val root = fetchObject(endpoint)
+    suspend fun fetchLocationAreasByLocation(locationName: String): List<NamedResourceDto> {
+        val root = fetchObject("https://pokeapi.co/api/v2/location/$locationName")
         val areasArray = root.getJSONArray("areas")
 
         return List(areasArray.length()) { index ->
@@ -176,9 +172,8 @@ internal class PokeApiService {
         }
     }
 
-    fun fetchPokemonByLocationArea(locationAreaName: String): List<NamedResourceDto> {
-        val endpoint = "https://pokeapi.co/api/v2/location-area/$locationAreaName"
-        val root = fetchObject(endpoint)
+    suspend fun fetchPokemonByLocationArea(locationAreaName: String): List<NamedResourceDto> {
+        val root = fetchObject("https://pokeapi.co/api/v2/location-area/$locationAreaName")
         val encountersArray = root.getJSONArray("pokemon_encounters")
 
         return List(encountersArray.length()) { index ->
@@ -190,97 +185,80 @@ internal class PokeApiService {
         }
     }
 
-    fun fetchPokemonDetail(id: Int): PokemonDetailDto {
-        val endpoint = "https://pokeapi.co/api/v2/pokemon/$id"
-        val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
-            requestMethod = "GET"
-            connectTimeout = 15_000
-            readTimeout = 15_000
+    suspend fun fetchPokemonDetail(id: Int): PokemonDetailDto {
+        val root = fetchObject("https://pokeapi.co/api/v2/pokemon/$id")
+
+        val typesArray = root.getJSONArray("types")
+        val types = List(typesArray.length()) { i ->
+            val typeObj = typesArray.getJSONObject(i).getJSONObject("type")
+            val typeUrl = typeObj.getString("url")
+            val typeId = typeUrl.trimEnd('/').substringAfterLast('/').toInt()
+            PokemonTypeDto(
+                name = typeObj.getString("name"),
+                id = typeId,
+                url = typeUrl
+            )
         }
 
-        return try {
-            val statusCode = connection.responseCode
-            if (statusCode !in 200..299) {
-                error("Erreur API PokeAPI: HTTP $statusCode")
-            }
+        val statsArray = root.getJSONArray("stats")
+        val stats = List(statsArray.length()) { i ->
+            val statObj = statsArray.getJSONObject(i)
+            val statResource = statObj.getJSONObject("stat")
+            PokemonStatDto(
+                name = statResource.getString("name"),
+                url = statResource.getString("url"),
+                baseStat = statObj.getInt("base_stat")
+            )
+        }
 
-            val response = connection.inputStream.bufferedReader().use { it.readText() }
-            val root = JSONObject(response)
+        val abilitiesArray = root.getJSONArray("abilities")
+        val abilities = List(abilitiesArray.length()) { i ->
+            val abilityObj = abilitiesArray.getJSONObject(i).getJSONObject("ability")
+            NamedResourceDto(
+                name = abilityObj.getString("name"),
+                url = abilityObj.getString("url")
+            )
+        }
 
-            val typesArray = root.getJSONArray("types")
-            val types = List(typesArray.length()) { i ->
-                val typeObj = typesArray.getJSONObject(i).getJSONObject("type")
-                val typeUrl = typeObj.getString("url")
-                val typeId = typeUrl.trimEnd('/').substringAfterLast('/').toInt()
-                PokemonTypeDto(
-                    name = typeObj.getString("name"),
-                    id = typeId,
-                    url = typeUrl
-                )
-            }
-
-            val statsArray = root.getJSONArray("stats")
-            val stats = List(statsArray.length()) { i ->
-                val statObj = statsArray.getJSONObject(i)
-                val statResource = statObj.getJSONObject("stat")
-                PokemonStatDto(
-                    name = statResource.getString("name"),
-                    url = statResource.getString("url"),
-                    baseStat = statObj.getInt("base_stat")
-                )
-            }
-
-            val abilitiesArray = root.getJSONArray("abilities")
-            val abilities = List(abilitiesArray.length()) { i ->
-                val abilityObj = abilitiesArray.getJSONObject(i).getJSONObject("ability")
-                NamedResourceDto(
-                    name = abilityObj.getString("name"),
-                    url = abilityObj.getString("url")
-                )
-            }
-
-            // Extract level-up moves, take the 6 highest level ones
-            val movesArray = root.getJSONArray("moves")
-            val levelUpMoves = mutableListOf<Pair<String, Int>>() // name to level
-            for (i in 0 until movesArray.length()) {
-                val moveObj = movesArray.getJSONObject(i)
-                val details = moveObj.getJSONArray("version_group_details")
-                for (j in 0 until details.length()) {
-                    val detail = details.getJSONObject(j)
-                    val method = detail.getJSONObject("move_learn_method").getString("name")
-                    if (method == "level-up") {
-                        val level = detail.getInt("level_learned_at")
-                        val moveName = moveObj.getJSONObject("move").getString("name")
-                        levelUpMoves.add(moveName to level)
-                        break
-                    }
+        // Extract level-up moves, take the 6 highest level ones
+        val movesArray = root.getJSONArray("moves")
+        val levelUpMoves = mutableListOf<Pair<String, Int>>() // name to level
+        for (i in 0 until movesArray.length()) {
+            val moveObj = movesArray.getJSONObject(i)
+            val details = moveObj.getJSONArray("version_group_details")
+            for (j in 0 until details.length()) {
+                val detail = details.getJSONObject(j)
+                val method = detail.getJSONObject("move_learn_method").getString("name")
+                if (method == "level-up") {
+                    val level = detail.getInt("level_learned_at")
+                    val moveName = moveObj.getJSONObject("move").getString("name")
+                    levelUpMoves.add(moveName to level)
+                    break
                 }
             }
-            val topMoveNames = levelUpMoves
-                .sortedByDescending { it.second }
-                .take(6)
-                .map { it.first }
-
-            PokemonDetailDto(
-                id = root.getInt("id"),
-                name = root.getString("name"),
-                height = root.getInt("height"),
-                weight = root.getInt("weight"),
-                types = types,
-                stats = stats,
-                abilities = abilities,
-                moveNames = topMoveNames
-            )
-        } finally {
-            connection.disconnect()
         }
+        val topMoveNames = levelUpMoves
+            .sortedByDescending { it.second }
+            .take(6)
+            .map { it.first }
+
+        return PokemonDetailDto(
+            id = root.getInt("id"),
+            name = root.getString("name"),
+            height = root.getInt("height"),
+            weight = root.getInt("weight"),
+            types = types,
+            stats = stats,
+            abilities = abilities,
+            moveNames = topMoveNames
+        )
     }
 
     /**
      * Fetches detailed info for a single move (type, description, power, accuracy, pp).
      */
-    fun fetchMoveDetail(moveName: String, languageCode: String): MoveDetailDto {
-        val root = fetchJson("https://pokeapi.co/api/v2/move/$moveName")
+    suspend fun fetchMoveDetail(moveName: String, languageCode: String): MoveDetailDto {
+        val root = fetchObject("https://pokeapi.co/api/v2/move/$moveName")
 
         val typeObj = root.getJSONObject("type")
         val typeUrl = typeObj.getString("url")
@@ -293,7 +271,8 @@ internal class PokeApiService {
         for (i in 0 until flavorEntries.length()) {
             val entry = flavorEntries.getJSONObject(i)
             if (entry.getJSONObject("language").getString("name") == languageCode) {
-                description = entry.getString("flavor_text").replace("\n", " ").replace("\u000c", " ")
+                description =
+                    entry.getString("flavor_text").replace("\n", " ").replace("\u000c", " ")
                 break
             }
         }
@@ -301,7 +280,8 @@ internal class PokeApiService {
             for (i in 0 until flavorEntries.length()) {
                 val entry = flavorEntries.getJSONObject(i)
                 if (entry.getJSONObject("language").getString("name") == "en") {
-                    description = entry.getString("flavor_text").replace("\n", " ").replace("\u000c", " ")
+                    description =
+                        entry.getString("flavor_text").replace("\n", " ").replace("\u000c", " ")
                     break
                 }
             }
@@ -331,14 +311,14 @@ internal class PokeApiService {
     }
 
     /**
-     * Fetches the evolution chain for a given Pokémon.
-     * 1) GET /pokemon-species/{id} → extract evolution_chain.url + varieties
-     * 2) GET that URL → parse the recursive chain into a flat list
+     * Fetches the evolution chain for a given Pokemon.
+     * 1) GET /pokemon-species/{id} -> extract evolution_chain.url + varieties
+     * 2) GET that URL -> parse the recursive chain into a flat list
      * Returns both the evolution stages and the mega-evolution varieties.
      */
-    fun fetchEvolutionChainAndVarieties(pokemonId: Int): EvolutionAndVarietiesDto {
+    suspend fun fetchEvolutionChainAndVarieties(pokemonId: Int): EvolutionAndVarietiesDto {
         // Step 1: get species to find evolution chain URL + varieties
-        val speciesJson = fetchJson("https://pokeapi.co/api/v2/pokemon-species/$pokemonId")
+        val speciesJson = fetchObject("https://pokeapi.co/api/v2/pokemon-species/$pokemonId")
         val chainUrl = speciesJson.getJSONObject("evolution_chain").getString("url")
 
         // Extract varieties (mega evolutions, gmax, etc.)
@@ -360,7 +340,7 @@ internal class PokeApiService {
         }
 
         // Step 2: get evolution chain
-        val chainJson = fetchJson(chainUrl)
+        val chainJson = fetchObject(chainUrl)
         val chain = chainJson.getJSONObject("chain")
 
         // Step 3: flatten the recursive structure
@@ -376,8 +356,8 @@ internal class PokeApiService {
     /**
      * Fetches the description (flavor text) for a given ability.
      */
-    fun fetchAbilityDetail(abilityUrl: String, languageCode: String): AbilityDetailDto {
-        val root = fetchJson(abilityUrl)
+    suspend fun fetchAbilityDetail(abilityUrl: String, languageCode: String): AbilityDetailDto {
+        val root = fetchObject(abilityUrl)
 
         // Get localized name
         var localizedName = root.getString("name")
@@ -409,7 +389,8 @@ internal class PokeApiService {
             for (i in 0 until flavorEntries.length()) {
                 val entry = flavorEntries.getJSONObject(i)
                 if (entry.getJSONObject("language").getString("name") == languageCode) {
-                    description = entry.getString("flavor_text").replace("\n", " ").replace("\u000c", " ")
+                    description =
+                        entry.getString("flavor_text").replace("\n", " ").replace("\u000c", " ")
                     break
                 }
             }
@@ -417,7 +398,8 @@ internal class PokeApiService {
                 for (i in 0 until flavorEntries.length()) {
                     val entry = flavorEntries.getJSONObject(i)
                     if (entry.getJSONObject("language").getString("name") == "en") {
-                        description = entry.getString("flavor_text").replace("\n", " ").replace("\u000c", " ")
+                        description =
+                            entry.getString("flavor_text").replace("\n", " ").replace("\u000c", " ")
                         break
                     }
                 }
@@ -467,25 +449,11 @@ internal class PokeApiService {
         }
     }
 
-    private fun fetchJson(endpoint: String): JSONObject {
-        val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
-            requestMethod = "GET"
-            connectTimeout = 15_000
-            readTimeout = 15_000
-        }
-        return try {
-            val statusCode = connection.responseCode
-            if (statusCode !in 200..299) {
-                error("Erreur API PokeAPI: HTTP $statusCode")
-            }
-            val response = connection.inputStream.bufferedReader().use { it.readText() }
-            JSONObject(response)
-        } finally {
-            connection.disconnect()
-        }
-    }
-
-    fun fetchLocalizedName(resourceUrl: String, languageCode: String, fallbackName: String): String {
+    suspend fun fetchLocalizedName(
+        resourceUrl: String,
+        languageCode: String,
+        fallbackName: String
+    ): String {
         val key = "$resourceUrl|$languageCode"
         localizedNameCache[key]?.let { return it }
 
@@ -518,12 +486,12 @@ internal class PokeApiService {
         return localized
     }
 
-    fun fetchPokemonSpeciesNameById(id: Int, languageCode: String, fallbackName: String): String {
+    suspend fun fetchPokemonSpeciesNameById(id: Int, languageCode: String, fallbackName: String): String {
         val speciesUrl = "https://pokeapi.co/api/v2/pokemon-species/$id"
         return fetchLocalizedName(speciesUrl, languageCode, fallbackName)
     }
 
-    private fun fetchNamedResults(endpoint: String): List<NamedResourceDto> {
+    private suspend fun fetchNamedResults(endpoint: String): List<NamedResourceDto> {
         val root = fetchObject(endpoint)
         val results = root.getJSONArray("results")
         return List(results.length()) { index ->
@@ -535,23 +503,12 @@ internal class PokeApiService {
         }
     }
 
-    private fun fetchObject(endpoint: String): JSONObject {
-        val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
-            requestMethod = "GET"
-            connectTimeout = 15_000
-            readTimeout = 15_000
+    private suspend fun fetchObject(endpoint: String): JSONObject {
+        val response = api.getJson(endpoint)
+        if (!response.isSuccessful) {
+            error("Erreur API PokeAPI: HTTP ${response.code()}")
         }
-
-        return try {
-            val statusCode = connection.responseCode
-            if (statusCode !in 200..299) {
-                error("Erreur API PokeAPI: HTTP $statusCode")
-            }
-
-            val response = connection.inputStream.bufferedReader().use { it.readText() }
-            JSONObject(response)
-        } finally {
-            connection.disconnect()
-        }
+        val body = response.body()?.string() ?: error("Reponse vide de PokeAPI")
+        return JSONObject(body)
     }
 }
