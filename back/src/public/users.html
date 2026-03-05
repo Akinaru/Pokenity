@@ -81,6 +81,38 @@
               <label for="userCharacterId">Character</label>
               <select class="bo-select" id="userCharacterId" name="characterId"></select>
             </div>
+            <div class="bo-field full" id="userPokemonGrantSection" hidden>
+              <label for="userPokemonSearchInput">Ajouter un Pokemon a la collection</label>
+              <input
+                class="bo-input"
+                id="userPokemonSearchInput"
+                type="search"
+                placeholder="Rechercher un Pokemon par nom ou id"
+              />
+              <div class="bo-search-results" id="userPokemonSearchResults">
+                <div class="bo-empty">Tapez un nom ou un id pour rechercher un Pokemon.</div>
+              </div>
+              <div class="bo-split">
+                <div class="bo-field" style="max-width: 170px;">
+                  <label for="userPokemonQuantity">Quantite</label>
+                  <input
+                    class="bo-input"
+                    id="userPokemonQuantity"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value="1"
+                  />
+                </div>
+                <button class="bo-btn soft" id="addUserPokemonBtn" type="button" disabled>
+                  Ajouter a la collection
+                </button>
+              </div>
+              <p class="bo-meta" id="userPokemonSelectionMeta">Aucun Pokemon selectionne.</p>
+              <div class="bo-table-wrap" id="userPokemonCollectionWrap">
+                <div class="bo-empty">Collection Pokemon non chargee.</div>
+              </div>
+            </div>
           </form>
         </div>
 
