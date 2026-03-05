@@ -1,10 +1,8 @@
 package fr.pokenity.data.model
 
-data class AuthenticatedUser(
+data class UserProfile(
     val id: String,
     val username: String,
-    val email: String,
-    val xp: Int = 0,
-    val createdAt: String? = null,
+    val xp: Int,
     val character: AuthCharacter? = null
 )

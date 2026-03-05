@@ -1,6 +1,8 @@
 package fr.pokenity.pokenity.presentation.pokedex
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,7 +40,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -47,6 +53,12 @@ import fr.pokenity.data.core.PokemonImageType
 import fr.pokenity.data.model.PokemonFilterOption
 import fr.pokenity.data.model.PokemonSummary
 import fr.pokenity.pokenity.ui.components.PokemonSpriteImage
+
+private enum class OwnershipFilter {
+    ALL,
+    OWNED,
+    MISSING
+}
 
 @Composable
 fun PokedexScreen(
@@ -67,6 +79,10 @@ fun PokedexScreen(
     onClearHabitatFilter: () -> Unit,
     onClearRegionFilter: () -> Unit,
     onClearShapeFilter: () -> Unit,
+    collectionMode: Boolean = false,
+    ownedQuantities: Map<Int, Int> = emptyMap(),
+    showOwnershipFilter: Boolean = false,
+    totalPokemonCount: Int? = null,
     headerContent: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -77,20 +93,57 @@ fun PokedexScreen(
     var habitatExpanded by rememberSaveable { mutableStateOf(false) }
     var regionExpanded by rememberSaveable { mutableStateOf(false) }
     var shapeExpanded by rememberSaveable { mutableStateOf(false) }
+    var ownershipFilter by rememberSaveable { mutableStateOf(OwnershipFilter.ALL) }
     val listState = rememberLazyListState()
 
     val spriteType by PokemonImageSettings.imageType.collectAsState()
     val shinyEnabled by PokemonImageSettings.isShiny.collectAsState()
 
     val sourcePokemon = if (uiState.hasActiveFilters) uiState.filteredPokemon else uiState.pokemon
+    val knownPokemonById = remember(sourcePokemon) { sourcePokemon.associateBy { it.id } }
+    val ownedPokemonSummaries = remember(ownedQuantities, knownPokemonById) {
+        ownedQuantities
+            .asSequence()
+            .filter { (_, quantity) -> quantity > 0 }
+            .map { (id, _) ->
+                knownPokemonById[id]
+                    ?: PokemonSummary(
+                        id = id,
+                        name = "Pokemon #$id",
+                        imageUrl = ""
+                    )
+            }
+            .sortedBy { it.id }
+            .toList()
+    }
 
-    val displayedPokemon by remember(sourcePokemon, query) {
+    val searchedPokemon by remember(sourcePokemon, query) {
         mutableStateOf(
             if (query.isBlank()) sourcePokemon else sourcePokemon.filter {
                 it.name.contains(query.trim(), ignoreCase = true) || it.id.toString().contains(query.trim())
             }
         )
     }
+    val displayedPokemon by remember(searchedPokemon, ownedQuantities, showOwnershipFilter, ownershipFilter) {
+        mutableStateOf(
+            if (collectionMode && showOwnershipFilter && ownershipFilter == OwnershipFilter.OWNED) {
+                ownedPokemonSummaries
+            } else if (!showOwnershipFilter) {
+                searchedPokemon
+            } else {
+                searchedPokemon.filter { pokemon ->
+                    val isOwned = (ownedQuantities[pokemon.id] ?: 0) > 0
+                    when (ownershipFilter) {
+                        OwnershipFilter.ALL -> true
+                        OwnershipFilter.OWNED -> isOwned
+                        OwnershipFilter.MISSING -> !isOwned
+                    }
+                }
+            }
+        )
+    }
+    val ownedCount = remember(ownedQuantities) { ownedQuantities.count { (_, quantity) -> quantity > 0 } }
+    val counterTotal = totalPokemonCount ?: uiState.totalPokemonCount.takeIf { it > 0 } ?: sourcePokemon.size
 
     Surface(modifier = modifier.fillMaxSize(), color = Color.Transparent) {
         when {
@@ -142,6 +195,25 @@ fun PokedexScreen(
                             label = { Text("Recherche") },
                             placeholder = { Text("Nom ou numero") }
                         )
+                    }
+
+                    if (collectionMode) {
+                        item {
+                            Text(
+                                text = "$ownedCount/$counterTotal",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    if (showOwnershipFilter) {
+                        item {
+                            OwnershipFilterBar(
+                                selected = ownershipFilter,
+                                onSelected = { ownershipFilter = it }
+                            )
+                        }
                     }
 
                     item {
@@ -204,7 +276,14 @@ fun PokedexScreen(
                         )
                     }
 
-                    PokemonListItems(displayedPokemon, onPokemonClick, spriteType, shinyEnabled)
+                    PokemonListItems(
+                        pokemon = displayedPokemon,
+                        onPokemonClick = onPokemonClick,
+                        spriteType = spriteType,
+                        shinyEnabled = shinyEnabled,
+                        collectionMode = collectionMode,
+                        ownedQuantities = ownedQuantities
+                    )
 
                     if (uiState.isLoadingMore) {
                         item {
@@ -220,11 +299,21 @@ fun PokedexScreen(
                     }
                 }
 
-                if (!uiState.hasActiveFilters) {
-                    LaunchedEffect(listState, displayedPokemon.size, uiState.hasMorePokemon, uiState.isLoadingMore) {
+                val shouldDisableLoadMoreForOwnedOnly =
+                    collectionMode && showOwnershipFilter && ownershipFilter == OwnershipFilter.OWNED
+
+                if (!uiState.hasActiveFilters && !shouldDisableLoadMoreForOwnedOnly) {
+                    LaunchedEffect(
+                        listState,
+                        displayedPokemon.size,
+                        uiState.hasMorePokemon,
+                        uiState.isLoadingMore,
+                        shouldDisableLoadMoreForOwnedOnly
+                    ) {
                         snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
                             .collect { lastVisibleIndex ->
-                                val threshold = (displayedPokemon.size - 4).coerceAtLeast(0)
+                                val totalRenderedItems = listState.layoutInfo.totalItemsCount
+                                val threshold = (totalRenderedItems - 4).coerceAtLeast(0)
                                 if (lastVisibleIndex >= threshold && uiState.hasMorePokemon && !uiState.isLoadingMore) {
                                     onLoadMore()
                                 }
@@ -434,7 +523,9 @@ private fun androidx.compose.foundation.lazy.LazyListScope.PokemonListItems(
     pokemon: List<PokemonSummary>,
     onPokemonClick: (Int, List<Int>) -> Unit,
     spriteType: PokemonImageType,
-    shinyEnabled: Boolean
+    shinyEnabled: Boolean,
+    collectionMode: Boolean = false,
+    ownedQuantities: Map<Int, Int> = emptyMap()
 ) {
     if (pokemon.isEmpty()) {
         item {
@@ -444,7 +535,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.PokemonListItems(
                 modifier = Modifier.padding(vertical = 12.dp)
             )
         }
-    } else {
+    } else if (!collectionMode) {
         val ids = pokemon.map { it.id }
         items(items = pokemon, key = { it.id }) { item ->
             PokemonRow(
@@ -453,6 +544,131 @@ private fun androidx.compose.foundation.lazy.LazyListScope.PokemonListItems(
                 shinyEnabled = shinyEnabled,
                 onClick = { onPokemonClick(item.id, ids) }
             )
+        }
+    } else {
+        val ownedIds = pokemon.mapNotNull { summary ->
+            if ((ownedQuantities[summary.id] ?: 0) > 0) summary.id else null
+        }
+        val chunked = pokemon.chunked(3)
+
+        items(items = chunked, key = { chunk -> chunk.joinToString("-") { it.id.toString() } }) { row ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                row.forEach { item ->
+                    val quantity = ownedQuantities[item.id] ?: 0
+                    val owned = quantity > 0
+                    Box(modifier = Modifier.weight(1f)) {
+                        CollectionPokemonCard(
+                            pokemon = item,
+                            quantity = quantity,
+                            owned = owned,
+                            onClick = {
+                                if (owned) {
+                                    onPokemonClick(item.id, ownedIds)
+                                }
+                            }
+                        )
+                    }
+                }
+
+                repeat(3 - row.size) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OwnershipFilterBar(
+    selected: OwnershipFilter,
+    onSelected: (OwnershipFilter) -> Unit
+) {
+    LazyRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        item {
+            OutlinedButton(onClick = { onSelected(OwnershipFilter.ALL) }) {
+                Text(if (selected == OwnershipFilter.ALL) "Possession: Tous *" else "Possession: Tous")
+            }
+        }
+        item {
+            OutlinedButton(onClick = { onSelected(OwnershipFilter.OWNED) }) {
+                Text(if (selected == OwnershipFilter.OWNED) "Possedes *" else "Possedes")
+            }
+        }
+        item {
+            OutlinedButton(onClick = { onSelected(OwnershipFilter.MISSING) }) {
+                Text(if (selected == OwnershipFilter.MISSING) "Pas possedes *" else "Pas possedes")
+            }
+        }
+    }
+}
+
+@Composable
+private fun CollectionPokemonCard(
+    pokemon: PokemonSummary,
+    quantity: Int,
+    owned: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.18f),
+        tonalElevation = 0.dp,
+        shadowElevation = 8.dp,
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.30f)),
+        modifier = Modifier
+            .size(108.dp)
+            .clickable(enabled = owned, onClick = onClick)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(16.dp))
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.16f),
+                            Color.White.copy(alpha = 0.06f),
+                            Color.Black.copy(alpha = 0.08f)
+                        )
+                    )
+                )
+                .padding(6.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            PokemonSpriteImage(
+                pokemonId = pokemon.id,
+                contentDescription = pokemon.name,
+                imageType = PokemonImageType.OFFICIAL_ARTWORK,
+                shiny = false,
+                colorFilter = if (owned) null else ColorFilter.tint(Color.Black, BlendMode.SrcIn),
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize()
+            )
+
+            if (quantity > 1) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(3.dp)
+                ) {
+                    Text(
+                        text = "x$quantity",
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                    )
+                }
+            }
         }
     }
 }
@@ -466,7 +682,10 @@ private fun PokemonRow(
 ) {
     Surface(
         shape = RoundedCornerShape(20.dp),
-        tonalElevation = 3.dp,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.18f),
+        tonalElevation = 0.dp,
+        shadowElevation = 8.dp,
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.28f)),
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
@@ -474,6 +693,16 @@ private fun PokemonRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.14f),
+                            Color.White.copy(alpha = 0.05f),
+                            Color.Black.copy(alpha = 0.06f)
+                        )
+                    )
+                )
                 .padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)

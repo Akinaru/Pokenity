@@ -11,6 +11,7 @@ internal data class AuthUserDto(
     @SerializedName("id") val id: String,
     @SerializedName("username") val username: String,
     @SerializedName("email") val email: String,
+    @SerializedName("xp") val xp: Int = 0,
     @SerializedName("createdAt") val createdAt: String? = null,
     @SerializedName("characterId") val characterId: String? = null,
     @SerializedName("character") val character: AuthCharacterDto? = null
@@ -27,6 +28,19 @@ internal data class AuthCharacterDto(
 
 internal data class AuthMeResponseDto(
     @SerializedName("user") val user: AuthUserDto
+)
+
+internal data class AuthInventoryResponseDto(
+    @SerializedName("inventory") val inventory: List<AuthInventoryItemDto>?
+)
+
+internal data class AuthInventoryItemDto(
+    @SerializedName("id") val id: String,
+    @SerializedName("userId") val userId: String,
+    @SerializedName("resourceType") val resourceType: String,
+    @SerializedName("resourceId") val resourceId: Int,
+    @SerializedName("resourceName") val resourceName: String,
+    @SerializedName("quantity") val quantity: Int
 )
 
 internal data class AuthEmailExistsResponseDto(

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import fr.pokenity.data.core.AppContainer
 import fr.pokenity.data.model.AuthenticatedUser
+import fr.pokenity.pokenity.domain.usecase.AuthFetchInventoryUseCase
 import fr.pokenity.pokenity.domain.usecase.AuthFetchCurrentUserUseCase
 import fr.pokenity.pokenity.domain.usecase.AuthLogoutUseCase
 import fr.pokenity.pokenity.domain.usecase.AuthObserveTokenUseCase
@@ -17,6 +18,7 @@ import kotlinx.coroutines.launch
 
 class AccountViewModel(
     private val authFetchCurrentUserUseCase: AuthFetchCurrentUserUseCase,
+    private val authFetchInventoryUseCase: AuthFetchInventoryUseCase,
     private val authObserveTokenUseCase: AuthObserveTokenUseCase,
     private val authLogoutUseCase: AuthLogoutUseCase
 ) : ViewModel() {
@@ -31,6 +33,7 @@ class AccountViewModel(
                 if (token == null) {
                     _uiState.value = _uiState.value.copy(
                         user = null,
+                        pokemonCollection = emptyMap(),
                         isLoading = false,
                         errorMessage = null,
                         infoMessage = null
@@ -50,11 +53,20 @@ class AccountViewModel(
 
         _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
         viewModelScope.launch(Dispatchers.IO) {
-            runCatching { authFetchCurrentUserUseCase() }
-                .onSuccess { me ->
+            runCatching {
+                val me = authFetchCurrentUserUseCase()
+                val inventory = authFetchInventoryUseCase()
+                val pokemonCollection = inventory
+                    .asSequence()
+                    .filter { it.resourceType.equals("POKEMON", ignoreCase = true) }
+                    .filter { it.quantity > 0 }
+                    .associate { it.resourceId to it.quantity }
+                me to pokemonCollection
+            }.onSuccess { (me, pokemonCollection) ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        user = me.toUi()
+                        user = me.toUi(),
+                        pokemonCollection = pokemonCollection
                     )
                 }
                 .onFailure {
@@ -62,6 +74,7 @@ class AccountViewModel(
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         user = null,
+                        pokemonCollection = emptyMap(),
                         errorMessage = it.message ?: "Session invalide"
                     )
                 }
@@ -72,6 +85,7 @@ class AccountViewModel(
         authLogoutUseCase()
         _uiState.value = _uiState.value.copy(
             user = null,
+            pokemonCollection = emptyMap(),
             token = null,
             infoMessage = "Deconnecte"
         )
@@ -84,6 +98,7 @@ class AccountViewModel(
                 val repository = AppContainer.authRepository
                 return AccountViewModel(
                     authFetchCurrentUserUseCase = AuthFetchCurrentUserUseCase(repository),
+                    authFetchInventoryUseCase = AuthFetchInventoryUseCase(repository),
                     authObserveTokenUseCase = AuthObserveTokenUseCase(repository),
                     authLogoutUseCase = AuthLogoutUseCase(repository)
                 ) as T
@@ -97,6 +112,7 @@ private fun AuthenticatedUser.toUi(): AccountUser {
         id = id,
         username = username,
         email = email,
+        xp = xp,
         createdAt = createdAt,
         characterName = character?.name,
         characterAvatarUrl = character?.avatarUrl,

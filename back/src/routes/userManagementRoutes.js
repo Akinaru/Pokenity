@@ -1,6 +1,7 @@
 const { Prisma } = require("@prisma/client");
 const express = require("express");
 const { createPasswordHash } = require("../lib/password");
+const { PokeApiError, resolveDropResource } = require("../lib/pokeapi");
 const { prisma } = require("../lib/prisma");
 const {
   createUser,
@@ -258,6 +259,85 @@ router.patch("/:id", async (req, res) => {
       return res.status(400).json({ error: "invalid character id." });
     }
 
+    throw error;
+  }
+});
+
+router.post("/:id/pokemon", async (req, res) => {
+  const userId = String(req.params.id || "").trim();
+  const pokemonId = Math.trunc(Number(req.body.pokemonId));
+  const quantityRaw = req.body.quantity === undefined ? 1 : Number(req.body.quantity);
+  const quantity = Math.trunc(quantityRaw);
+
+  if (!userId) {
+    return res.status(400).json({ error: "User id is required." });
+  }
+
+  if (!Number.isInteger(pokemonId) || pokemonId <= 0) {
+    return res
+      .status(400)
+      .json({ error: "pokemonId must be a positive integer." });
+  }
+
+  if (!Number.isInteger(quantity) || quantity <= 0) {
+    return res
+      .status(400)
+      .json({ error: "quantity must be a positive integer." });
+  }
+
+  const user = await findUserById(userId);
+  if (!user) {
+    return res.status(404).json({ error: "User not found." });
+  }
+
+  try {
+    const pokemon = await resolveDropResource("POKEMON", pokemonId);
+    const now = new Date();
+
+    const inventoryItem = await prisma.inventoryItem.upsert({
+      where: {
+        userId_resourceType_resourceId: {
+          userId,
+          resourceType: "POKEMON",
+          resourceId: pokemon.resourceId,
+        },
+      },
+      update: {
+        resourceName: pokemon.resourceName,
+        quantity: {
+          increment: quantity,
+        },
+        lastObtainedAt: now,
+      },
+      create: {
+        userId,
+        resourceType: "POKEMON",
+        resourceId: pokemon.resourceId,
+        resourceName: pokemon.resourceName,
+        quantity,
+        firstObtainedAt: now,
+        lastObtainedAt: now,
+      },
+    });
+
+    return res.status(201).json({
+      user: cleanUser(user),
+      added: {
+        resourceType: "POKEMON",
+        resourceId: pokemon.resourceId,
+        resourceName: pokemon.resourceName,
+        quantityAdded: quantity,
+      },
+      inventoryItem: {
+        id: inventoryItem.id,
+        quantity: inventoryItem.quantity,
+        lastObtainedAt: inventoryItem.lastObtainedAt,
+      },
+    });
+  } catch (error) {
+    if (error instanceof PokeApiError) {
+      return res.status(error.status).json({ error: error.message });
+    }
     throw error;
   }
 });

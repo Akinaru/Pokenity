@@ -8,6 +8,7 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,8 +16,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -31,6 +37,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -45,9 +52,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -64,6 +74,7 @@ import fr.pokenity.data.core.AppThemeMode
 import fr.pokenity.data.core.AppThemeState
 import fr.pokenity.data.core.AuthSessionState
 import fr.pokenity.data.core.PokemonBrowseState
+import fr.pokenity.data.core.PokemonImageType
 import fr.pokenity.data.model.PokemonFilterOption
 import fr.pokenity.pokenity.presentation.account.AccountScreen
 import fr.pokenity.pokenity.presentation.account.AccountUiState
@@ -86,6 +97,9 @@ import fr.pokenity.pokenity.presentation.pokedex.PokedexUiState
 import fr.pokenity.pokenity.presentation.pokedex.PokedexViewModel
 import fr.pokenity.pokenity.presentation.settings.SettingsScreen
 import fr.pokenity.pokenity.presentation.settings.SettingsViewModel
+import fr.pokenity.pokenity.presentation.social.SocialScreen
+import fr.pokenity.pokenity.presentation.social.SocialViewModel
+import fr.pokenity.pokenity.ui.components.PokemonSpriteImage
 import fr.pokenity.pokenity.ui.media.resolveCharacterMediaModel
 import fr.pokenity.pokenity.ui.theme.AppBackground
 import fr.pokenity.pokenity.ui.theme.PokenityTheme
@@ -112,6 +126,7 @@ class MainActivity : ComponentActivity() {
     private val detailViewModel: PokemonDetailViewModel by viewModels { PokemonDetailViewModel.factory }
     private val compareViewModel: PokemonCompareViewModel by viewModels { PokemonCompareViewModel.factory }
     private val authFlowViewModel: AuthFlowViewModel by viewModels { AuthFlowViewModel.factory }
+    private val socialViewModel: SocialViewModel by viewModels { SocialViewModel.factory }
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -133,6 +148,7 @@ class MainActivity : ComponentActivity() {
             val detailUiState by detailViewModel.uiState.collectAsState()
             val compareUiState by compareViewModel.uiState.collectAsState()
             val authFlowUiState by authFlowViewModel.uiState.collectAsState()
+            val socialUiState by socialViewModel.uiState.collectAsState()
             val themeMode by AppThemeState.themeMode.collectAsState()
 
             val systemDark = isSystemInDarkTheme()
@@ -293,7 +309,22 @@ class MainActivity : ComponentActivity() {
                             ) { innerPadding ->
                                 when (selectedDestination) {
                                     MainDestination.SOCIAL -> {
-                                        SocialScreen(modifier = Modifier.padding(innerPadding))
+                                        SocialScreen(
+                                            uiState = socialUiState,
+                                            onSelectTab = socialViewModel::selectTab,
+                                            onAcceptTrade = { tradeId ->
+                                                // For accepting, we need user to pick an inventory item first.
+                                                // For now, navigate to propose tab to pick, or accept directly
+                                                // with a placeholder — will require inventory selection dialog in future.
+                                                // Simplified: accept with empty string triggers server-side validation.
+                                            },
+                                            onSelectInventoryItem = socialViewModel::selectInventoryItem,
+                                            onSelectTargetUser = socialViewModel::selectTargetUser,
+                                            onCreateTrade = socialViewModel::createTrade,
+                                            onRefreshOpenTrades = socialViewModel::loadOpenTrades,
+                                            onClearMessages = socialViewModel::clearMessages,
+                                            modifier = Modifier.padding(innerPadding)
+                                        )
                                     }
 
                                     MainDestination.ACCUEIL -> {
@@ -440,6 +471,7 @@ class MainActivity : ComponentActivity() {
                                 onNextPokemon = if (nextId != null) {
                                     { navController.navigate("detail/$nextId") }
                                 } else null,
+                                ownedQuantities = accountUiState.pokemonCollection,
                                 onPokemonClick = { id ->
                                     navController.navigate("detail/$id")
                                 }
@@ -532,13 +564,16 @@ private fun MoiTopBar(
     when (screen) {
         MoiScreen.PROFILE -> {
             TopAppBar(
-                title = { Text("Moi") },
+                title = { },
                 actions = {
                     IconButton(onClick = onOpenSettings) {
                         Icon(Icons.Filled.Settings, contentDescription = "Settings")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors()
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = Color.Transparent
+                )
             )
         }
 
@@ -729,35 +764,41 @@ private fun MoiProfileScreen(
         onClearHabitatFilter = onClearHabitatFilter,
         onClearRegionFilter = onClearRegionFilter,
         onClearShapeFilter = onClearShapeFilter,
-        headerContent = {
-            MoiHeaderCard(uiState = accountUiState)
-        },
+        collectionMode = true,
+        ownedQuantities = accountUiState.pokemonCollection,
+        showOwnershipFilter = true,
+        totalPokemonCount = pokedexUiState.totalPokemonCount,
+        headerContent = { MoiHeaderCard(uiState = accountUiState) },
         modifier = modifier
     )
 }
 
 @Composable
 private fun MoiHeaderCard(uiState: AccountUiState) {
+    val levelProgress = remember(uiState.user?.xp) {
+        computeLevelProgress((uiState.user?.xp ?: 0).coerceAtLeast(0))
+    }
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
         color = Color(0x33180707)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 18.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             val avatarUrl = uiState.user?.characterAvatarUrl ?: uiState.user?.characterImageUrl
             val mediaModel = resolveCharacterMediaModel(avatarUrl)
             Box(
                 modifier = Modifier
-                    .size(72.dp)
+                    .size(160.dp)
                     .clip(CircleShape)
                     .background(Color(0x22180707))
-                    .border(1.dp, Color.White.copy(alpha = 0.5f), CircleShape),
+                    .border(2.dp, Color.White.copy(alpha = 0.55f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 if (mediaModel != null) {
@@ -776,24 +817,75 @@ private fun MoiHeaderCard(uiState: AccountUiState) {
                 }
             }
 
-            Column(modifier = Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
-                    text = uiState.user?.username ?: "Mon profil",
+                    text = "Niv. ${levelProgress.currentLevel}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = uiState.user?.characterName ?: "Dresseur",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
+                    text = "Niv. ${levelProgress.nextLevel}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
             }
+
+            LinearProgressIndicator(
+                progress = { levelProgress.progressFraction },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(999.dp)),
+                trackColor = Color.White.copy(alpha = 0.18f),
+                color = MaterialTheme.colorScheme.primary,
+                gapSize = 0.dp
+            )
+
+            Text(
+                text = "${levelProgress.xpInCurrentLevel}/${levelProgress.xpForNextLevel} XP",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+            )
 
             if (uiState.isLoading) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp))
             }
         }
     }
+}
+
+private data class LevelProgress(
+    val currentLevel: Int,
+    val nextLevel: Int,
+    val xpInCurrentLevel: Int,
+    val xpForNextLevel: Int,
+    val progressFraction: Float
+)
+
+private fun computeLevelProgress(totalXp: Int): LevelProgress {
+    var currentLevel = 1
+    var remainingXp = totalXp
+    var xpForNextLevel = 10
+
+    while (remainingXp >= xpForNextLevel) {
+        remainingXp -= xpForNextLevel
+        currentLevel += 1
+        xpForNextLevel += 1
+    }
+
+    val progressFraction = if (xpForNextLevel <= 0) 0f else remainingXp.toFloat() / xpForNextLevel.toFloat()
+
+    return LevelProgress(
+        currentLevel = currentLevel,
+        nextLevel = currentLevel + 1,
+        xpInCurrentLevel = remainingXp,
+        xpForNextLevel = xpForNextLevel,
+        progressFraction = progressFraction.coerceIn(0f, 1f)
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -31,6 +31,10 @@ class PokemonRepositoryImpl(
             .sortedBy { it.code }
     }
 
+    override suspend fun getPokemonTotalCount(): Int {
+        return pokeApiService.fetchPokemonTotalCount()
+    }
+
     override suspend fun getPokemonList(limit: Int, offset: Int): List<PokemonSummary> {
         val language = currentLanguage()
         val dtos = pokeApiService.fetchPokemonList(limit = limit, offset = offset)
