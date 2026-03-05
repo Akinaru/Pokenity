@@ -1,7 +1,7 @@
 package fr.pokenity.pokenity.domain.usecase
 
-import fr.pokenity.pokenity.domain.model.LanguageOption
-import fr.pokenity.pokenity.domain.repository.PokemonRepository
+import fr.pokenity.data.model.LanguageOption
+import fr.pokenity.data.repository.PokemonRepository
 
 class GetAvailableLanguagesUseCase(
     private val repository: PokemonRepository

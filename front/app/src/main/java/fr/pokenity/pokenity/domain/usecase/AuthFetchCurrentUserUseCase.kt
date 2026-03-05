@@ -1,9 +1,9 @@
 package fr.pokenity.pokenity.domain.usecase
 
-import fr.pokenity.pokenity.domain.model.AuthenticatedUser
-import fr.pokenity.pokenity.domain.repository.AuthRepository
+import fr.pokenity.data.model.AuthenticatedUser
+import fr.pokenity.data.repository.AuthRepository
 
-class AuthFetchCurrentUserUseCase(
+class  AuthFetchCurrentUserUseCase(
     private val authRepository: AuthRepository
 ) {
     suspend operator fun invoke(): AuthenticatedUser {

@@ -24,4 +24,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Pokenity"
 include(":app")
- 
+include(":data")

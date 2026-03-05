@@ -1,6 +1,6 @@
 package fr.pokenity.pokenity.domain.usecase
 
-import fr.pokenity.pokenity.domain.repository.AuthRepository
+import fr.pokenity.data.repository.AuthRepository
 
 class AuthLogoutUseCase(
     private val authRepository: AuthRepository

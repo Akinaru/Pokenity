@@ -1,7 +1,7 @@
 package fr.pokenity.pokenity.presentation.pokedex
 
-import fr.pokenity.pokenity.domain.model.PokemonFilterOption
-import fr.pokenity.pokenity.domain.model.PokemonSummary
+import fr.pokenity.data.model.PokemonFilterOption
+import fr.pokenity.data.model.PokemonSummary
 
 enum class PokedexSection {
     TYPE,

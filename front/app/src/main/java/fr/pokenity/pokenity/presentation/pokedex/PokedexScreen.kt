@@ -42,9 +42,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import fr.pokenity.pokenity.core.PokemonImageSettings
-import fr.pokenity.pokenity.domain.model.PokemonFilterOption
-import fr.pokenity.pokenity.domain.model.PokemonSummary
+import fr.pokenity.data.core.PokemonImageSettings
+import fr.pokenity.data.core.PokemonImageType
+import fr.pokenity.data.model.PokemonFilterOption
+import fr.pokenity.data.model.PokemonSummary
 import fr.pokenity.pokenity.ui.components.PokemonSpriteImage
 
 @Composable
@@ -425,7 +426,7 @@ private fun ActiveFilterBar(
 private fun androidx.compose.foundation.lazy.LazyListScope.PokemonListItems(
     pokemon: List<PokemonSummary>,
     onPokemonClick: (Int, List<Int>) -> Unit,
-    spriteType: fr.pokenity.pokenity.core.PokemonImageType,
+    spriteType: PokemonImageType,
     shinyEnabled: Boolean
 ) {
     if (pokemon.isEmpty()) {
@@ -452,7 +453,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.PokemonListItems(
 @Composable
 private fun PokemonRow(
     pokemon: PokemonSummary,
-    spriteType: fr.pokenity.pokenity.core.PokemonImageType,
+    spriteType: PokemonImageType,
     shinyEnabled: Boolean,
     onClick: () -> Unit
 ) {

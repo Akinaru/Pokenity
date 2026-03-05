@@ -3,8 +3,8 @@ package fr.pokenity.pokenity.presentation.account
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import fr.pokenity.pokenity.core.AppContainer
-import fr.pokenity.pokenity.domain.model.AuthenticatedUser
+import fr.pokenity.data.core.AppContainer
+import fr.pokenity.data.model.AuthenticatedUser
 import fr.pokenity.pokenity.domain.usecase.AuthFetchCurrentUserUseCase
 import fr.pokenity.pokenity.domain.usecase.AuthLogoutUseCase
 import fr.pokenity.pokenity.domain.usecase.AuthObserveTokenUseCase

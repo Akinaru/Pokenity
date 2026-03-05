@@ -1,7 +1,7 @@
 package fr.pokenity.pokenity.domain.usecase
 
-import fr.pokenity.pokenity.domain.model.AuthCharacter
-import fr.pokenity.pokenity.domain.repository.AuthRepository
+import fr.pokenity.data.model.AuthCharacter
+import fr.pokenity.data.repository.AuthRepository
 
 class AuthFetchCharactersUseCase(
     private val authRepository: AuthRepository

@@ -1,7 +1,7 @@
 package fr.pokenity.pokenity.domain.usecase
 
-import fr.pokenity.pokenity.domain.model.PokemonFilterOption
-import fr.pokenity.pokenity.domain.repository.PokemonRepository
+import fr.pokenity.data.model.PokemonFilterOption
+import fr.pokenity.data.repository.PokemonRepository
 
 class GetLocationsByRegionUseCase(
     private val pokemonRepository: PokemonRepository

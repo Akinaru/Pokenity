@@ -9,8 +9,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
-import fr.pokenity.pokenity.core.PokemonVisualPreset
-import fr.pokenity.pokenity.core.typeImageUrlCandidates
+import fr.pokenity.data.core.PokemonVisualPreset
+import fr.pokenity.data.core.typeImageUrlCandidates
 
 @Composable
 fun TypeSpriteImage(

@@ -1,6 +1,6 @@
 package fr.pokenity.pokenity.presentation.detail
 
-import fr.pokenity.pokenity.domain.model.PokemonDetail
+import fr.pokenity.data.model.PokemonDetail
 
 data class PokemonDetailUiState(
     val isLoading: Boolean = true,

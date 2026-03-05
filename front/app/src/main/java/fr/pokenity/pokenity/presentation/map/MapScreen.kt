@@ -45,9 +45,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import fr.pokenity.pokenity.core.PokemonImageSettings
-import fr.pokenity.pokenity.domain.model.PokemonFilterOption
-import fr.pokenity.pokenity.domain.model.PokemonSummary
+import fr.pokenity.data.core.PokemonImageSettings
+import fr.pokenity.data.core.PokemonImageType
+import fr.pokenity.data.model.PokemonFilterOption
+import fr.pokenity.data.model.PokemonSummary
 import fr.pokenity.pokenity.ui.components.PokemonSpriteImage
 import kotlin.math.PI
 import kotlin.math.cos
@@ -460,7 +461,7 @@ private fun circularPin(index: Int, total: Int): Pair<Float, Float> {
 @Composable
 private fun PokemonRow(
     pokemon: PokemonSummary,
-    imageType: fr.pokenity.pokenity.core.PokemonImageType,
+    imageType: PokemonImageType,
     shinyEnabled: Boolean,
     onClick: () -> Unit
 ) {

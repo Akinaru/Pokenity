@@ -1,7 +1,7 @@
 package fr.pokenity.pokenity.domain.usecase
 
-import fr.pokenity.pokenity.domain.model.PokemonDetail
-import fr.pokenity.pokenity.domain.repository.PokemonRepository
+import fr.pokenity.data.model.PokemonDetail
+import fr.pokenity.data.repository.PokemonRepository
 
 class GetPokemonDetailUseCase(
     private val pokemonRepository: PokemonRepository

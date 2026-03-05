@@ -1,6 +1,6 @@
 package fr.pokenity.pokenity.presentation.compare
 
-import fr.pokenity.pokenity.domain.model.PokemonDetail
+import fr.pokenity.data.model.PokemonDetail
 
 data class PokemonCompareUiState(
     val isLoading: Boolean = true,

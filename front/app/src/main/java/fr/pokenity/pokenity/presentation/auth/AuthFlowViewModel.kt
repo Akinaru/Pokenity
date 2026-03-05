@@ -3,9 +3,9 @@ package fr.pokenity.pokenity.presentation.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import fr.pokenity.pokenity.core.AppContainer
-import fr.pokenity.pokenity.core.AuthSessionState
-import fr.pokenity.pokenity.domain.model.AuthCharacter
+import fr.pokenity.data.core.AppContainer
+import fr.pokenity.data.core.AuthSessionState
+import fr.pokenity.data.model.AuthCharacter
 import fr.pokenity.pokenity.domain.usecase.AuthFetchCharactersUseCase
 import fr.pokenity.pokenity.domain.usecase.AuthLoginUseCase
 import fr.pokenity.pokenity.domain.usecase.AuthRegisterUseCase

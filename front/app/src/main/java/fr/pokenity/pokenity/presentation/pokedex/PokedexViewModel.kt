@@ -3,10 +3,10 @@ package fr.pokenity.pokenity.presentation.pokedex
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import fr.pokenity.pokenity.core.AppContainer
-import fr.pokenity.pokenity.core.AppLanguageState
-import fr.pokenity.pokenity.domain.model.PokemonFilterOption
-import fr.pokenity.pokenity.domain.model.PokemonSummary
+import fr.pokenity.data.core.AppContainer
+import fr.pokenity.data.core.AppLanguageState
+import fr.pokenity.data.model.PokemonFilterOption
+import fr.pokenity.data.model.PokemonSummary
 import fr.pokenity.pokenity.domain.usecase.GetPokemonAbilitiesUseCase
 import fr.pokenity.pokenity.domain.usecase.GetPokemonByAbilityUseCase
 import fr.pokenity.pokenity.domain.usecase.GetPokemonByGenerationUseCase

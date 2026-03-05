@@ -1,7 +1,7 @@
 package fr.pokenity.pokenity.presentation.map
 
-import fr.pokenity.pokenity.domain.model.PokemonFilterOption
-import fr.pokenity.pokenity.domain.model.PokemonSummary
+import fr.pokenity.data.model.PokemonFilterOption
+import fr.pokenity.data.model.PokemonSummary
 
 data class MapUiState(
     val isLoading: Boolean = true,

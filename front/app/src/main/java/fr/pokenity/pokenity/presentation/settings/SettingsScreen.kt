@@ -20,8 +20,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import fr.pokenity.pokenity.core.AppThemeMode
-import fr.pokenity.pokenity.core.PokemonImageType
+import fr.pokenity.data.core.AppThemeMode
+import fr.pokenity.data.core.PokemonImageType
 
 @Composable
 fun SettingsScreen(

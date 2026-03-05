@@ -37,10 +37,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import fr.pokenity.pokenity.core.AuthSessionState
-import fr.pokenity.pokenity.core.PokemonBrowseState
-import fr.pokenity.pokenity.core.AppThemeState
-import fr.pokenity.pokenity.core.AppThemeMode
+import fr.pokenity.data.model.PokemonFilterOption
+import fr.pokenity.data.core.AuthSessionState
+import fr.pokenity.data.core.PokemonBrowseState
+import fr.pokenity.data.core.AppThemeState
+import fr.pokenity.data.core.AppThemeMode
 import fr.pokenity.pokenity.presentation.auth.AuthFlowViewModel
 import fr.pokenity.pokenity.presentation.auth.CharacterSelectionScreen
 import fr.pokenity.pokenity.presentation.auth.LoginScreen
@@ -405,12 +406,12 @@ private fun ComparePickerScreen(
     onRetry: () -> Unit,
     onFilterCategorySelected: (fr.pokenity.pokenity.presentation.pokedex.PokedexSection) -> Unit,
     onLoadMore: () -> Unit,
-    onTypeClicked: (fr.pokenity.pokenity.domain.model.PokemonFilterOption) -> Unit,
-    onGenerationClicked: (fr.pokenity.pokenity.domain.model.PokemonFilterOption) -> Unit,
-    onAbilityClicked: (fr.pokenity.pokenity.domain.model.PokemonFilterOption) -> Unit,
-    onHabitatClicked: (fr.pokenity.pokenity.domain.model.PokemonFilterOption) -> Unit,
-    onRegionClicked: (fr.pokenity.pokenity.domain.model.PokemonFilterOption) -> Unit,
-    onShapeClicked: (fr.pokenity.pokenity.domain.model.PokemonFilterOption) -> Unit,
+    onTypeClicked: (PokemonFilterOption) -> Unit,
+    onGenerationClicked: (PokemonFilterOption) -> Unit,
+    onAbilityClicked: (PokemonFilterOption) -> Unit,
+    onHabitatClicked: (PokemonFilterOption) -> Unit,
+    onRegionClicked: (PokemonFilterOption) -> Unit,
+    onShapeClicked: (PokemonFilterOption) -> Unit,
     onClearTypeFilter: () -> Unit,
     onClearGenerationFilter: () -> Unit,
     onClearAbilityFilter: () -> Unit,

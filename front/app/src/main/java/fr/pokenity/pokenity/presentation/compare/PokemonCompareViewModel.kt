@@ -3,8 +3,8 @@ package fr.pokenity.pokenity.presentation.compare
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import fr.pokenity.pokenity.core.AppContainer
-import fr.pokenity.pokenity.core.AppLanguageState
+import fr.pokenity.data.core.AppContainer
+import fr.pokenity.data.core.AppLanguageState
 import fr.pokenity.pokenity.domain.usecase.GetPokemonDetailUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
