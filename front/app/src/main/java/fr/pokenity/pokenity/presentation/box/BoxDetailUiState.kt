@@ -28,4 +28,10 @@ data class BoxPokemonUi(
             if (resourceId <= 0) return ""
             return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/$resourceId.png"
         }
+
+    val gifUrl: String
+        get() {
+            if (resourceId <= 0) return ""
+            return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/$resourceId.gif"
+        }
 }

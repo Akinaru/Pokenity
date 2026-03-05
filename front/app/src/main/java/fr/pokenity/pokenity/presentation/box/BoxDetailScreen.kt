@@ -2,9 +2,11 @@ package fr.pokenity.pokenity.presentation.box
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -32,11 +34,14 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import coil.imageLoader
@@ -44,7 +49,6 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import kotlinx.coroutines.delay
 import java.util.Locale
-import kotlin.math.abs
 import kotlin.math.pow
 import kotlin.math.roundToLong
 
@@ -86,127 +90,144 @@ fun BoxDetailScreen(
         }
 
         else -> {
+            val context = LocalContext.current
             val box = uiState.box
             val rows = remember(uiState.orderedEntries) { uiState.orderedEntries.chunked(2) }
+            val pageBackgroundResId = remember {
+                context.resources.getIdentifier("draw_background", "drawable", context.packageName)
+            }
 
-            LazyColumn(
-                modifier = modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+            Box(
+                modifier = modifier.fillMaxSize()
             ) {
-                item {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
-                        tonalElevation = 2.dp
-                    ) {
+                if (pageBackgroundResId != 0) {
+                    Image(
+                        painter = painterResource(id = pageBackgroundResId),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    item {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(18.dp),
+                            tonalElevation = 2.dp
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                AsyncImage(
+                                    model = box.pokeballImage,
+                                    contentDescription = box.name,
+                                    modifier = Modifier.size(96.dp)
+                                )
+                                Text(
+                                    text = box.name,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "${box.entries.size} pokemons dans la box",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                    }
+
+                    item {
+                        Text(
+                            text = "Ouverture",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    item {
                         Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
+                            modifier = Modifier.fillMaxWidth(),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            AsyncImage(
-                                model = box.pokeballImage,
-                                contentDescription = box.name,
-                                modifier = Modifier.size(96.dp)
-                            )
+                            Button(
+                                onClick = onOpenBox,
+                                enabled = !uiState.isOpening && !uiState.isSpinning && uiState.orderedEntries.isNotEmpty()
+                            ) {
+                                Text(
+                                    when {
+                                        uiState.isOpening -> "Ouverture..."
+                                        uiState.isSpinning -> "Flash en cours..."
+                                        else -> "Lancer l'ouverture"
+                                    }
+                                )
+                            }
+
+                            if (uiState.openingErrorMessage != null) {
+                                Text(
+                                    text = uiState.openingErrorMessage,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.error,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+                    }
+
+                    item {
+                        Text(
+                            text = "Pokemons (du plus rare au moins rare)",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    if (rows.isEmpty()) {
+                        item {
                             Text(
-                                text = box.name,
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "${box.entries.size} pokemons dans la box",
+                                text = "Aucun pokemon dans cette box.",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
-                    }
-                }
-
-                item {
-                    Text(
-                        text = "Draw flash",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.ExtraBold
-                    )
-                }
-
-                item {
-                    FlashDrawTrack(
-                        items = uiState.rouletteItems,
-                        spinRequestId = uiState.spinRequestId,
-                        onSpinAnimationCompleted = onSpinAnimationCompleted,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                item {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = onOpenBox,
-                            enabled = !uiState.isOpening && !uiState.isSpinning && uiState.orderedEntries.isNotEmpty()
-                        ) {
-                            Text(
-                                when {
-                                    uiState.isOpening -> "Ouverture..."
-                                    uiState.isSpinning -> "Flash en cours..."
-                                    else -> "Lancer l'ouverture"
+                    } else {
+                        items(rows) { rowItems ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                rowItems.forEach { entry ->
+                                    BoxPokemonTile(
+                                        pokemon = entry,
+                                        modifier = Modifier.weight(1f)
+                                    )
                                 }
-                            )
-                        }
-
-                        if (uiState.openingErrorMessage != null) {
-                            Text(
-                                text = uiState.openingErrorMessage,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.error,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                    }
-                }
-
-                item {
-                    Text(
-                        text = "Pokemons (du plus rare au moins rare)",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                if (rows.isEmpty()) {
-                    item {
-                        Text(
-                            text = "Aucun pokemon dans cette box.",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                } else {
-                    items(rows) { rowItems ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            rowItems.forEach { entry ->
-                                BoxPokemonTile(
-                                    pokemon = entry,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                            if (rowItems.size == 1) {
-                                Spacer(modifier = Modifier.weight(1f))
+                                if (rowItems.size == 1) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
                             }
                         }
                     }
                 }
+            }
+
+            if (uiState.isOpening || uiState.isSpinning) {
+                FullScreenDrawOverlay(
+                    isSpinning = uiState.isSpinning,
+                    items = uiState.rouletteItems,
+                    spinRequestId = uiState.spinRequestId,
+                    onSpinAnimationCompleted = onSpinAnimationCompleted
+                )
             }
 
             val reward = uiState.pendingReward
@@ -226,7 +247,7 @@ fun BoxDetailScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             AsyncImage(
-                                model = reward.imageUrl,
+                                model = reward.gifUrl,
                                 contentDescription = reward.resourceName,
                                 modifier = Modifier.size(124.dp)
                             )
@@ -255,7 +276,51 @@ fun BoxDetailScreen(
 }
 
 @Composable
-private fun FlashDrawTrack(
+private fun FullScreenDrawOverlay(
+    isSpinning: Boolean,
+    items: List<BoxPokemonUi>,
+    spinRequestId: Long,
+    onSpinAnimationCompleted: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color(0xED020A1A))
+    ) {
+        if (!isSpinning) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                CircularProgressIndicator(color = Color(0xFFFFDF2B))
+                Text(
+                    text = "Preparation du draw...",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color(0xFFF0F6FF),
+                    textAlign = TextAlign.Center
+                )
+            }
+            return@Box
+        }
+
+        FlashDrawVerticalTrack(
+            items = items,
+            spinRequestId = spinRequestId,
+            onSpinAnimationCompleted = onSpinAnimationCompleted,
+            modifier = Modifier
+                .align(Alignment.Center)
+                .fillMaxSize()
+                .padding(horizontal = 20.dp, vertical = 24.dp)
+        )
+    }
+}
+
+@Composable
+private fun FlashDrawVerticalTrack(
     items: List<BoxPokemonUi>,
     spinRequestId: Long,
     onSpinAnimationCompleted: () -> Unit,
@@ -266,7 +331,10 @@ private fun FlashDrawTrack(
     }
     var isFlashing by remember(spinRequestId) { mutableStateOf(false) }
     var lastPlayedSpinId by remember { mutableStateOf(-1L) }
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
+    val drawBackgroundResId = remember {
+        context.resources.getIdentifier("draw_background", "drawable", context.packageName)
+    }
 
     LaunchedEffect(items.size) {
         if (!isFlashing) {
@@ -327,15 +395,31 @@ private fun FlashDrawTrack(
     }
 
     val displayedPokemon = items.getOrNull(currentIndex)
-    val slotOffsets = remember { listOf(-2, -1, 0, 1, 2) }
+    val slotOffsets = remember { listOf(-3, -2, -1, 0, 1, 2, 3) }
 
     Box(
         modifier = modifier
-            .height(200.dp)
             .clip(RoundedCornerShape(28.dp))
-            .background(Color(0xFF031533))
             .border(width = 1.dp, color = Color(0xFF204A88), shape = RoundedCornerShape(28.dp))
     ) {
+        if (drawBackgroundResId != 0) {
+            Image(
+                painter = painterResource(id = drawBackgroundResId),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(28.dp))
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(Color(0xFF031533))
+            )
+        }
+
         if (displayedPokemon == null) {
             Text(
                 text = "Aucun pokemon pour le draw",
@@ -349,49 +433,47 @@ private fun FlashDrawTrack(
             return@Box
         }
 
-        Row(
+        BoxWithConstraints(
             modifier = Modifier
                 .align(Alignment.Center)
-                .fillMaxWidth()
-                .padding(horizontal = 6.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxSize()
+                .padding(horizontal = 14.dp, vertical = 20.dp)
         ) {
-            slotOffsets.forEach { offset ->
-                val slotPokemon = items.getOrNull(cyclicIndex(currentIndex + offset, items.size)) ?: displayedPokemon
-                val slotSize = when (abs(offset)) {
-                    2 -> 52.dp
-                    1 -> 64.dp
-                    else -> 112.dp
+            val itemSpacing = 6.dp
+            val normalCardSize = (maxWidth * 0.58f).coerceIn(114.dp, 142.dp)
+            val centerCardSize = (normalCardSize * 1.34f).coerceIn(148.dp, 188.dp)
+
+            val centerToFirstOffset = ((centerCardSize + normalCardSize) / 2f) + itemSpacing
+            val regularStep = normalCardSize + itemSpacing
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .fillMaxSize()
+            ) {
+                slotOffsets.forEach { offset ->
+                    val slotPokemon = items.getOrNull(cyclicIndex(currentIndex + offset, items.size)) ?: displayedPokemon
+                    val isCenterSlot = offset == 0
+                    val absOffset = kotlin.math.abs(offset)
+                    val direction = if (offset < 0) -1 else 1
+                    val slotOffsetY = when {
+                        offset == 0 -> 0.dp
+                        absOffset == 1 -> centerToFirstOffset * direction
+                        else -> (centerToFirstOffset + (regularStep * (absOffset - 1))) * direction
+                    }
+
+                    RouletteItemTile(
+                        pokemon = slotPokemon,
+                        isWinningItem = !isFlashing && spinRequestId > 0L && isCenterSlot && currentIndex == items.lastIndex,
+                        isCenter = isCenterSlot,
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .offset(y = slotOffsetY)
+                            .size(if (isCenterSlot) centerCardSize else normalCardSize)
+                    )
                 }
-                RouletteItemTile(
-                    pokemon = slotPokemon,
-                    isWinningItem = !isFlashing && spinRequestId > 0L && offset == 0 && currentIndex == items.lastIndex,
-                    isCenter = offset == 0,
-                    modifier = Modifier.size(slotSize)
-                )
             }
         }
-
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 14.dp)
-                .height(24.dp)
-                .width(110.dp)
-                .clip(RoundedCornerShape(99.dp))
-                .background(if (isFlashing) Color(0xFF2A8BFF) else Color(0xFFFFDF2B))
-        )
-
-        Box(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .offset(y = 78.dp)
-                .height(3.dp)
-                .width(100.dp)
-                .clip(RoundedCornerShape(99.dp))
-                .background(if (isFlashing) Color(0x402A8BFF) else Color(0x80FFDF2B))
-        )
     }
 }
 
@@ -403,32 +485,30 @@ private fun RouletteItemTile(
     modifier: Modifier = Modifier
 ) {
     val rarity = rarityStyle(pokemon.dropRate)
-    val borderColor = if (isWinningItem) Color(0xFFFFD54F) else rarity.border
+    val context = LocalContext.current
+    val rarityBackgroundResId = remember(rarity.backgroundDrawableName) {
+        context.resources.getIdentifier(rarity.backgroundDrawableName, "drawable", context.packageName)
+    }
 
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        color = rarity.background,
-        border = androidx.compose.foundation.BorderStroke(1.dp, borderColor)
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = modifier) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            if (rarityBackgroundResId != 0) {
+                Image(
+                    painter = painterResource(id = rarityBackgroundResId),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
+            val imageSize = if (isCenter) maxWidth * 0.82f else maxWidth * 0.78f
             AsyncImage(
                 model = pokemon.imageUrl,
                 contentDescription = pokemon.resourceName,
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .size(if (isCenter) 70.dp else 44.dp)
-            )
-            Text(
-                text = pokemon.resourceName.prettyPokemonName(),
-                style = if (isCenter) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelSmall,
-                color = Color(0xFFF0F6FF),
-                maxLines = 1,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(horizontal = 5.dp, vertical = 8.dp)
+                    .size(imageSize),
+                contentScale = ContentScale.Fit
             )
         }
     }
@@ -440,41 +520,90 @@ private fun BoxPokemonTile(
     modifier: Modifier = Modifier
 ) {
     val rarity = rarityStyle(pokemon.dropRate)
-    Surface(
-        modifier = modifier.aspectRatio(1f),
-        shape = RoundedCornerShape(16.dp),
-        color = rarity.background,
-        border = androidx.compose.foundation.BorderStroke(1.dp, rarity.border),
-        tonalElevation = 2.dp
+    val context = LocalContext.current
+    val rarityBackgroundResId = remember(rarity.backgroundDrawableName) {
+        context.resources.getIdentifier(rarity.backgroundDrawableName, "drawable", context.packageName)
+    }
+    val descBackgroundResId = remember(rarity.descBackgroundDrawableName) {
+        context.resources.getIdentifier(rarity.descBackgroundDrawableName, "drawable", context.packageName)
+    }
+
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            AsyncImage(
-                model = pokemon.imageUrl,
-                contentDescription = pokemon.resourceName,
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .size(84.dp)
-            )
-            Text(
-                text = pokemon.resourceName.prettyPokemonName(),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 22.dp)
-            )
-            Text(
-                text = "${"%.2f".format(pokemon.dropRate)}%",
-                style = MaterialTheme.typography.labelSmall,
-                color = rarity.dropRateText,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp)
-            )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+        ) {
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                if (rarityBackgroundResId != 0) {
+                    Image(
+                        painter = painterResource(id = rarityBackgroundResId),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                AsyncImage(
+                    model = pokemon.imageUrl,
+                    contentDescription = pokemon.resourceName,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(maxWidth * 0.84f),
+                    contentScale = ContentScale.Fit
+                )
+            }
+        }
+
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            shape = RoundedCornerShape(10.dp),
+            color = Color.Transparent
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                if (descBackgroundResId != 0) {
+                    Image(
+                        painter = painterResource(id = descBackgroundResId),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFFF2F2F2))
+                    )
+                }
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = pokemon.resourceName.prettyPokemonName(),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        textAlign = TextAlign.Center,
+                        color = Color(0xFF111111),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text(
+                        text = "${"%.2f".format(pokemon.dropRate)}%",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFF111111),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
         }
     }
 }
@@ -482,29 +611,24 @@ private fun BoxPokemonTile(
 private fun rarityStyle(dropRate: Double): RarityStyle {
     return when {
         dropRate <= 1.5 -> RarityStyle(
-            border = Color(0xFFFFA726),
-            background = Color(0xFF2A1A08),
-            dropRateText = Color(0xFFFFD180)
+            backgroundDrawableName = "card_bg_legendary",
+            descBackgroundDrawableName = "desc_bg_legendary"
         )
         dropRate <= 4.0 -> RarityStyle(
-            border = Color(0xFFBA68C8),
-            background = Color(0xFF24162B),
-            dropRateText = Color(0xFFE1BEE7)
+            backgroundDrawableName = "card_bg_epic",
+            descBackgroundDrawableName = "desc_bg_epic"
         )
         dropRate <= 8.0 -> RarityStyle(
-            border = Color(0xFF64B5F6),
-            background = Color(0xFF0F2336),
-            dropRateText = Color(0xFFBBDEFB)
+            backgroundDrawableName = "card_bg_rare",
+            descBackgroundDrawableName = "desc_bg_rare"
         )
         dropRate <= 16.0 -> RarityStyle(
-            border = Color(0xFF81C784),
-            background = Color(0xFF132717),
-            dropRateText = Color(0xFFC8E6C9)
+            backgroundDrawableName = "card_bg_uncommon",
+            descBackgroundDrawableName = "desc_bg_uncommon"
         )
         else -> RarityStyle(
-            border = Color(0xFFB0BEC5),
-            background = Color(0xFF1F252A),
-            dropRateText = Color(0xFFECEFF1)
+            backgroundDrawableName = "card_bg_common",
+            descBackgroundDrawableName = "desc_bg_common"
         )
     }
 }
@@ -516,9 +640,8 @@ private fun cyclicIndex(index: Int, size: Int): Int {
 }
 
 private data class RarityStyle(
-    val border: Color,
-    val background: Color,
-    val dropRateText: Color
+    val backgroundDrawableName: String,
+    val descBackgroundDrawableName: String
 )
 
 private fun String.prettyPokemonName(): String {
