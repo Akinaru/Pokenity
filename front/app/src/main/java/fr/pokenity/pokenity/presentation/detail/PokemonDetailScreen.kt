@@ -429,7 +429,10 @@ private fun SheetTabContent(
                     visualPreset = visualPreset,
                     onOpenComparator = onOpenComparator
                 )
-                DetailTab.Stats -> StatsTabContent(stats = pokemon.stats)
+                DetailTab.Stats -> StatsTabContent(
+                    stats = pokemon.stats,
+                    genderText = pokemon.genderText
+                )
                 DetailTab.Moves -> MovesTabContent(
                     moves = pokemon.moves,
                     visualPreset = visualPreset
@@ -517,8 +520,14 @@ private fun AboutTabContent(
 // ─── Tab: Stats ────────────────────────────────────────────────────
 
 @Composable
-private fun StatsTabContent(stats: List<PokemonStat>) {
-    StatsSection(stats = stats)
+private fun StatsTabContent(
+    stats: List<PokemonStat>,
+    genderText: String
+) {
+    StatsSection(
+        stats = stats,
+        genderText = genderText
+    )
 }
 
 // ─── Tab: Moves ────────────────────────────────────────────────────
@@ -632,7 +641,10 @@ private fun TypeImageChip(type: PokemonType, visualPreset: PokemonVisualPreset) 
 }
 
 @Composable
-private fun StatsSection(stats: List<PokemonStat>) {
+private fun StatsSection(
+    stats: List<PokemonStat>,
+    genderText: String
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -644,6 +656,34 @@ private fun StatsSection(stats: List<PokemonStat>) {
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 12.dp)
         )
+
+        if (genderText.isNotBlank()) {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                tonalElevation = 1.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 10.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Sexe",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = genderText,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
 
         Surface(
             shape = RoundedCornerShape(20.dp),

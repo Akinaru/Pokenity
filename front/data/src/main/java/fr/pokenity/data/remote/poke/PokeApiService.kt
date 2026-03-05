@@ -123,6 +123,7 @@ internal class PokeApiService(
         // so we keep a typed manual parse here via the raw detail endpoint.
         // We use a local helper that mirrors the old fetchObject approach but stays typed.
         val raw = api.getPokemonRaw(id).parse()
+        val species = runCatching { api.getPokemonSpecies(id).parse() }.getOrNull()
 
         val types = raw.types.map { slot ->
             val typeUrl = slot.type.url
@@ -156,6 +157,7 @@ internal class PokeApiService(
             name = raw.name,
             height = raw.height,
             weight = raw.weight,
+            genderRate = species?.genderRate,
             types = types,
             stats = stats,
             abilities = abilities,
