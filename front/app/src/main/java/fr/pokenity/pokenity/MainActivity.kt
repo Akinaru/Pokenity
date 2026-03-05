@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -358,6 +359,9 @@ class MainActivity : ComponentActivity() {
                                         HomeScreen(
                                             uiState = homeUiState,
                                             onRetry = homeViewModel::loadLatestBoxes,
+                                            onOpenPokedex = {
+                                                navController.navigate("pokedex")
+                                            },
                                             onOpenMapExplorer = {
                                                 navController.navigate("map-explorer")
                                             },
@@ -376,26 +380,17 @@ class MainActivity : ComponentActivity() {
                                             MoiScreen.PROFILE -> {
                                                 MoiProfileScreen(
                                                     accountUiState = accountUiState,
-                                                    pokedexUiState = pokedexUiState,
-                                                    onRetry = pokedexViewModel::loadPokedexData,
-                                                    onFilterCategorySelected = pokedexViewModel::onFilterCategorySelected,
-                                                    onLoadMore = pokedexViewModel::loadMorePokemonIfNeeded,
-                                                    onPokemonClick = { id, ids ->
-                                                        PokemonBrowseState.setList(ids)
+                                                    onPokemonClick = { id ->
+                                                        PokemonBrowseState.setList(
+                                                            accountUiState.pokemonCollection
+                                                                .asSequence()
+                                                                .filter { (_, quantity) -> quantity > 0 }
+                                                                .map { (pokemonId, _) -> pokemonId }
+                                                                .sorted()
+                                                                .toList()
+                                                        )
                                                         navController.navigate("detail/$id")
                                                     },
-                                                    onTypeClicked = pokedexViewModel::onTypeClicked,
-                                                    onGenerationClicked = pokedexViewModel::onGenerationClicked,
-                                                    onAbilityClicked = pokedexViewModel::onAbilityClicked,
-                                                    onHabitatClicked = pokedexViewModel::onHabitatClicked,
-                                                    onRegionClicked = pokedexViewModel::onRegionClicked,
-                                                    onShapeClicked = pokedexViewModel::onShapeClicked,
-                                                    onClearTypeFilter = pokedexViewModel::clearTypeFilter,
-                                                    onClearGenerationFilter = pokedexViewModel::clearGenerationFilter,
-                                                    onClearAbilityFilter = pokedexViewModel::clearAbilityFilter,
-                                                    onClearHabitatFilter = pokedexViewModel::clearHabitatFilter,
-                                                    onClearRegionFilter = pokedexViewModel::clearRegionFilter,
-                                                    onClearShapeFilter = pokedexViewModel::clearShapeFilter,
                                                     modifier = Modifier.padding(innerPadding)
                                                 )
                                             }
@@ -476,6 +471,54 @@ class MainActivity : ComponentActivity() {
                                     onBackToRegions = mapViewModel::backToRegions,
                                     onBackToLocations = mapViewModel::backToLocations,
                                     onBackToAreas = mapViewModel::backToAreas,
+                                    modifier = Modifier.padding(innerPadding)
+                                )
+                            }
+                        }
+
+                        composable("pokedex") {
+                            Scaffold(
+                                containerColor = Color.Transparent,
+                                topBar = {
+                                    TopAppBar(
+                                        title = { Text("Pokedex") },
+                                        navigationIcon = {
+                                            IconButton(onClick = { navController.popBackStack() }) {
+                                                Icon(
+                                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                                    contentDescription = "Retour"
+                                                )
+                                            }
+                                        },
+                                        colors = TopAppBarDefaults.topAppBarColors()
+                                    )
+                                }
+                            ) { innerPadding ->
+                                PokedexScreen(
+                                    uiState = pokedexUiState,
+                                    onRetry = pokedexViewModel::loadPokedexData,
+                                    onFilterCategorySelected = pokedexViewModel::onFilterCategorySelected,
+                                    onLoadMore = pokedexViewModel::loadMorePokemonIfNeeded,
+                                    onPokemonClick = { id, ids ->
+                                        PokemonBrowseState.setList(ids)
+                                        navController.navigate("detail/$id")
+                                    },
+                                    onTypeClicked = pokedexViewModel::onTypeClicked,
+                                    onGenerationClicked = pokedexViewModel::onGenerationClicked,
+                                    onAbilityClicked = pokedexViewModel::onAbilityClicked,
+                                    onHabitatClicked = pokedexViewModel::onHabitatClicked,
+                                    onRegionClicked = pokedexViewModel::onRegionClicked,
+                                    onShapeClicked = pokedexViewModel::onShapeClicked,
+                                    onClearTypeFilter = pokedexViewModel::clearTypeFilter,
+                                    onClearGenerationFilter = pokedexViewModel::clearGenerationFilter,
+                                    onClearAbilityFilter = pokedexViewModel::clearAbilityFilter,
+                                    onClearHabitatFilter = pokedexViewModel::clearHabitatFilter,
+                                    onClearRegionFilter = pokedexViewModel::clearRegionFilter,
+                                    onClearShapeFilter = pokedexViewModel::clearShapeFilter,
+                                    collectionMode = true,
+                                    ownedQuantities = accountUiState.pokemonCollection,
+                                    showOwnershipFilter = false,
+                                    totalPokemonCount = pokedexUiState.totalPokemonCount,
                                     modifier = Modifier.padding(innerPadding)
                                 )
                             }
@@ -734,6 +777,7 @@ private fun SocialScreen(modifier: Modifier = Modifier) {
 private fun HomeScreen(
     uiState: HomeUiState,
     onRetry: () -> Unit,
+    onOpenPokedex: () -> Unit,
     onOpenMapExplorer: () -> Unit,
     onOpenAllBoxes: () -> Unit,
     onOpenBox: (String) -> Unit,
@@ -750,6 +794,45 @@ private fun HomeScreen(
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
+
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .clickable(onClick = onOpenPokedex),
+            shape = RoundedCornerShape(20.dp),
+            tonalElevation = 2.dp
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 18.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.CatchingPokemon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Pokedex",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Acceder au Pokedex complet avec tous les filtres",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
+                    )
+                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = "Ouvrir"
+                )
+            }
+        }
 
         Surface(
             modifier = Modifier
@@ -938,50 +1021,108 @@ private fun SettingsMenuScreen(
 @Composable
 private fun MoiProfileScreen(
     accountUiState: AccountUiState,
-    pokedexUiState: PokedexUiState,
-    onRetry: () -> Unit,
-    onFilterCategorySelected: (PokedexSection) -> Unit,
-    onLoadMore: () -> Unit,
-    onPokemonClick: (Int, List<Int>) -> Unit,
-    onTypeClicked: (PokemonFilterOption) -> Unit,
-    onGenerationClicked: (PokemonFilterOption) -> Unit,
-    onAbilityClicked: (PokemonFilterOption) -> Unit,
-    onHabitatClicked: (PokemonFilterOption) -> Unit,
-    onRegionClicked: (PokemonFilterOption) -> Unit,
-    onShapeClicked: (PokemonFilterOption) -> Unit,
-    onClearTypeFilter: () -> Unit,
-    onClearGenerationFilter: () -> Unit,
-    onClearAbilityFilter: () -> Unit,
-    onClearHabitatFilter: () -> Unit,
-    onClearRegionFilter: () -> Unit,
-    onClearShapeFilter: () -> Unit,
+    onPokemonClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    PokedexScreen(
-        uiState = pokedexUiState,
-        onRetry = onRetry,
-        onFilterCategorySelected = onFilterCategorySelected,
-        onLoadMore = onLoadMore,
-        onPokemonClick = onPokemonClick,
-        onTypeClicked = onTypeClicked,
-        onGenerationClicked = onGenerationClicked,
-        onAbilityClicked = onAbilityClicked,
-        onHabitatClicked = onHabitatClicked,
-        onRegionClicked = onRegionClicked,
-        onShapeClicked = onShapeClicked,
-        onClearTypeFilter = onClearTypeFilter,
-        onClearGenerationFilter = onClearGenerationFilter,
-        onClearAbilityFilter = onClearAbilityFilter,
-        onClearHabitatFilter = onClearHabitatFilter,
-        onClearRegionFilter = onClearRegionFilter,
-        onClearShapeFilter = onClearShapeFilter,
-        collectionMode = true,
-        ownedQuantities = accountUiState.pokemonCollection,
-        showOwnershipFilter = true,
-        totalPokemonCount = pokedexUiState.totalPokemonCount,
-        headerContent = { MoiHeaderCard(uiState = accountUiState) },
+    val ownedPokemon = remember(accountUiState.pokemonCollection) {
+        accountUiState.pokemonCollection
+            .asSequence()
+            .filter { (_, quantity) -> quantity > 0 }
+            .sortedBy { (pokemonId, _) -> pokemonId }
+            .toList()
+    }
+    val gridState = rememberLazyGridState()
+
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(3),
+        state = gridState,
         modifier = modifier
-    )
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            MoiHeaderCard(uiState = accountUiState)
+        }
+
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Text(
+                text = "Collection: ${ownedPokemon.size} Pokemon",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        if (ownedPokemon.isEmpty()) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color(0x33180707)
+                ) {
+                    Text(
+                        text = "Aucun Pokemon possede pour le moment.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(14.dp)
+                    )
+                }
+            }
+        } else {
+            items(
+                items = ownedPokemon,
+                key = { (pokemonId, _) -> pokemonId }
+            ) { (pokemonId, quantity) ->
+                OwnedPokemonCard(
+                    pokemonId = pokemonId,
+                    quantity = quantity,
+                    onClick = { onPokemonClick(pokemonId) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun OwnedPokemonCard(
+    pokemonId: Int,
+    quantity: Int,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        color = Color(0x33180707)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            PokemonSpriteImage(
+                pokemonId = pokemonId,
+                contentDescription = "Pokemon #$pokemonId",
+                imageType = PokemonImageType.HOME,
+                shiny = false,
+                modifier = Modifier.size(64.dp)
+            )
+            Text(
+                text = "#$pokemonId",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = "x$quantity",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
+            )
+        }
+    }
 }
 
 @Composable
