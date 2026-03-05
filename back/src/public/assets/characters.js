@@ -1,50 +1,115 @@
 (() => {
-  const { activateNav, api, escapeHtml, formatDate, notify, qs } = window.AdminCommon;
+  const {
+    activateNav,
+    api,
+    bindModal,
+    closeModal,
+    escapeHtml,
+    formatDate,
+    notify,
+    openModal,
+    qs,
+  } = window.AdminCommon;
+
   activateNav();
 
-  const createForm = qs("#createCharacterForm");
-  const editForm = qs("#editCharacterForm");
-  const cancelEditBtn = qs("#cancelCharacterEditBtn");
-  const editMeta = qs("#editCharacterMeta");
-  const charactersCount = qs("#charactersCount");
   const charactersBadge = qs("#charactersBadge");
+  const charactersCount = qs("#charactersCount");
+  const charactersSearch = qs("#charactersSearch");
   const tableWrap = qs("#charactersTableWrap");
 
-  let characters = [];
-  let selectedCharacterId = null;
+  const characterModal = qs("#characterModal");
+  const characterModalTitle = qs("#characterModalTitle");
+  const characterModalMeta = qs("#characterModalMeta");
+  const characterForm = qs("#characterForm");
+  const submitCharacterFormBtn = qs("#submitCharacterForm");
+  const openCreateCharacterModalBtn = qs("#openCreateCharacterModal");
 
-  function resetEditForm() {
-    selectedCharacterId = null;
-    editMeta.textContent = "No character selected.";
-    editForm.reset();
+  bindModal(characterModal);
+
+  const state = {
+    characters: [],
+    mode: "create",
+    filter: "",
+    editingCharacter: null,
+  };
+
+  function normalizedText(value) {
+    return String(value || "").trim().toLowerCase();
   }
 
-  function fileNameTag(value) {
-    if (!value) return '<span class="bo-help">-</span>';
-    return `<span class="bo-pill">${escapeHtml(value)}</span>`;
+  function filteredCharacters() {
+    const query = normalizedText(state.filter);
+    if (!query) {
+      return state.characters;
+    }
+
+    return state.characters.filter((character) => {
+      const avatar = character.avatarFileName || character.avatarUrl;
+      const image = character.imageFileName || character.imageUrl;
+
+      return [character.name, avatar, image]
+        .map(normalizedText)
+        .some((value) => value.includes(query));
+    });
+  }
+
+  function openCreateCharacterModal() {
+    state.mode = "create";
+    state.editingCharacter = null;
+
+    characterModalTitle.textContent = "Creer un personnage";
+    characterModalMeta.textContent = "Creation complete avec les 3 champs requis.";
+    submitCharacterFormBtn.textContent = "Creer";
+
+    characterForm.reset();
+    openModal(characterModal, "#characterName");
+  }
+
+  function openEditCharacterModal(character) {
+    state.mode = "edit";
+    state.editingCharacter = character;
+
+    characterModalTitle.textContent = `Editer ${character.name}`;
+    characterModalMeta.textContent = "Modifie le nom ou les fichiers image directement.";
+    submitCharacterFormBtn.textContent = "Enregistrer";
+
+    characterForm.name.value = character.name;
+    characterForm.avatarFileName.value = character.avatarFileName || character.avatarUrl || "";
+    characterForm.imageFileName.value = character.imageFileName || character.imageUrl || "";
+
+    openModal(characterModal, "#characterName");
   }
 
   function renderTable() {
-    charactersCount.textContent = String(characters.length);
-    charactersBadge.textContent = `${characters.length} characters`;
+    const rowsData = filteredCharacters();
 
-    if (!characters.length) {
-      tableWrap.innerHTML = '<div class="bo-empty">No characters yet.</div>';
+    charactersBadge.textContent = `${state.characters.length} characters`;
+    charactersCount.textContent = String(rowsData.length);
+
+    if (!rowsData.length) {
+      tableWrap.innerHTML = '<div class="bo-empty">Aucun personnage trouve.</div>';
       return;
     }
 
-    const rows = characters
+    const rows = rowsData
       .map((character) => {
+        const avatar = character.avatarFileName || character.avatarUrl || "-";
+        const image = character.imageFileName || character.imageUrl || "-";
+
         return `
           <tr>
-            <td><strong>${escapeHtml(character.name)}</strong></td>
-            <td>${fileNameTag(character.avatarFileName || character.avatarUrl)}</td>
-            <td>${fileNameTag(character.imageFileName || character.imageUrl)}</td>
-            <td>${formatDate(character.createdAt)}</td>
+            <td>
+              <strong>${escapeHtml(character.name)}</strong>
+              <div class="bo-meta">${escapeHtml(character.id)}</div>
+            </td>
+            <td><span class="bo-pill">${escapeHtml(avatar)}</span></td>
+            <td><span class="bo-pill">${escapeHtml(image)}</span></td>
+            <td>${formatDate(character.updatedAt || character.createdAt)}</td>
             <td>
               <div class="bo-actions">
-                <button class="bo-btn soft" data-action="edit" data-id="${character.id}" type="button">Edit</button>
-                <button class="bo-btn danger" data-action="delete" data-id="${character.id}" type="button">Delete</button>
+                <button class="bo-btn soft" data-action="edit" data-id="${character.id}" type="button">Editer</button>
+                <button class="bo-btn danger" data-action="delete" data-id="${character.id}" type="button">Supprimer</button>
               </div>
             </td>
           </tr>
@@ -56,10 +121,10 @@
       <table class="bo-table">
         <thead>
           <tr>
-            <th>Name</th>
+            <th>Character</th>
             <th>Avatar file</th>
             <th>Main image file</th>
-            <th>Created at</th>
+            <th>Updated</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -68,100 +133,122 @@
     `;
   }
 
-  async function loadCharacters() {
-    const data = await api("/api/characters");
-    characters = data.characters || [];
-    renderTable();
+  function buildCreatePayload() {
+    const name = String(characterForm.name.value || "").trim();
+    const avatarFileName = String(characterForm.avatarFileName.value || "").trim();
+    const imageFileName = String(characterForm.imageFileName.value || "").trim();
+
+    if (!name || !avatarFileName || !imageFileName) {
+      throw new Error("Name, avatar filename et main image filename sont requis.");
+    }
+
+    return { name, avatarFileName, imageFileName };
   }
 
-  createForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const formData = new FormData(createForm);
-
-    const payload = {
-      name: String(formData.get("name") || "").trim(),
-      avatarFileName: String(formData.get("avatarFileName") || "").trim(),
-      imageFileName: String(formData.get("imageFileName") || "").trim(),
-    };
-
-    try {
-      await api("/api/characters", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-      createForm.reset();
-      await loadCharacters();
-      notify("Character created.");
-    } catch (error) {
-      notify(error.message, "err");
-    }
-  });
-
-  editForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    if (!selectedCharacterId) {
-      notify("Select a character first.", "err");
-      return;
+  function buildEditPayload() {
+    if (!state.editingCharacter) {
+      throw new Error("Aucun personnage selectionne pour edition.");
     }
 
     const payload = {};
+    const name = String(characterForm.name.value || "").trim();
+    const avatarFileName = String(characterForm.avatarFileName.value || "").trim();
+    const imageFileName = String(characterForm.imageFileName.value || "").trim();
 
-    const name = String(editForm.name.value || "").trim();
-    const avatarFileName = String(editForm.avatarFileName.value || "").trim();
-    const imageFileName = String(editForm.imageFileName.value || "").trim();
-
-    if (name) payload.name = name;
-    if (avatarFileName) payload.avatarFileName = avatarFileName;
-    if (imageFileName) payload.imageFileName = imageFileName;
-
-    if (!Object.keys(payload).length) {
-      notify("No changes to save.", "err");
-      return;
+    if (!name || !avatarFileName || !imageFileName) {
+      throw new Error("Name, avatar filename et main image filename sont requis.");
     }
 
+    if (name !== state.editingCharacter.name) {
+      payload.name = name;
+    }
+
+    if (avatarFileName !== (state.editingCharacter.avatarFileName || state.editingCharacter.avatarUrl || "")) {
+      payload.avatarFileName = avatarFileName;
+    }
+
+    if (imageFileName !== (state.editingCharacter.imageFileName || state.editingCharacter.imageUrl || "")) {
+      payload.imageFileName = imageFileName;
+    }
+
+    if (!Object.keys(payload).length) {
+      throw new Error("Aucune modification detectee.");
+    }
+
+    return payload;
+  }
+
+  async function loadCharacters() {
+    const data = await api("/api/characters");
+    state.characters = data.characters || [];
+    renderTable();
+  }
+
+  openCreateCharacterModalBtn.addEventListener("click", openCreateCharacterModal);
+
+  charactersSearch.addEventListener("input", () => {
+    state.filter = charactersSearch.value;
+    renderTable();
+  });
+
+  submitCharacterFormBtn.addEventListener("click", async () => {
     try {
-      await api(`/api/characters/${selectedCharacterId}`, {
+      if (state.mode === "create") {
+        const payload = buildCreatePayload();
+        await api("/api/characters", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        closeModal(characterModal);
+        await loadCharacters();
+        notify("Character cree.");
+        return;
+      }
+
+      const payload = buildEditPayload();
+      await api(`/api/characters/${state.editingCharacter.id}`, {
         method: "PATCH",
         body: JSON.stringify(payload),
       });
+      closeModal(characterModal);
       await loadCharacters();
-      notify("Character updated.");
+      notify("Character modifie.");
     } catch (error) {
       notify(error.message, "err");
     }
   });
 
-  cancelEditBtn.addEventListener("click", resetEditForm);
-
   tableWrap.addEventListener("click", async (event) => {
     const button = event.target.closest("button[data-action]");
-    if (!button) return;
+    if (!button) {
+      return;
+    }
 
-    const character = characters.find((entry) => entry.id === button.dataset.id);
-    if (!character) return;
+    const characterId = String(button.dataset.id || "");
+    const character = state.characters.find((entry) => entry.id === characterId);
+    if (!character) {
+      return;
+    }
 
     if (button.dataset.action === "edit") {
-      selectedCharacterId = character.id;
-      editMeta.textContent = `Editing ${character.name}`;
-      editForm.name.value = character.name;
-      editForm.avatarFileName.value = character.avatarFileName || character.avatarUrl || "";
-      editForm.imageFileName.value = character.imageFileName || character.imageUrl || "";
+      openEditCharacterModal(character);
       return;
     }
 
     if (button.dataset.action === "delete") {
-      if (!confirm(`Delete character ${character.name}?`)) return;
+      if (!window.confirm(`Supprimer le character ${character.name} ?`)) {
+        return;
+      }
+
       try {
         await api(`/api/characters/${character.id}`, { method: "DELETE" });
-        if (selectedCharacterId === character.id) resetEditForm();
         await loadCharacters();
-        notify("Character deleted.");
+        notify("Character supprime.");
       } catch (error) {
         notify(error.message, "err");
       }
     }
   });
 
-  resetEditForm();
   loadCharacters().catch((error) => notify(error.message, "err"));
 })();

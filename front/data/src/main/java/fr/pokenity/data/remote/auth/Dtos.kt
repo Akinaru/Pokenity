@@ -29,6 +29,14 @@ internal data class AuthMeResponseDto(
     @SerializedName("user") val user: AuthUserDto
 )
 
+internal data class AuthEmailExistsResponseDto(
+    @SerializedName("exists") val exists: Boolean
+)
+
+internal data class AuthUsersResponseDto(
+    @SerializedName("users") val users: List<AuthUserDto>?
+)
+
 internal data class AuthCharactersResponseDto(
     @SerializedName("characters") val characters: List<AuthCharacterDto>?
 )

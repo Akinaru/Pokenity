@@ -14,6 +14,7 @@ data class AuthFlowUiState(
     val registerUsername: String = "",
     val registerEmail: String = "",
     val registerPassword: String = "",
+    val registerEmailConfirmed: Boolean = false,
 
     // Character selection
     val characters: List<AuthCharacterUiModel> = emptyList(),

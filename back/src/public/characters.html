@@ -12,79 +12,78 @@
     <div class="bo-layout">
       <aside class="bo-sidebar">
         <h2 class="bo-brand">Pokenity BO</h2>
-        <p class="bo-subtitle">Gestion interne API</p>
+        <p class="bo-subtitle">Administration API</p>
         <nav class="bo-nav">
           <a class="bo-nav-link" data-page="dashboard" href="/admin/">Dashboard</a>
           <a class="bo-nav-link" data-page="users" href="/admin/users.html">Users</a>
           <a class="bo-nav-link" data-page="boxes" href="/admin/boxes.html">Boxes</a>
           <a class="bo-nav-link" data-page="characters" href="/admin/characters.html">Characters</a>
+          <a class="bo-nav-link" data-page="trades" href="/admin/trades.html">Trades</a>
+          <a class="bo-nav-link" data-page="openings" href="/admin/box-openings.html">Openings</a>
         </nav>
       </aside>
 
       <main class="bo-main">
         <header class="bo-top">
           <div>
-            <h1>Characters</h1>
-            <p>CRUD personnages avec noms de fichiers (images locales de l'application).</p>
+            <h1>Gestion des personnages</h1>
+            <p>Edition rapide des visuels utilises dans l'application mobile.</p>
           </div>
-          <span class="bo-badge" id="charactersBadge">0 characters</span>
+          <div class="bo-top-actions">
+            <span class="bo-badge" id="charactersBadge">0 characters</span>
+            <button class="bo-btn primary" id="openCreateCharacterModal" type="button">+ Nouveau character</button>
+          </div>
         </header>
 
-        <section class="bo-grid two">
-          <article class="bo-panel">
-            <h2>Create character</h2>
-            <p class="bo-help">Les fichiers doivent exister dans <code>front/app/src/main/assets/characters/</code>.</p>
-            <form id="createCharacterForm" class="bo-form-grid">
-              <div class="bo-field">
-                <label for="cCharacterName">Name</label>
-                <input id="cCharacterName" name="name" required placeholder="ex: Red" />
-              </div>
-              <div class="bo-field">
-                <label for="cCharacterAvatar">Avatar filename</label>
-                <input id="cCharacterAvatar" name="avatarFileName" required placeholder="ex: red_avatar.png" />
-              </div>
-              <div class="bo-field">
-                <label for="cCharacterImage">Main image filename</label>
-                <input id="cCharacterImage" name="imageFileName" required placeholder="ex: red_main.png" />
-              </div>
-              <div class="bo-actions">
-                <button class="bo-btn primary" type="submit">Create</button>
-              </div>
-            </form>
-
-            <hr class="bo-separator" />
-
-            <h2>Edit character</h2>
-            <p class="bo-meta" id="editCharacterMeta">No character selected.</p>
-            <form id="editCharacterForm" class="bo-form-grid">
-              <div class="bo-field">
-                <label for="eCharacterName">Name</label>
-                <input id="eCharacterName" name="name" placeholder="leave empty to keep current value" />
-              </div>
-              <div class="bo-field">
-                <label for="eCharacterAvatar">Avatar filename</label>
-                <input id="eCharacterAvatar" name="avatarFileName" placeholder="leave empty to keep current value" />
-              </div>
-              <div class="bo-field">
-                <label for="eCharacterImage">Main image filename</label>
-                <input id="eCharacterImage" name="imageFileName" placeholder="leave empty to keep current value" />
-              </div>
-              <div class="bo-actions">
-                <button class="bo-btn primary" type="submit">Save</button>
-                <button class="bo-btn soft" id="cancelCharacterEditBtn" type="button">Cancel</button>
-              </div>
-            </form>
-          </article>
-
-          <article class="bo-panel">
-            <div class="bo-panel-head">
-              <h2>Character list</h2>
+        <section class="bo-panel">
+          <div class="bo-panel-head">
+            <h2>Liste characters</h2>
+            <div class="bo-split">
+              <label class="bo-search-inline" for="charactersSearch">
+                <span class="sr-only">Rechercher un personnage</span>
+                <input id="charactersSearch" class="bo-input" type="search" placeholder="Rechercher nom ou fichier image" />
+              </label>
               <span class="bo-counter" id="charactersCount">0</span>
             </div>
-            <div class="bo-table-wrap" id="charactersTableWrap"></div>
-          </article>
+          </div>
+          <div class="bo-table-wrap" id="charactersTableWrap"></div>
         </section>
       </main>
     </div>
+
+    <div class="bo-modal" id="characterModal" hidden>
+      <div class="bo-modal-card narrow">
+        <div class="bo-modal-head">
+          <h2 id="characterModalTitle">Nouveau personnage</h2>
+          <button class="bo-btn ghost" data-modal-close type="button">Fermer</button>
+        </div>
+
+        <div class="bo-modal-body">
+          <p class="bo-meta">Les fichiers doivent exister dans `front/app/src/main/assets/characters/`.</p>
+          <form id="characterForm" class="bo-form-grid">
+            <div class="bo-field">
+              <label for="characterName">Name</label>
+              <input class="bo-input" id="characterName" name="name" required />
+            </div>
+            <div class="bo-field">
+              <label for="characterAvatar">Avatar filename</label>
+              <input class="bo-input" id="characterAvatar" name="avatarFileName" required />
+            </div>
+            <div class="bo-field">
+              <label for="characterImage">Main image filename</label>
+              <input class="bo-input" id="characterImage" name="imageFileName" required />
+            </div>
+          </form>
+        </div>
+
+        <div class="bo-modal-foot">
+          <span class="bo-help" id="characterModalMeta">Creation ou edition complete.</span>
+          <div class="bo-actions">
+            <button class="bo-btn ghost" data-modal-close type="button">Annuler</button>
+            <button class="bo-btn primary" id="submitCharacterForm" type="button">Enregistrer</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </body>
-  </html>
+</html>

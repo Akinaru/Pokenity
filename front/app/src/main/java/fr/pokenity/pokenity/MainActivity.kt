@@ -133,7 +133,11 @@ class MainActivity : ComponentActivity() {
                         LoginScreen(
                             uiState = authFlowUiState,
                             onEmailChange = authFlowViewModel::updateEmail,
-                            onCheckEmail = { authFlowViewModel.checkEmail() },
+                            onCheckEmail = {
+                                authFlowViewModel.checkEmail {
+                                    navController.navigate("register")
+                                }
+                            },
                             onPasswordChange = authFlowViewModel::updateLoginPassword,
                             onLogin = {
                                 authFlowViewModel.login {
@@ -141,10 +145,6 @@ class MainActivity : ComponentActivity() {
                                         popUpTo("login") { inclusive = true }
                                     }
                                 }
-                            },
-                            onGoToRegister = {
-                                authFlowViewModel.prepareRegisterWithEmail()
-                                navController.navigate("register")
                             }
                         )
                     }
@@ -154,15 +154,19 @@ class MainActivity : ComponentActivity() {
                             uiState = authFlowUiState,
                             onUsernameChange = authFlowViewModel::updateRegisterUsername,
                             onEmailChange = authFlowViewModel::updateRegisterEmail,
+                            onConfirmEmail = {
+                                authFlowViewModel.confirmRegisterEmail {
+                                    navController.navigate("login") {
+                                        popUpTo("register") { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                }
+                            },
                             onPasswordChange = authFlowViewModel::updateRegisterPassword,
                             onRegister = {
                                 authFlowViewModel.goToCharacterSelection {
                                     navController.navigate("register-character")
                                 }
-                            },
-                            onBackToLogin = {
-                                authFlowViewModel.resetLoginState()
-                                navController.popBackStack()
                             }
                         )
                     }
@@ -173,11 +177,16 @@ class MainActivity : ComponentActivity() {
                             onPrevious = authFlowViewModel::selectPreviousCharacter,
                             onNext = authFlowViewModel::selectNextCharacter,
                             onValidate = {
-                                authFlowViewModel.registerWithSelectedCharacter {
-                                    navController.navigate("home") {
-                                        popUpTo("login") { inclusive = true }
+                                authFlowViewModel.registerWithSelectedCharacter(
+                                    onSuccess = {
+                                        navController.navigate("home") {
+                                            popUpTo("login") { inclusive = true }
+                                        }
+                                    },
+                                    onFormError = {
+                                        navController.popBackStack()
                                     }
-                                }
+                                )
                             },
                             onBack = { navController.popBackStack() }
                         )

@@ -12,92 +12,99 @@
     <div class="bo-layout">
       <aside class="bo-sidebar">
         <h2 class="bo-brand">Pokenity BO</h2>
-        <p class="bo-subtitle">Gestion interne API</p>
+        <p class="bo-subtitle">Administration API</p>
         <nav class="bo-nav">
           <a class="bo-nav-link" data-page="dashboard" href="/admin/">Dashboard</a>
           <a class="bo-nav-link" data-page="users" href="/admin/users.html">Users</a>
           <a class="bo-nav-link" data-page="boxes" href="/admin/boxes.html">Boxes</a>
           <a class="bo-nav-link" data-page="characters" href="/admin/characters.html">Characters</a>
+          <a class="bo-nav-link" data-page="trades" href="/admin/trades.html">Trades</a>
+          <a class="bo-nav-link" data-page="openings" href="/admin/box-openings.html">Openings</a>
         </nav>
       </aside>
 
       <main class="bo-main">
         <header class="bo-top">
           <div>
-            <h1>Users</h1>
-            <p>CRUD utilisateurs et lecture des inventaires.</p>
+            <h1>Gestion des utilisateurs</h1>
+            <p>Edition directe en modale, suppression et consultation d'inventaire.</p>
           </div>
-          <span class="bo-badge" id="usersBadge">0 users</span>
+          <div class="bo-top-actions">
+            <span class="bo-badge" id="usersBadge">0 users</span>
+            <button class="bo-btn primary" id="openCreateUserModal" type="button">+ Nouvel utilisateur</button>
+          </div>
         </header>
 
-        <section class="bo-grid two">
-          <article class="bo-panel">
-            <h2>Create user</h2>
-            <form id="createUserForm" class="bo-form-grid">
-              <div class="bo-field">
-                <label for="cUsername">Username</label>
-                <input id="cUsername" name="username" required placeholder="ex: red" />
-              </div>
-              <div class="bo-field">
-                <label for="cEmail">Email</label>
-                <input id="cEmail" name="email" type="email" required placeholder="red@kanto.com" />
-              </div>
-              <div class="bo-field">
-                <label for="cPassword">Password</label>
-                <input id="cPassword" name="password" type="password" minlength="6" required />
-              </div>
-              <div class="bo-field">
-                <label for="cCharacterId">Character</label>
-                <select id="cCharacterId" name="characterId" required></select>
-              </div>
-              <div class="bo-actions">
-                <button class="bo-btn primary" type="submit">Create</button>
-              </div>
-            </form>
-
-            <hr class="bo-separator" />
-
-            <h2>Edit user</h2>
-            <p class="bo-meta" id="editMeta">No user selected.</p>
-            <form id="editUserForm" class="bo-form-grid">
-              <div class="bo-field">
-                <label for="eUsername">Username</label>
-                <input id="eUsername" name="username" placeholder="leave empty to keep current value" />
-              </div>
-              <div class="bo-field">
-                <label for="eEmail">Email</label>
-                <input id="eEmail" name="email" type="email" placeholder="leave empty to keep current value" />
-              </div>
-              <div class="bo-field">
-                <label for="ePassword">Password</label>
-                <input id="ePassword" name="password" type="password" minlength="6" placeholder="leave empty to keep current value" />
-              </div>
-              <div class="bo-field">
-                <label for="eCharacterId">Character</label>
-                <select id="eCharacterId" name="characterId"></select>
-              </div>
-              <div class="bo-actions">
-                <button class="bo-btn primary" type="submit">Save</button>
-                <button class="bo-btn soft" id="cancelEditBtn" type="button">Cancel</button>
-              </div>
-            </form>
-          </article>
-
-          <article class="bo-panel">
-            <div class="bo-panel-head">
-              <h2>User list</h2>
+        <section class="bo-panel">
+          <div class="bo-panel-head">
+            <h2>Liste utilisateurs</h2>
+            <div class="bo-split">
+              <label class="bo-search-inline" for="usersSearch">
+                <span class="sr-only">Rechercher un utilisateur</span>
+                <input id="usersSearch" class="bo-input" type="search" placeholder="Rechercher username, email ou personnage" />
+              </label>
               <span class="bo-counter" id="usersCount">0</span>
             </div>
-            <div class="bo-table-wrap" id="usersTableWrap"></div>
-
-            <hr class="bo-separator" />
-
-            <h3>User inventory</h3>
-            <p class="bo-help">Select a user and click Inventory to load the table.</p>
-            <div class="bo-table-wrap" id="inventoryTableWrap"></div>
-          </article>
+          </div>
+          <div class="bo-table-wrap" id="usersTableWrap"></div>
         </section>
       </main>
+    </div>
+
+    <div class="bo-modal" id="userModal" hidden>
+      <div class="bo-modal-card narrow">
+        <div class="bo-modal-head">
+          <h2 id="userModalTitle">Nouvel utilisateur</h2>
+          <button class="bo-btn ghost" data-modal-close type="button">Fermer</button>
+        </div>
+
+        <div class="bo-modal-body">
+          <p class="bo-meta" id="userModalMeta">Tous les champs importants sont editables ici.</p>
+          <form id="userForm" class="bo-form-grid two">
+            <div class="bo-field">
+              <label for="userUsername">Username</label>
+              <input class="bo-input" id="userUsername" name="username" required />
+            </div>
+            <div class="bo-field">
+              <label for="userEmail">Email</label>
+              <input class="bo-input" id="userEmail" name="email" type="email" required />
+            </div>
+            <div class="bo-field">
+              <label for="userPassword">Password</label>
+              <input class="bo-input" id="userPassword" name="password" type="password" minlength="6" />
+            </div>
+            <div class="bo-field">
+              <label for="userXp">XP</label>
+              <input class="bo-input" id="userXp" name="xp" type="number" min="0" step="1" value="0" required />
+            </div>
+            <div class="bo-field full">
+              <label for="userCharacterId">Character</label>
+              <select class="bo-select" id="userCharacterId" name="characterId"></select>
+            </div>
+          </form>
+        </div>
+
+        <div class="bo-modal-foot">
+          <span class="bo-help" id="userPasswordHint">Mot de passe requis a la creation.</span>
+          <div class="bo-actions">
+            <button class="bo-btn ghost" data-modal-close type="button">Annuler</button>
+            <button class="bo-btn primary" id="submitUserForm" type="button">Enregistrer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bo-modal" id="inventoryModal" hidden>
+      <div class="bo-modal-card">
+        <div class="bo-modal-head">
+          <h3 id="inventoryModalTitle">Inventaire utilisateur</h3>
+          <button class="bo-btn ghost" data-modal-close type="button">Fermer</button>
+        </div>
+        <div class="bo-modal-body">
+          <p class="bo-meta" id="inventoryModalMeta"></p>
+          <div class="bo-table-wrap" id="inventoryTableWrap"></div>
+        </div>
+      </div>
     </div>
   </body>
 </html>

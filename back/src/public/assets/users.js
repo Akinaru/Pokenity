@@ -1,81 +1,112 @@
 (() => {
-  const { activateNav, api, escapeHtml, formatDate, notify, qs } = window.AdminCommon;
+  const {
+    activateNav,
+    api,
+    bindModal,
+    closeModal,
+    escapeHtml,
+    formatDate,
+    notify,
+    openModal,
+    qs,
+  } = window.AdminCommon;
+
   activateNav();
 
-  const createForm = qs("#createUserForm");
-  const editForm = qs("#editUserForm");
-  const createCharacterSelect = qs("#cCharacterId");
-  const editCharacterSelect = qs("#eCharacterId");
-  const cancelEditBtn = qs("#cancelEditBtn");
-  const editMeta = qs("#editMeta");
-  const usersCount = qs("#usersCount");
   const usersBadge = qs("#usersBadge");
+  const usersCount = qs("#usersCount");
+  const usersSearch = qs("#usersSearch");
   const usersTableWrap = qs("#usersTableWrap");
+
+  const userModal = qs("#userModal");
+  const userModalTitle = qs("#userModalTitle");
+  const userModalMeta = qs("#userModalMeta");
+  const userPasswordHint = qs("#userPasswordHint");
+  const userForm = qs("#userForm");
+  const submitUserFormBtn = qs("#submitUserForm");
+  const openCreateUserModalBtn = qs("#openCreateUserModal");
+
+  const inventoryModal = qs("#inventoryModal");
+  const inventoryModalTitle = qs("#inventoryModalTitle");
+  const inventoryModalMeta = qs("#inventoryModalMeta");
   const inventoryTableWrap = qs("#inventoryTableWrap");
 
-  let users = [];
-  let characters = [];
-  let selectedUserId = null;
+  bindModal(userModal);
+  bindModal(inventoryModal);
 
-  function resetEditForm() {
-    selectedUserId = null;
-    editForm.reset();
-    editCharacterSelect.value = "";
-    editMeta.textContent = "No user selected.";
-    inventoryTableWrap.innerHTML = '<div class="bo-empty">Inventory not loaded.</div>';
+  const state = {
+    users: [],
+    characters: [],
+    mode: "create",
+    filter: "",
+    editingUser: null,
+  };
+
+  function userCharacterName(user) {
+    return user.character?.name || "-";
   }
 
-  function renderCharacterSelectOptions() {
-    const baseOptions = characters
-      .map((character) => {
-        return `<option value="${character.id}">${escapeHtml(character.name)}</option>`;
-      })
-      .join("");
-
-    createCharacterSelect.innerHTML = baseOptions;
-    createCharacterSelect.disabled = characters.length === 0;
-
-    editCharacterSelect.innerHTML = `
-      <option value="">leave empty to keep current value</option>
-      ${baseOptions}
-    `;
-    editCharacterSelect.disabled = characters.length === 0;
+  function normalizedText(value) {
+    return String(value || "").trim().toLowerCase();
   }
 
-  function avatarTag(character, label) {
-    const url = character?.avatarUrl || "";
-    if (!url) {
-      return '<span class="bo-muted">-</span>';
+  function filteredUsers() {
+    const query = normalizedText(state.filter);
+    if (!query) {
+      return state.users;
     }
-    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("/")) {
-      return `<img class="bo-thumb" src="${escapeHtml(url)}" alt="${escapeHtml(label)}" />`;
-    }
-    return `<span class="bo-pill">${escapeHtml(url)}</span>`;
+
+    return state.users.filter((user) => {
+      return [user.username, user.email, userCharacterName(user)]
+        .map(normalizedText)
+        .some((value) => value.includes(query));
+    });
+  }
+
+  function renderUserCharacterOptions(selectedId = "") {
+    const placeholderLabel =
+      state.mode === "create"
+        ? "Selection automatique"
+        : "Conserver le personnage actuel";
+
+    const options = [
+      `<option value="">${escapeHtml(placeholderLabel)}</option>`,
+      ...state.characters.map((character) => {
+        const selected = selectedId === character.id ? "selected" : "";
+        return `<option value="${character.id}" ${selected}>${escapeHtml(character.name)}</option>`;
+      }),
+    ];
+
+    userForm.characterId.innerHTML = options.join("");
   }
 
   function renderUsersTable() {
-    usersCount.textContent = String(users.length);
-    usersBadge.textContent = `${users.length} users`;
+    const rowsData = filteredUsers();
+    usersBadge.textContent = `${state.users.length} users`;
+    usersCount.textContent = String(rowsData.length);
 
-    if (!users.length) {
-      usersTableWrap.innerHTML = '<div class="bo-empty">No users yet.</div>';
+    if (!rowsData.length) {
+      usersTableWrap.innerHTML = '<div class="bo-empty">Aucun utilisateur trouve.</div>';
       return;
     }
 
-    const rows = users
+    const rows = rowsData
       .map((user) => {
         return `
           <tr>
-            <td><strong>${escapeHtml(user.username)}</strong></td>
+            <td>
+              <strong>${escapeHtml(user.username)}</strong>
+              <div class="bo-meta">${escapeHtml(user.id)}</div>
+            </td>
             <td>${escapeHtml(user.email)}</td>
-            <td>${avatarTag(user.character, `${user.username} avatar`)}</td>
-            <td>${escapeHtml(user.character?.name || "-")}</td>
+            <td><span class="bo-pill">${Number(user.xp || 0)}</span></td>
+            <td>${escapeHtml(userCharacterName(user))}</td>
             <td>${formatDate(user.createdAt)}</td>
             <td>
               <div class="bo-actions">
-                <button class="bo-btn soft" data-action="inventory" data-id="${user.id}" type="button">Inventory</button>
-                <button class="bo-btn soft" data-action="edit" data-id="${user.id}" type="button">Edit</button>
-                <button class="bo-btn danger" data-action="delete" data-id="${user.id}" type="button">Delete</button>
+                <button class="bo-btn soft" data-action="inventory" data-id="${user.id}" type="button">Inventaire</button>
+                <button class="bo-btn soft" data-action="edit" data-id="${user.id}" type="button">Editer</button>
+                <button class="bo-btn danger" data-action="delete" data-id="${user.id}" type="button">Supprimer</button>
               </div>
             </td>
           </tr>
@@ -87,11 +118,11 @@
       <table class="bo-table">
         <thead>
           <tr>
-            <th>Username</th>
+            <th>User</th>
             <th>Email</th>
-            <th>Avatar</th>
+            <th>XP</th>
             <th>Character</th>
-            <th>Created at</th>
+            <th>Created</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -100,9 +131,113 @@
     `;
   }
 
-  function renderInventoryTable(inventory) {
+  function openCreateUserModal() {
+    state.mode = "create";
+    state.editingUser = null;
+
+    userModalTitle.textContent = "Creer un utilisateur";
+    userModalMeta.textContent = "Creation complete avec username, email, password, xp et personnage.";
+    userPasswordHint.textContent = "Mot de passe requis a la creation (min 6 caracteres).";
+    submitUserFormBtn.textContent = "Creer";
+
+    userForm.reset();
+    userForm.xp.value = "0";
+    renderUserCharacterOptions("");
+    openModal(userModal, "#userUsername");
+  }
+
+  function openEditUserModal(user) {
+    state.mode = "edit";
+    state.editingUser = user;
+
+    userModalTitle.textContent = `Editer ${user.username}`;
+    userModalMeta.textContent = `Modification complete de ${user.username} (${user.email}).`;
+    userPasswordHint.textContent = "Laisser vide pour conserver le mot de passe actuel.";
+    submitUserFormBtn.textContent = "Enregistrer";
+
+    userForm.username.value = user.username;
+    userForm.email.value = user.email;
+    userForm.password.value = "";
+    userForm.xp.value = String(Number(user.xp || 0));
+    renderUserCharacterOptions(user.characterId || "");
+
+    openModal(userModal, "#userUsername");
+  }
+
+  function buildCreatePayload() {
+    const username = String(userForm.username.value || "").trim();
+    const email = String(userForm.email.value || "").trim();
+    const password = String(userForm.password.value || "");
+    const xpValue = Number(userForm.xp.value);
+    const characterId = String(userForm.characterId.value || "").trim();
+
+    if (!username || !email || !password) {
+      throw new Error("Username, email et password sont requis.");
+    }
+
+    if (!Number.isInteger(xpValue) || xpValue < 0) {
+      throw new Error("XP doit etre un entier >= 0.");
+    }
+
+    return {
+      username,
+      email,
+      password,
+      xp: xpValue,
+      ...(characterId ? { characterId } : {}),
+    };
+  }
+
+  function buildEditPayload() {
+    if (!state.editingUser) {
+      throw new Error("Aucun utilisateur selectionne pour edition.");
+    }
+
+    const payload = {};
+    const username = String(userForm.username.value || "").trim();
+    const email = String(userForm.email.value || "").trim();
+    const password = String(userForm.password.value || "");
+    const characterId = String(userForm.characterId.value || "").trim();
+    const xpValue = Number(userForm.xp.value);
+
+    if (!username || !email) {
+      throw new Error("Username et email sont requis.");
+    }
+
+    if (!Number.isInteger(xpValue) || xpValue < 0) {
+      throw new Error("XP doit etre un entier >= 0.");
+    }
+
+    if (username !== state.editingUser.username) {
+      payload.username = username;
+    }
+
+    if (email !== state.editingUser.email) {
+      payload.email = email;
+    }
+
+    if (password) {
+      payload.password = password;
+    }
+
+    if (xpValue !== Number(state.editingUser.xp || 0)) {
+      payload.xp = xpValue;
+    }
+
+    if (characterId && characterId !== (state.editingUser.characterId || "")) {
+      payload.characterId = characterId;
+    }
+
+    if (!Object.keys(payload).length) {
+      throw new Error("Aucune modification detectee.");
+    }
+
+    return payload;
+  }
+
+  function renderInventory(inventory = []) {
     if (!inventory.length) {
-      inventoryTableWrap.innerHTML = '<div class="bo-empty">Inventory is empty.</div>';
+      inventoryTableWrap.innerHTML = '<div class="bo-empty">Inventaire vide.</div>';
       return;
     }
 
@@ -126,9 +261,9 @@
           <tr>
             <th>Type</th>
             <th>ID</th>
-            <th>Name</th>
-            <th>Qty</th>
-            <th>Last obtained</th>
+            <th>Nom</th>
+            <th>Quantite</th>
+            <th>Derniere obtention</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -136,145 +271,102 @@
     `;
   }
 
+  async function openInventoryModal(user) {
+    inventoryModalTitle.textContent = `Inventaire de ${user.username}`;
+    inventoryModalMeta.textContent = `${user.email} - XP ${Number(user.xp || 0)}`;
+    inventoryTableWrap.innerHTML = '<div class="bo-empty">Chargement...</div>';
+    openModal(inventoryModal);
+
+    try {
+      const data = await api(`/api/inventory/users/${user.id}`);
+      renderInventory(data.inventory || []);
+    } catch (error) {
+      inventoryTableWrap.innerHTML = '<div class="bo-empty">Impossible de charger l\'inventaire.</div>';
+      notify(error.message, "err");
+    }
+  }
+
   async function loadUsers() {
     const data = await api("/api/users");
-    users = data.users;
+    state.users = data.users || [];
     renderUsersTable();
   }
 
   async function loadCharacters() {
     const data = await api("/api/characters");
-    characters = data.characters || [];
-    renderCharacterSelectOptions();
+    state.characters = data.characters || [];
   }
 
-  async function loadInventory(userId) {
-    const data = await api(`/api/inventory/users/${userId}`);
-    renderInventoryTable(data.inventory || []);
-  }
+  openCreateUserModalBtn.addEventListener("click", openCreateUserModal);
 
-  createForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const formData = new FormData(createForm);
-    const characterId = String(formData.get("characterId") || "").trim();
-
-    if (!characterId) {
-      notify("Select a character.", "err");
-      return;
-    }
-
-    try {
-      await api("/api/users", {
-        method: "POST",
-        body: JSON.stringify({
-          username: formData.get("username"),
-          email: formData.get("email"),
-          password: formData.get("password"),
-          characterId,
-        }),
-      });
-
-      createForm.reset();
-      if (characters.length > 0) {
-        createCharacterSelect.value = characters[0].id;
-      }
-      await loadUsers();
-      notify("User created.");
-    } catch (error) {
-      notify(error.message, "err");
-    }
+  usersSearch.addEventListener("input", () => {
+    state.filter = usersSearch.value;
+    renderUsersTable();
   });
 
-  editForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    if (!selectedUserId) {
-      notify("Select a user first.", "err");
-      return;
-    }
-
-    const formData = new FormData(editForm);
-    const payload = {};
-
-    if (String(formData.get("username") || "").trim()) {
-      payload.username = formData.get("username");
-    }
-    if (String(formData.get("email") || "").trim()) {
-      payload.email = formData.get("email");
-    }
-    if (String(formData.get("password") || "").trim()) {
-      payload.password = formData.get("password");
-    }
-    if (String(formData.get("characterId") || "").trim()) {
-      payload.characterId = formData.get("characterId");
-    }
-
-    if (!Object.keys(payload).length) {
-      notify("No changes to save.", "err");
-      return;
-    }
-
+  submitUserFormBtn.addEventListener("click", async () => {
     try {
-      await api(`/api/users/${selectedUserId}`, {
+      if (state.mode === "create") {
+        const payload = buildCreatePayload();
+        await api("/api/users", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        closeModal(userModal);
+        await loadUsers();
+        notify("Utilisateur cree.");
+        return;
+      }
+
+      const payload = buildEditPayload();
+      await api(`/api/users/${state.editingUser.id}`, {
         method: "PATCH",
         body: JSON.stringify(payload),
       });
-
+      closeModal(userModal);
       await loadUsers();
-      await loadInventory(selectedUserId);
-      notify("User updated.");
+      notify("Utilisateur modifie.");
     } catch (error) {
       notify(error.message, "err");
     }
   });
 
-  cancelEditBtn.addEventListener("click", resetEditForm);
-
   usersTableWrap.addEventListener("click", async (event) => {
-    const actionButton = event.target.closest("button[data-action]");
-    if (!actionButton) {
+    const button = event.target.closest("button[data-action]");
+    if (!button) {
       return;
     }
 
-    const user = users.find((entry) => entry.id === actionButton.dataset.id);
+    const userId = String(button.dataset.id || "");
+    const user = state.users.find((entry) => entry.id === userId);
     if (!user) {
       return;
     }
 
-    if (actionButton.dataset.action === "edit") {
-      selectedUserId = user.id;
-      editMeta.textContent = `Editing ${user.username} (${user.email})`;
-      editForm.username.value = user.username;
-      editForm.email.value = user.email;
-      editForm.password.value = "";
-      editCharacterSelect.value = user.characterId || "";
+    if (button.dataset.action === "edit") {
+      openEditUserModal(user);
       return;
     }
 
-    if (actionButton.dataset.action === "inventory") {
-      selectedUserId = user.id;
-      editMeta.textContent = `Selected ${user.username} (${user.email})`;
-      await loadInventory(user.id);
+    if (button.dataset.action === "inventory") {
+      await openInventoryModal(user);
       return;
     }
 
-    if (actionButton.dataset.action === "delete") {
-      if (!confirm(`Delete user ${user.username}?`)) {
+    if (button.dataset.action === "delete") {
+      if (!window.confirm(`Supprimer l'utilisateur ${user.username} ?`)) {
         return;
       }
 
       try {
         await api(`/api/users/${user.id}`, { method: "DELETE" });
-        if (selectedUserId === user.id) {
-          resetEditForm();
-        }
         await loadUsers();
-        notify("User deleted.");
+        notify("Utilisateur supprime.");
       } catch (error) {
         notify(error.message, "err");
       }
     }
   });
 
-  resetEditForm();
   Promise.all([loadCharacters(), loadUsers()]).catch((error) => notify(error.message, "err"));
 })();
