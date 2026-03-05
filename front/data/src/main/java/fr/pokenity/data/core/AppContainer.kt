@@ -6,6 +6,7 @@ import fr.pokenity.data.remote.poke.PokeApiService
 import fr.pokenity.data.remote.poke.PokeRetrofitApi
 import fr.pokenity.data.repository.AuthRepositoryImpl
 import fr.pokenity.data.repository.PokemonRepositoryImpl
+import fr.pokenity.data.repository.SocialRepositoryImpl
 
 object AppContainer {
 
@@ -28,4 +29,5 @@ object AppContainer {
 
     val pokemonRepository by lazy { PokemonRepositoryImpl() }
     val authRepository by lazy { AuthRepositoryImpl(authApiService) }
+    val socialRepository by lazy { SocialRepositoryImpl(authApiService) }
 }

@@ -123,4 +123,70 @@ internal class AuthApiService(
             gson.fromJson(raw, AuthErrorDto::class.java)?.error?.ifBlank { fallback } ?: fallback
         }.getOrDefault(fallback)
     }
+
+    // --- Trades ---
+
+    suspend fun getOpenTrades(token: String, limit: Int? = null): List<TradeDto> {
+        val response = api.getOpenTrades("Bearer $token", limit)
+        return handleResponse(response).trades
+    }
+
+    suspend fun getMyTrades(token: String, limit: Int? = null): List<TradeDto> {
+        val response = api.getMyTrades("Bearer $token", limit)
+        return handleResponse(response).trades
+    }
+
+    suspend fun getTradeDetail(token: String, tradeId: String): TradeDto {
+        val response = api.getTradeDetail("Bearer $token", tradeId)
+        return handleResponse(response).trade
+    }
+
+    suspend fun createTrade(token: String, body: CreateTradeRequestBody): TradeDto {
+        val response = api.createTrade("Bearer $token", body)
+        return handleResponse(response).trade
+    }
+
+    suspend fun acceptTrade(token: String, tradeId: String, body: AcceptTradeRequestBody): TradeDto {
+        val response = api.acceptTrade("Bearer $token", tradeId, body)
+        return handleResponse(response).trade
+    }
+
+    suspend fun confirmTrade(token: String, tradeId: String): TradeDto {
+        val response = api.confirmTrade("Bearer $token", tradeId)
+        return handleResponse(response).trade
+    }
+
+    suspend fun cancelTrade(token: String, tradeId: String): TradeDto {
+        val response = api.cancelTrade("Bearer $token", tradeId)
+        return handleResponse(response).trade
+    }
+
+    suspend fun declineTrade(token: String, tradeId: String): TradeDto {
+        val response = api.declineTrade("Bearer $token", tradeId)
+        return handleResponse(response).trade
+    }
+
+    // --- Users ---
+
+    suspend fun getUsers(): List<AuthUserDto> {
+        val response = api.users()
+        return handleResponse(response).users ?: emptyList()
+    }
+
+    suspend fun getUserById(id: String): AuthUserDto {
+        val response = api.getUserById(id)
+        return handleResponse(response).user
+    }
+
+    // --- Inventory ---
+
+    suspend fun getMyInventory(token: String): InventoryResponseDto {
+        val response = api.getMyInventory("Bearer $token")
+        return handleResponse(response)
+    }
+
+    suspend fun getUserInventory(userId: String): InventoryResponseDto {
+        val response = api.getUserInventory(userId)
+        return handleResponse(response)
+    }
 }
