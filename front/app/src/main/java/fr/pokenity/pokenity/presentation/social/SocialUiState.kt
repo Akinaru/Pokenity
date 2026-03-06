@@ -30,7 +30,7 @@ data class SocialUiState(
 
     // Propose trade tab
     val myInventory: List<InventoryItem> = emptyList(),
-    val selectedInventoryItem: InventoryItem? = null,
+    val selectedInventoryItems: List<InventoryItem> = emptyList(),
 
     // Wishlist: Pokemon requested by the proposer (1-5)
     val selectedRequestedPokemons: List<TradePokemon> = emptyList(),
@@ -38,6 +38,8 @@ data class SocialUiState(
     val pokemonSearchResults: List<PokemonSummary> = emptyList(),
     val allPokemonList: List<PokemonSummary> = emptyList(),
     val isPokemonListLoading: Boolean = false,
+    val showPokedexSelector: Boolean = false,
+    val showInventorySelector: Boolean = false,
 
     // Accounts tab
     val users: List<UserProfile> = emptyList(),

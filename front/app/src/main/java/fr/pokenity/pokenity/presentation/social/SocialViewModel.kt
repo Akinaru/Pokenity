@@ -85,6 +85,10 @@ class SocialViewModel(
                         isLoading = false,
                         myTrades = trades
                     )
+                    val currentUserId = _uiState.value.currentUserId
+                    trades
+                        .filter { it.status == fr.pokenity.data.model.TradeStatus.WAITING_CONFIRMATION && it.proposerId == currentUserId }
+                        .forEach { trade -> confirmTrade(trade.id) }
                 }
                 .onFailure {
                     _uiState.value = _uiState.value.copy(
@@ -159,7 +163,37 @@ class SocialViewModel(
     }
 
     fun selectInventoryItem(item: InventoryItem?) {
-        _uiState.value = _uiState.value.copy(selectedInventoryItem = item)
+        if (item == null) {
+            _uiState.value = _uiState.value.copy(selectedInventoryItems = emptyList())
+            return
+        }
+
+        val current = _uiState.value.selectedInventoryItems
+        val alreadySelected = current.any { it.id == item.id }
+
+        val updated = when {
+            alreadySelected -> current.filterNot { it.id == item.id }
+            current.size >= 5 -> current
+            else -> current + item
+        }
+
+        _uiState.value = _uiState.value.copy(selectedInventoryItems = updated)
+    }
+
+    fun openInventorySelector() {
+        _uiState.value = _uiState.value.copy(showInventorySelector = true)
+    }
+
+    fun closeInventorySelector() {
+        _uiState.value = _uiState.value.copy(showInventorySelector = false)
+    }
+
+    fun openPokedexSelector() {
+        _uiState.value = _uiState.value.copy(showPokedexSelector = true)
+    }
+
+    fun closePokedexSelector() {
+        _uiState.value = _uiState.value.copy(showPokedexSelector = false)
     }
 
     // --- Pokemon search for wishlist ---
@@ -200,43 +234,64 @@ class SocialViewModel(
             imageUrl = pokemon.imageUrl
         )
         _uiState.value = _uiState.value.copy(
-            selectedRequestedPokemons = current + tradePokemon,
-            pokemonSearchQuery = "",
-            pokemonSearchResults = emptyList()
+            selectedRequestedPokemons = current + tradePokemon
         )
     }
 
-    fun removeRequestedPokemon(pokemon: TradePokemon) {
-        val current = _uiState.value.selectedRequestedPokemons
-        _uiState.value = _uiState.value.copy(
-            selectedRequestedPokemons = current.filter { it.resourceId != pokemon.resourceId }
-        )
+    fun removeRequestedPokemonAt(index: Int) {
+        val current = _uiState.value.selectedRequestedPokemons.toMutableList()
+        if (index in current.indices) current.removeAt(index)
+        _uiState.value = _uiState.value.copy(selectedRequestedPokemons = current)
     }
 
     fun createTrade() {
-        val item = _uiState.value.selectedInventoryItem ?: return
+        val items = _uiState.value.selectedInventoryItems
+        if (items.isEmpty()) return
         val requestedPokemons = _uiState.value.selectedRequestedPokemons
         if (requestedPokemons.isEmpty()) return
 
         _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null, successMessage = null)
         viewModelScope.launch(Dispatchers.IO) {
-            runCatching { createTradeUseCase(item.id, requestedPokemons) }
-                .onSuccess {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        successMessage = "Echange propose !",
-                        selectedInventoryItem = null,
-                        selectedRequestedPokemons = emptyList(),
-                        pokemonSearchQuery = "",
-                        pokemonSearchResults = emptyList()
-                    )
+            var createdCount = 0
+            var firstError: Throwable? = null
+
+            items.forEach { item ->
+                val result = runCatching { createTradeUseCase(item.id, requestedPokemons) }
+                result.onSuccess { createdCount += 1 }
+                result.onFailure {
+                    if (firstError == null) firstError = it
                 }
-                .onFailure {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        errorMessage = it.message ?: "Erreur lors de la creation de l'echange"
-                    )
-                }
+            }
+
+            if (firstError != null && createdCount == 0) {
+                val error = firstError
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = error.message ?: "Erreur lors de la creation de l'echange"
+                )
+                return@launch
+            }
+
+            if (firstError != null) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    successMessage = "$createdCount echange(s) propose(s). Certains echanges ont echoue.",
+                    selectedInventoryItems = emptyList(),
+                    selectedRequestedPokemons = emptyList(),
+                    showPokedexSelector = false,
+                    showInventorySelector = false
+                )
+                return@launch
+            }
+
+            _uiState.value = _uiState.value.copy(
+                isLoading = false,
+                successMessage = if (createdCount == 1) "Echange propose !" else "$createdCount echanges proposes !",
+                selectedInventoryItems = emptyList(),
+                selectedRequestedPokemons = emptyList(),
+                showPokedexSelector = false,
+                showInventorySelector = false
+            )
         }
     }
 

@@ -1,11 +1,13 @@
 const { Prisma } = require("@prisma/client");
 const express = require("express");
 const { prisma } = require("../lib/prisma");
+const { getShinyDropRate } = require("../lib/configuration");
 const { PokeApiError, resolveDropResource } = require("../lib/pokeapi");
 const { authRequired } = require("../middleware/auth");
 
 const router = express.Router();
-const SHINY_CHANCE = 0.25;
+const DRAW_SEQUENCE_BASE_STEPS = 30;
+const DRAW_SEQUENCE_RANDOM_EXTRA = 10;
 
 function serializeEntry(entry) {
   return {
@@ -109,25 +111,61 @@ async function normalizeEntries(rawEntries) {
   };
 }
 
-function pickWeightedEntry(entries) {
-  const total = entries.reduce((sum, entry) => sum + entry.dropRate, 0);
+function entryKey(entry) {
+  return `${entry.resourceType}:${entry.resourceId}`;
+}
+
+function pickWeightedEntry(entries, avoidKey = null) {
+  const candidateEntries =
+    avoidKey && entries.length > 1
+      ? entries.filter((entry) => entryKey(entry) !== avoidKey)
+      : entries;
+  const selectionPool = candidateEntries.length ? candidateEntries : entries;
+  const total = selectionPool.reduce((sum, entry) => sum + entry.dropRate, 0);
   let random = Math.random() * total;
 
-  for (const entry of entries) {
+  for (const entry of selectionPool) {
     random -= entry.dropRate;
     if (random <= 0) {
       return entry;
     }
   }
 
-  return entries[entries.length - 1];
+  return selectionPool[selectionPool.length - 1];
 }
 
-function rollShiny(entry) {
+function rollShiny(entry, shinyDropRate) {
   if (!entry || entry.resourceType !== "POKEMON") {
     return false;
   }
-  return Math.random() < SHINY_CHANCE;
+  return Math.random() < shinyDropRate;
+}
+
+function toDrawItem(entry, isShiny) {
+  return {
+    resourceType: entry.resourceType,
+    resourceId: entry.resourceId,
+    resourceName: entry.resourceName,
+    dropRate: entry.dropRate,
+    isShiny,
+  };
+}
+
+function buildDrawSequence(entries, rewardEntry, rewardIsShiny, shinyDropRate) {
+  const stepsBeforeReward =
+    DRAW_SEQUENCE_BASE_STEPS + Math.floor(Math.random() * DRAW_SEQUENCE_RANDOM_EXTRA);
+  const sequence = [];
+  let previousKey = null;
+
+  for (let index = 0; index < stepsBeforeReward; index += 1) {
+    const nextEntry = pickWeightedEntry(entries, previousKey);
+    const nextIsShiny = rollShiny(nextEntry, shinyDropRate);
+    sequence.push(toDrawItem(nextEntry, nextIsShiny));
+    previousKey = entryKey(nextEntry);
+  }
+
+  sequence.push(toDrawItem(rewardEntry, rewardIsShiny));
+  return sequence;
 }
 
 router.get("/", async (req, res) => {
@@ -347,8 +385,15 @@ router.post("/:boxId/open", authRequired, async (req, res) => {
     return res.status(400).json({ error: "Box has no entries." });
   }
 
+  const shinyDropRate = await getShinyDropRate();
   const selectedEntry = pickWeightedEntry(box.entries);
-  const isShiny = rollShiny(selectedEntry);
+  const isShiny = rollShiny(selectedEntry, shinyDropRate);
+  const drawSequence = buildDrawSequence(
+    box.entries,
+    selectedEntry,
+    isShiny,
+    shinyDropRate
+  );
   const now = new Date();
 
   const { inventoryItem, boxOpening, userWithXp } = await prisma.$transaction(
@@ -429,6 +474,7 @@ router.post("/:boxId/open", authRequired, async (req, res) => {
       isShiny,
       dropRate: selectedEntry.dropRate,
     },
+    drawSequence,
     inventoryItem: {
       id: inventoryItem.id,
       isShiny: inventoryItem.isShiny,
