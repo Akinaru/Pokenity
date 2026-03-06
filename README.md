@@ -19,3 +19,9 @@ docker compose up -d
 6. Importer la base de donnees qui se trouve a la racine du projet.
 7. Ouvrir le projet Android dans le dossier `front/` avec Android Studio.
 8. Lancer le projet depuis Android Studio.
+
+## Informations back-end
+
+- La base de donnees est hebergee.
+- Le back-office est disponible sur [https://apipoke.cloud.akinaru.fr](https://apipoke.cloud.akinaru.fr).
+- Le code de l'API ainsi que le schema de base de donnees sont disponibles dans le dossier `back/` a la racine du projet.
