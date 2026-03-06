@@ -99,6 +99,7 @@ class AuthRepositoryImpl internal constructor(
         return AuthInventoryItem(
             resourceType = resourceType,
             resourceId = resourceId,
+            isShiny = isShiny,
             quantity = quantity
         )
     }

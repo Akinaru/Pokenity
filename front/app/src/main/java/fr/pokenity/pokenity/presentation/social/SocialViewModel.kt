@@ -196,6 +196,7 @@ class SocialViewModel(
             resourceType = "POKEMON",
             resourceId = pokemon.id,
             resourceName = pokemon.name,
+            isShiny = false,
             imageUrl = pokemon.imageUrl
         )
         _uiState.value = _uiState.value.copy(

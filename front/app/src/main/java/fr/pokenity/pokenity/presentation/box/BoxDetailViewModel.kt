@@ -239,7 +239,8 @@ class BoxDetailViewModel(
             resourceType = reward.resourceType,
             resourceId = reward.resourceId,
             resourceName = reward.resourceName,
-            dropRate = reward.dropRate
+            dropRate = reward.dropRate,
+            isShiny = reward.isShiny
         )
     }
 

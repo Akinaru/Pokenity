@@ -239,7 +239,7 @@ fun BoxDetailScreen(
                                 pokemonId = reward.resourceId,
                                 contentDescription = reward.resourceName.prettyPokemonName(),
                                 imageType = PokemonImageType.SHOWDOWN,
-                                shiny = false,
+                                shiny = reward.isShiny,
                                 modifier = Modifier.size(124.dp)
                             )
                             if (uiState.isNewPokemonReward) {
@@ -252,6 +252,16 @@ fun BoxDetailScreen(
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier.fillMaxWidth()
                             )
+                            if (reward.isShiny) {
+                                Text(
+                                    text = "Version Shiny ✨",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFFFD54F),
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
                             Text(
                                 text = if (uiState.isNewPokemonReward) {
                                     "Premiere obtention, bien joue !"
@@ -545,7 +555,7 @@ private fun RouletteItemTile(
                 pokemonId = pokemon.resourceId,
                 contentDescription = pokemon.resourceName.prettyPokemonName(),
                 imageType = PokemonImageType.SHOWDOWN,
-                shiny = false,
+                shiny = pokemon.isShiny,
                 modifier = Modifier
                     .align(Alignment.Center)
                     .size(imageSize),
@@ -592,7 +602,7 @@ private fun BoxPokemonTile(
                     pokemonId = pokemon.resourceId,
                     contentDescription = pokemon.resourceName.prettyPokemonName(),
                     imageType = PokemonImageType.SHOWDOWN,
-                    shiny = false,
+                    shiny = pokemon.isShiny,
                     modifier = Modifier
                         .align(Alignment.Center)
                         .size(maxWidth * 0.84f),

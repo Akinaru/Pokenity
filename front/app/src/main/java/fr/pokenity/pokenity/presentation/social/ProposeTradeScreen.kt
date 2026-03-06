@@ -254,7 +254,13 @@ fun ProposeTradeScreen(
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Pokemon propose : ${uiState.selectedInventoryItem.resourceName}",
+                        text = "Pokemon propose : ${
+                            if (uiState.selectedInventoryItem.isShiny) {
+                                "${uiState.selectedInventoryItem.resourceName} ✨"
+                            } else {
+                                uiState.selectedInventoryItem.resourceName
+                            }
+                        }",
                         style = MaterialTheme.typography.bodyMedium
                     )
                     if (uiState.selectedRequestedPokemons.isNotEmpty()) {
@@ -330,7 +336,7 @@ private fun InventoryItemCard(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = item.resourceName,
+                text = if (item.isShiny) "${item.resourceName} ✨" else item.resourceName,
                 style = MaterialTheme.typography.labelSmall,
                 textAlign = TextAlign.Center,
                 maxLines = 1,

@@ -112,7 +112,8 @@ class SocialRepositoryImpl internal constructor(
             resourceType = resourceType ?: "pokemon",
             resourceId = resourceId ?: 0,
             resourceName = resourceName ?: "",
-            imageUrl = pokemonSpriteUrl(resourceId)
+            isShiny = isShiny == true,
+            imageUrl = pokemonSpriteUrl(resourceId, isShiny == true)
         )
     }
 
@@ -144,13 +145,15 @@ class SocialRepositoryImpl internal constructor(
             resourceType = resourceType ?: "pokemon",
             resourceId = resourceId ?: 0,
             resourceName = resourceName ?: "",
+            isShiny = isShiny == true,
             quantity = quantity,
-            imageUrl = pokemonSpriteUrl(resourceId)
+            imageUrl = pokemonSpriteUrl(resourceId, isShiny == true)
         )
     }
 
-    private fun pokemonSpriteUrl(id: Int?): String {
+    private fun pokemonSpriteUrl(id: Int?, isShiny: Boolean = false): String {
         if (id == null || id <= 0) return ""
-        return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/$id.png"
+        val shinySegment = if (isShiny) "shiny/" else ""
+        return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${shinySegment}$id.png"
     }
 }

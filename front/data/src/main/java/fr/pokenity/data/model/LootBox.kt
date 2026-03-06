@@ -38,17 +38,20 @@ data class BoxOpenReward(
     val resourceType: String,
     val resourceId: Int,
     val resourceName: String,
+    val isShiny: Boolean,
     val dropRate: Double
 )
 
 data class BoxOpenInventoryItem(
     val id: String,
+    val isShiny: Boolean,
     val quantity: Int,
     val lastObtainedAt: String?
 )
 
 data class BoxOpenHistory(
     val id: String,
+    val isShiny: Boolean,
     val openedAt: String?
 )
 
