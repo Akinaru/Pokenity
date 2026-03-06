@@ -37,6 +37,7 @@ class BoxDetailViewModel(
             errorMessage = null,
             openingErrorMessage = null,
             showRewardDialog = false,
+            isNewPokemonReward = false,
             pendingReward = null,
             rouletteWinningIndex = null,
             isSpinning = false
@@ -79,6 +80,7 @@ class BoxDetailViewModel(
             isOpening = true,
             openingErrorMessage = null,
             showRewardDialog = false,
+            isNewPokemonReward = false,
             pendingReward = null,
             rouletteWinningIndex = null,
             rouletteItems = previewRoulette
@@ -104,6 +106,7 @@ class BoxDetailViewModel(
                         isSpinning = true,
                         openingErrorMessage = null,
                         pendingReward = reward,
+                        isNewPokemonReward = openResult.inventoryItem?.quantity == 1,
                         showRewardDialog = false,
                         rouletteItems = flashSequence,
                         rouletteWinningIndex = flashSequence.lastIndex,
@@ -138,6 +141,7 @@ class BoxDetailViewModel(
 
         _uiState.value = currentState.copy(
             showRewardDialog = false,
+            isNewPokemonReward = false,
             pendingReward = null,
             rouletteWinningIndex = null,
             rouletteItems = previewRoulette

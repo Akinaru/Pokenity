@@ -2,12 +2,14 @@ package fr.pokenity.pokenity.presentation.box
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,6 +22,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -38,15 +46,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import coil.imageLoader
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import coil.request.ImageRequest
+import fr.pokenity.data.core.PokemonImageType
+import fr.pokenity.pokenity.ui.components.PokemonSpriteImage
 import kotlinx.coroutines.delay
 import java.util.Locale
 import kotlin.math.pow
@@ -59,6 +70,7 @@ fun BoxDetailScreen(
     onOpenBox: () -> Unit,
     onSpinAnimationCompleted: () -> Unit,
     onDismissRewardDialog: () -> Unit,
+    bottomInset: Dp = 0.dp,
     modifier: Modifier = Modifier
 ) {
     when {
@@ -92,7 +104,7 @@ fun BoxDetailScreen(
         else -> {
             val context = LocalContext.current
             val box = uiState.box
-            val rows = remember(uiState.orderedEntries) { uiState.orderedEntries.chunked(2) }
+            val rows = remember(uiState.orderedEntries) { uiState.orderedEntries.chunked(3) }
             val pageBackgroundResId = remember {
                 context.resources.getIdentifier("draw_background", "drawable", context.packageName)
             }
@@ -110,14 +122,24 @@ fun BoxDetailScreen(
                 }
 
                 LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        top = 16.dp,
+                        end = 16.dp,
+                        bottom = 16.dp + bottomInset
+                    ),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     item {
+                        val canOpenBox = !uiState.isOpening && !uiState.isSpinning && uiState.orderedEntries.isNotEmpty()
                         Surface(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(
+                                    enabled = canOpenBox,
+                                    onClick = onOpenBox
+                                ),
                             shape = RoundedCornerShape(18.dp),
                             tonalElevation = 2.dp
                         ) {
@@ -146,51 +168,16 @@ fun BoxDetailScreen(
                         }
                     }
 
-                    item {
-                        Text(
-                            text = "Ouverture",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    item {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Button(
-                                onClick = onOpenBox,
-                                enabled = !uiState.isOpening && !uiState.isSpinning && uiState.orderedEntries.isNotEmpty()
-                            ) {
-                                Text(
-                                    when {
-                                        uiState.isOpening -> "Ouverture..."
-                                        uiState.isSpinning -> "Flash en cours..."
-                                        else -> "Lancer l'ouverture"
-                                    }
-                                )
-                            }
-
-                            if (uiState.openingErrorMessage != null) {
-                                Text(
-                                    text = uiState.openingErrorMessage,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.error,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
+                    if (uiState.openingErrorMessage != null) {
+                        item {
+                            Text(
+                                text = uiState.openingErrorMessage,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.error,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
-                    }
-
-                    item {
-                        Text(
-                            text = "Pokemons (du plus rare au moins rare)",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
                     }
 
                     if (rows.isEmpty()) {
@@ -212,9 +199,7 @@ fun BoxDetailScreen(
                                         modifier = Modifier.weight(1f)
                                     )
                                 }
-                                if (rowItems.size == 1) {
-                                    Spacer(modifier = Modifier.weight(1f))
-                                }
+                                repeat(3 - rowItems.size) { Spacer(modifier = Modifier.weight(1f)) }
                             }
                         }
                     }
@@ -236,7 +221,11 @@ fun BoxDetailScreen(
                     onDismissRequest = onDismissRewardDialog,
                     title = {
                         Text(
-                            text = "Pokemon gagne",
+                            text = if (uiState.isNewPokemonReward) {
+                                "NOUVEAU POKEMON !"
+                            } else {
+                                "Pokemon gagne"
+                            },
                             fontWeight = FontWeight.Bold
                         )
                     },
@@ -246,11 +235,16 @@ fun BoxDetailScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            AsyncImage(
-                                model = reward.gifUrl,
-                                contentDescription = reward.resourceName,
+                            PokemonSpriteImage(
+                                pokemonId = reward.resourceId,
+                                contentDescription = reward.resourceName.prettyPokemonName(),
+                                imageType = PokemonImageType.SHOWDOWN,
+                                shiny = false,
                                 modifier = Modifier.size(124.dp)
                             )
+                            if (uiState.isNewPokemonReward) {
+                                NewPokemonAnimatedBadge()
+                            }
                             Text(
                                 text = reward.resourceName.prettyPokemonName(),
                                 style = MaterialTheme.typography.titleLarge,
@@ -259,7 +253,11 @@ fun BoxDetailScreen(
                                 modifier = Modifier.fillMaxWidth()
                             )
                             Text(
-                                text = "Drop rate: ${"%.2f".format(reward.dropRate)}%",
+                                text = if (uiState.isNewPokemonReward) {
+                                    "Premiere obtention, bien joue !"
+                                } else {
+                                    "Drop rate: ${"%.2f".format(reward.dropRate)}%"
+                                },
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
@@ -271,6 +269,61 @@ fun BoxDetailScreen(
                     }
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun NewPokemonAnimatedBadge(modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "new-pokemon-badge")
+    val pulseScale by transition.animateFloat(
+        initialValue = 0.95f,
+        targetValue = 1.06f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 720, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse-scale"
+    )
+    val pulseAlpha by transition.animateFloat(
+        initialValue = 0.78f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 720, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse-alpha"
+    )
+
+    Surface(
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = pulseScale
+                scaleY = pulseScale
+                alpha = pulseAlpha
+            },
+        color = Color.Transparent
+    ) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .background(
+                    brush = Brush.horizontalGradient(
+                        listOf(
+                            Color(0xFFFFD54F),
+                            Color(0xFFFFB300)
+                        )
+                    )
+                )
+                .padding(horizontal = 10.dp, vertical = 5.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "Nouveau !",
+                color = Color.Black,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.ExtraBold
+            )
         }
     }
 }
@@ -339,20 +392,6 @@ private fun FlashDrawVerticalTrack(
     LaunchedEffect(items.size) {
         if (!isFlashing) {
             currentIndex = if (items.isNotEmpty()) 0 else -1
-        }
-    }
-
-    LaunchedEffect(items) {
-        val urls = items
-            .map { it.imageUrl }
-            .filter { it.isNotBlank() }
-            .distinct()
-        urls.forEach { url ->
-            context.imageLoader.enqueue(
-                ImageRequest.Builder(context)
-                    .data(url)
-                    .build()
-            )
         }
     }
 
@@ -502,9 +541,11 @@ private fun RouletteItemTile(
             }
 
             val imageSize = if (isCenter) maxWidth * 0.82f else maxWidth * 0.78f
-            AsyncImage(
-                model = pokemon.imageUrl,
-                contentDescription = pokemon.resourceName,
+            PokemonSpriteImage(
+                pokemonId = pokemon.resourceId,
+                contentDescription = pokemon.resourceName.prettyPokemonName(),
+                imageType = PokemonImageType.SHOWDOWN,
+                shiny = false,
                 modifier = Modifier
                     .align(Alignment.Center)
                     .size(imageSize),
@@ -547,9 +588,11 @@ private fun BoxPokemonTile(
                         modifier = Modifier.fillMaxSize()
                     )
                 }
-                AsyncImage(
-                    model = pokemon.imageUrl,
-                    contentDescription = pokemon.resourceName,
+                PokemonSpriteImage(
+                    pokemonId = pokemon.resourceId,
+                    contentDescription = pokemon.resourceName.prettyPokemonName(),
+                    imageType = PokemonImageType.SHOWDOWN,
+                    shiny = false,
                     modifier = Modifier
                         .align(Alignment.Center)
                         .size(maxWidth * 0.84f),

@@ -14,7 +14,8 @@ data class BoxDetailUiState(
     val isSpinning: Boolean = false,
     val openingErrorMessage: String? = null,
     val pendingReward: BoxPokemonUi? = null,
-    val showRewardDialog: Boolean = false
+    val showRewardDialog: Boolean = false,
+    val isNewPokemonReward: Boolean = false
 )
 
 data class BoxPokemonUi(
