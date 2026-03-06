@@ -181,9 +181,6 @@ fun PokedexScreen(
             }
         }
     }
-    val ownedCount = remember(ownedQuantities) { ownedQuantities.count { (_, quantity) -> quantity > 0 } }
-    val counterTotal = totalPokemonCount ?: uiState.totalPokemonCount.takeIf { it > 0 } ?: sourcePokemon.size
-
     Surface(modifier = modifier.fillMaxSize(), color = Color.Transparent) {
         when {
             uiState.isLoading -> {
@@ -256,18 +253,6 @@ fun PokedexScreen(
                             textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthBodyFontFamily),
                             colors = inputColors
                         )
-                    }
-
-                    if (collectionMode) {
-                        item {
-                            Text(
-                                text = "$ownedCount/$counterTotal",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
-                            )
-                        }
                     }
 
                     if (showOwnershipFilter) {

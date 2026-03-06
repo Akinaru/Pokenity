@@ -433,6 +433,7 @@ class MainActivity : ComponentActivity() {
                                                 MoiScreen.PROFILE -> {
                                                     MoiProfileScreen(
                                                         accountUiState = accountUiState,
+                                                        totalPokemonCount = pokedexUiState.totalPokemonCount,
                                                         onPokemonClick = { id ->
                                                             PokemonBrowseState.setList(
                                                                 accountUiState.pokemonCollection
@@ -1206,6 +1207,7 @@ private fun SettingsMenuScreen(
 @Composable
 private fun MoiProfileScreen(
     accountUiState: AccountUiState,
+    totalPokemonCount: Int?,
     onPokemonClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -1237,12 +1239,24 @@ private fun MoiProfileScreen(
 
         item(span = { GridItemSpan(maxLineSpan) }) {
             Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                Text(
-                    text = "Collection: ${ownedPokemon.size} Pokemon",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "Collection: ${ownedPokemon.size} Pokemon",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    totalPokemonCount?.takeIf { it > 0 }?.let { total ->
+                        Text(
+                            text = "/$total",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                        )
+                    }
+                }
             }
         }
 
@@ -1765,7 +1779,7 @@ private fun FooterSocialButton(
 ) {
     Box(
         modifier = Modifier
-            .size(52.dp)
+            .size(84.dp)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
