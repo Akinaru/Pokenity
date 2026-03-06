@@ -5,9 +5,15 @@ data class LootBox(
     val name: String,
     val pokeballImage: String,
     val totalDropRate: Double,
+    val stats: LootBoxStats = LootBoxStats(),
     val createdAt: String? = null,
     val updatedAt: String? = null,
     val entries: List<LootBoxEntry> = emptyList()
+)
+
+data class LootBoxStats(
+    val totalOpenings: Int = 0,
+    val myOpenings: Int = 0
 )
 
 data class LootBoxEntry(

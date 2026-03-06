@@ -3,6 +3,7 @@ const express = require("express");
 const { prisma } = require("../lib/prisma");
 const { getShinyDropRate } = require("../lib/configuration");
 const { PokeApiError, resolveDropResource } = require("../lib/pokeapi");
+const { verifyToken } = require("../lib/token");
 const { authRequired } = require("../middleware/auth");
 
 const router = express.Router();
@@ -34,6 +35,21 @@ function serializeBox(box) {
     updatedAt: box.updatedAt,
     entries: entries.map(serializeEntry),
   };
+}
+
+function optionalUserIdFromRequest(req) {
+  const authHeader = String(req.headers.authorization || "");
+  const [scheme, token] = authHeader.split(" ");
+  if (scheme !== "Bearer" || !token) {
+    return null;
+  }
+
+  const payload = verifyToken(token);
+  if (!payload || typeof payload !== "object" || !payload.sub) {
+    return null;
+  }
+
+  return payload.sub;
 }
 
 function toNumber(value) {
@@ -201,7 +217,30 @@ router.get("/:boxId", async (req, res) => {
     return res.status(404).json({ error: "Box not found." });
   }
 
-  return res.json({ box: serializeBox(box) });
+  const userId = optionalUserIdFromRequest(req);
+  const [totalOpenings, myOpenings] = await Promise.all([
+    prisma.boxOpening.count({
+      where: { boxId: box.id },
+    }),
+    userId
+      ? prisma.boxOpening.count({
+          where: {
+            boxId: box.id,
+            userId,
+          },
+        })
+      : Promise.resolve(0),
+  ]);
+
+  return res.json({
+    box: {
+      ...serializeBox(box),
+      stats: {
+        totalOpenings,
+        myOpenings,
+      },
+    },
+  });
 });
 
 router.post("/", async (req, res) => {

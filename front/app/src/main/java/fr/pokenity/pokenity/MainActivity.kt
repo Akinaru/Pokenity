@@ -1,5 +1,6 @@
 package fr.pokenity.pokenity
 
+import android.media.MediaPlayer
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -51,6 +52,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -75,6 +77,7 @@ import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavType
@@ -433,6 +436,7 @@ class MainActivity : ComponentActivity() {
                                                 MoiScreen.PROFILE -> {
                                                     MoiProfileScreen(
                                                         accountUiState = accountUiState,
+                                                        totalPokemonCount = pokedexUiState.totalPokemonCount,
                                                         onPokemonClick = { id ->
                                                             PokemonBrowseState.setList(
                                                                 accountUiState.pokemonCollection
@@ -618,7 +622,8 @@ class MainActivity : ComponentActivity() {
                                         onClearShapeFilter = pokedexViewModel::clearShapeFilter,
                                         collectionMode = true,
                                         ownedQuantities = accountUiState.pokemonCollection,
-                                        showOwnershipFilter = false,
+                                        showOwnershipFilter = true,
+                                        bottomContentPadding = 220.dp,
                                         totalPokemonCount = pokedexUiState.totalPokemonCount,
                                         modifier = Modifier.padding(innerPadding)
                                     )
@@ -1205,6 +1210,7 @@ private fun SettingsMenuScreen(
 @Composable
 private fun MoiProfileScreen(
     accountUiState: AccountUiState,
+    totalPokemonCount: Int?,
     onPokemonClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -1236,12 +1242,24 @@ private fun MoiProfileScreen(
 
         item(span = { GridItemSpan(maxLineSpan) }) {
             Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                Text(
-                    text = "Collection: ${ownedPokemon.size} Pokemon",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "Collection: ${ownedPokemon.size} Pokemon",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    totalPokemonCount?.takeIf { it > 0 }?.let { total ->
+                        Text(
+                            text = "/$total",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                        )
+                    }
+                }
             }
         }
 
@@ -1480,9 +1498,9 @@ private fun MoiHeaderCard(uiState: AccountUiState) {
                 Box(
                     modifier = Modifier
                         .size(128.dp)
-                        .clip(CircleShape)
+                        .clip(RoundedCornerShape(0.dp))
                         .background(Color(0x22180707))
-                        .border(2.dp, Color.White.copy(alpha = 0.55f), CircleShape),
+                        .border(2.dp, Color.White.copy(alpha = 0.55f), RoundedCornerShape(0.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     if (mediaModel != null) {
@@ -1643,6 +1661,26 @@ private fun ShinyToggleTopBarAction(
     isEnabled: Boolean,
     onToggle: () -> Unit
 ) {
+    val context = LocalContext.current
+    val soundOnResId = remember(context) {
+        context.resources.getIdentifier("shiny_click", "raw", context.packageName)
+    }
+    val soundOffResId = remember(context) {
+        context.resources.getIdentifier("shiny_click_reverse", "raw", context.packageName)
+    }
+    val clickOnPlayer = remember(context, soundOnResId) {
+        if (soundOnResId != 0) MediaPlayer.create(context, soundOnResId) else null
+    }
+    val clickOffPlayer = remember(context, soundOffResId) {
+        if (soundOffResId != 0) MediaPlayer.create(context, soundOffResId) else null
+    }
+    DisposableEffect(clickOnPlayer, clickOffPlayer) {
+        onDispose {
+            clickOnPlayer?.release()
+            clickOffPlayer?.release()
+        }
+    }
+
     val frames = remember {
         intArrayOf(
             R.drawable.shiny_1,
@@ -1674,6 +1712,13 @@ private fun ShinyToggleTopBarAction(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
             ) {
+                val playerToUse = if (isShinyEnabled) clickOffPlayer else clickOnPlayer
+                playerToUse?.let { player ->
+                    if (player.isPlaying) {
+                        player.seekTo(0)
+                    }
+                    player.start()
+                }
                 coroutineScope.launch {
                     isAnimating = true
                     if (isShinyEnabled) {
@@ -1764,7 +1809,7 @@ private fun FooterSocialButton(
 ) {
     Box(
         modifier = Modifier
-            .size(52.dp)
+            .size(84.dp)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null

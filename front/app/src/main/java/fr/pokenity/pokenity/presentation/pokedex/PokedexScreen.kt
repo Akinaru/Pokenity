@@ -58,6 +58,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.painterResource
 import fr.pokenity.data.core.PokemonImageSettings
@@ -100,6 +101,7 @@ fun PokedexScreen(
     collectionMode: Boolean = false,
     ownedQuantities: Map<Int, Int> = emptyMap(),
     showOwnershipFilter: Boolean = false,
+    bottomContentPadding: Dp = 0.dp,
     totalPokemonCount: Int? = null,
     headerContent: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier
@@ -179,9 +181,6 @@ fun PokedexScreen(
             }
         }
     }
-    val ownedCount = remember(ownedQuantities) { ownedQuantities.count { (_, quantity) -> quantity > 0 } }
-    val counterTotal = totalPokemonCount ?: uiState.totalPokemonCount.takeIf { it > 0 } ?: sourcePokemon.size
-
     Surface(modifier = modifier.fillMaxSize(), color = Color.Transparent) {
         when {
             uiState.isLoading -> {
@@ -198,7 +197,7 @@ fun PokedexScreen(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(vertical = 16.dp),
+                    contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp + bottomContentPadding),
                     verticalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
                     if (headerContent != null) {
@@ -256,24 +255,18 @@ fun PokedexScreen(
                         )
                     }
 
-                    if (collectionMode) {
-                        item {
-                            Text(
-                                text = "$ownedCount/$counterTotal",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
-                            )
-                        }
-                    }
-
                     if (showOwnershipFilter) {
                         item {
                             Box(modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)) {
-                                OwnershipFilterBar(
+                                OwnershipFilterCycleButton(
                                     selected = ownershipFilter,
-                                    onSelected = { ownershipFilter = it }
+                                    onClick = {
+                                        ownershipFilter = when (ownershipFilter) {
+                                            OwnershipFilter.ALL -> OwnershipFilter.OWNED
+                                            OwnershipFilter.OWNED -> OwnershipFilter.MISSING
+                                            OwnershipFilter.MISSING -> OwnershipFilter.ALL
+                                        }
+                                    }
                                 )
                             }
                         }
@@ -755,30 +748,30 @@ private fun ClosetPokemonRow(
 }
 
 @Composable
-private fun OwnershipFilterBar(
+private fun OwnershipFilterCycleButton(
     selected: OwnershipFilter,
-    onSelected: (OwnershipFilter) -> Unit
+    onClick: () -> Unit
 ) {
-    LazyRow(
+    val label = when (selected) {
+        OwnershipFilter.ALL -> "Possession: Tous"
+        OwnershipFilter.OWNED -> "Possession: Possedes"
+        OwnershipFilter.MISSING -> "Possession: Pas trouves"
+    }
+    OutlinedButton(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
+        shape = RoundedCornerShape(0.dp),
+        border = BorderStroke(1.dp, AuthInputBackground),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = AuthInputBackground,
+            contentColor = AuthInputText
+        )
     ) {
-        item {
-            OutlinedButton(onClick = { onSelected(OwnershipFilter.ALL) }) {
-                Text(if (selected == OwnershipFilter.ALL) "Possession: Tous *" else "Possession: Tous")
-            }
-        }
-        item {
-            OutlinedButton(onClick = { onSelected(OwnershipFilter.OWNED) }) {
-                Text(if (selected == OwnershipFilter.OWNED) "Possedes *" else "Possedes")
-            }
-        }
-        item {
-            OutlinedButton(onClick = { onSelected(OwnershipFilter.MISSING) }) {
-                Text(if (selected == OwnershipFilter.MISSING) "Pas possedes *" else "Pas possedes")
-            }
-        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthBodyFontFamily),
+            color = AuthInputText
+        )
     }
 }
 
