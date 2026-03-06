@@ -26,7 +26,7 @@ data class BoxPokemonUi(
     val imageUrl: String
         get() {
             if (resourceId <= 0) return ""
-            return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/$resourceId.png"
+            return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/$resourceId.gif"
         }
 
     val gifUrl: String
