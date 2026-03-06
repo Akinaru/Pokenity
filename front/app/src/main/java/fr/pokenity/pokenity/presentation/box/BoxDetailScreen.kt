@@ -12,11 +12,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -46,8 +48,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -57,6 +61,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import fr.pokenity.data.core.PokemonImageType
+import fr.pokenity.pokenity.R
 import fr.pokenity.pokenity.ui.components.PokemonSpriteImage
 import kotlinx.coroutines.delay
 import java.util.Locale
@@ -104,10 +109,6 @@ fun BoxDetailScreen(
         else -> {
             val context = LocalContext.current
             val box = uiState.box
-            val rows = remember(uiState.orderedEntries) { uiState.orderedEntries.chunked(3) }
-            val pageBackgroundResId = remember {
-                context.resources.getIdentifier("draw_background", "drawable", context.packageName)
-            }
             val boxButtonBackgroundResId = remember {
                 context.resources.getIdentifier("card_box", "drawable", context.packageName)
             }
@@ -115,15 +116,6 @@ fun BoxDetailScreen(
             Box(
                 modifier = modifier.fillMaxSize()
             ) {
-                if (pageBackgroundResId != 0) {
-                    Image(
-                        painter = painterResource(id = pageBackgroundResId),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(
@@ -174,21 +166,31 @@ fun BoxDetailScreen(
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    AsyncImage(
-                                        model = box.pokeballImage,
-                                        contentDescription = box.name,
-                                        modifier = Modifier.size(96.dp)
-                                    )
+                                    Box(
+                                        modifier = Modifier.size(96.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        AsyncImage(
+                                            model = box.pokeballImage,
+                                            contentDescription = box.name,
+                                            contentScale = ContentScale.Fit,
+                                            filterQuality = FilterQuality.None,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    }
                                     Text(
                                         text = box.name,
                                         style = MaterialTheme.typography.headlineSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color.White
+                                        color = Color.Black
                                     )
                                     Text(
-                                        text = "${box.entries.size} pokemons dans la box",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = Color.White
+                                        text = "Touchez cette carte pour ouvrir la box",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color.Black.copy(alpha = 0.88f),
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                 }
                             }
@@ -207,7 +209,7 @@ fun BoxDetailScreen(
                         }
                     }
 
-                    if (rows.isEmpty()) {
+                    if (uiState.orderedEntries.isEmpty()) {
                         item {
                             Text(
                                 text = "Aucun pokemon dans cette box.",
@@ -215,19 +217,8 @@ fun BoxDetailScreen(
                             )
                         }
                     } else {
-                        items(rows) { rowItems ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                rowItems.forEach { entry ->
-                                    BoxPokemonTile(
-                                        pokemon = entry,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-                                repeat(3 - rowItems.size) { Spacer(modifier = Modifier.weight(1f)) }
-                            }
+                        item {
+                            BoxClosetCollection(entries = uiState.orderedEntries)
                         }
                     }
                 }
@@ -305,6 +296,118 @@ fun BoxDetailScreen(
                         }
                     }
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BoxClosetCollection(entries: List<BoxPokemonUi>) {
+    val rows = remember(entries) {
+        val chunked = entries.chunked(3).toMutableList()
+        while (chunked.size < 4) {
+            chunked.add(emptyList())
+        }
+        chunked.toList()
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(0.dp)
+    ) {
+        rows.forEachIndexed { rowIndex, row ->
+            val backgroundRes = when {
+                rowIndex == 0 -> R.drawable.closet_top
+                rowIndex == rows.lastIndex -> R.drawable.closet_bottom
+                else -> R.drawable.closet_middle
+            }
+            BoxClosetRow(
+                row = row,
+                backgroundRes = backgroundRes
+            )
+        }
+    }
+}
+
+@Composable
+private fun BoxClosetRow(
+    row: List<BoxPokemonUi>,
+    backgroundRes: Int
+) {
+    val backgroundPainter = painterResource(id = backgroundRes)
+    val backgroundRatio = remember(backgroundPainter) {
+        val size = backgroundPainter.intrinsicSize
+        if (size.isSpecified && size.height > 0f) size.width / size.height else 1f
+    }
+    val spriteYOffset = if (backgroundRes == R.drawable.closet_top) 12.dp else 4.dp
+
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(backgroundRatio)
+    ) {
+        Box(
+            modifier = Modifier
+                .requiredWidth(maxWidth)
+                .fillMaxHeight()
+        ) {
+            Image(
+                painter = backgroundPainter,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.FillWidth
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 30.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                repeat(3) { slotIndex ->
+                    val pokemon = row.getOrNull(slotIndex)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (pokemon != null) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                PokemonSpriteImage(
+                                    pokemonId = pokemon.resourceId,
+                                    contentDescription = pokemon.resourceName.prettyPokemonName(),
+                                    imageType = PokemonImageType.SHOWDOWN,
+                                    shiny = pokemon.isShiny,
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier
+                                        .size(76.dp)
+                                        .offset(y = spriteYOffset)
+                                )
+
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .padding(2.dp)
+                                ) {
+                                    Text(
+                                        text = "${"%.2f".format(pokemon.dropRate)}%",
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
