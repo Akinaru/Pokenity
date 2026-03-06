@@ -1298,7 +1298,8 @@ private fun ProfileClosetRow(
         val size = backgroundPainter.intrinsicSize
         if (size.isSpecified && size.height > 0f) size.width / size.height else 1f
     }
-    val spriteYOffset = if (backgroundRes == R.drawable.closet_top) 12.dp else 4.dp
+    val spriteYOffset = if (backgroundRes == R.drawable.closet_top) 38.dp else 4.dp
+    val badgeYOffset = if (backgroundRes == R.drawable.closet_top) 38.dp else 0.dp
 
     Box(
         modifier = Modifier
@@ -1351,7 +1352,7 @@ private fun ProfileClosetRow(
                                 Box(
                                     modifier = Modifier
                                         .align(Alignment.TopEnd)
-                                        .padding(2.dp)
+                                        .padding(top = 2.dp + badgeYOffset, end = 2.dp)
                                 ) {
                                     Image(
                                         painter = painterResource(id = R.drawable.badge_duplicate),
@@ -1360,7 +1361,7 @@ private fun ProfileClosetRow(
                                         contentScale = ContentScale.Fit
                                     )
                                     Text(
-                                        text = quantity.toString(),
+                                        text = "x$quantity",
                                         color = Color.Black,
                                         style = MaterialTheme.typography.labelLarge.copy(
                                             fontFamily = AppTitleFontFamily,
