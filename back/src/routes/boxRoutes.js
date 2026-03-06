@@ -5,7 +5,7 @@ const { PokeApiError, resolveDropResource } = require("../lib/pokeapi");
 const { authRequired } = require("../middleware/auth");
 
 const router = express.Router();
-const SHINY_CHANCE = 0.25;
+const SHINY_CHANCE = 0.5;
 
 function serializeEntry(entry) {
   return {

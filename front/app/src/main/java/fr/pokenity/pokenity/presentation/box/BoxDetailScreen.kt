@@ -561,6 +561,14 @@ private fun RouletteItemTile(
                     .size(imageSize),
                 contentScale = ContentScale.Fit
             )
+
+            if (pokemon.isShiny) {
+                ShinyBadge(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 4.dp)
+                )
+            }
         }
     }
 }
@@ -608,6 +616,14 @@ private fun BoxPokemonTile(
                         .size(maxWidth * 0.84f),
                     contentScale = ContentScale.Fit
                 )
+
+                if (pokemon.isShiny) {
+                    ShinyBadge(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 4.dp)
+                    )
+                }
             }
         }
 
@@ -658,6 +674,24 @@ private fun BoxPokemonTile(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ShinyBadge(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color(0xFFFFD54F))
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "SHINY ✨",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.ExtraBold,
+            color = Color(0xFF111111)
+        )
     }
 }
 

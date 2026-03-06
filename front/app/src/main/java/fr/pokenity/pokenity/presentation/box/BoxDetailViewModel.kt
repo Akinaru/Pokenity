@@ -177,12 +177,19 @@ class BoxDetailViewModel(
         val flashesBeforeReward = 30 + Random.nextInt(from = 0, until = 10)
         val flashes = ArrayList<BoxPokemonUi>(flashesBeforeReward + 1)
         var lastResourceId: Int? = null
+        val isShinyDraw = reward.isShiny
         repeat(flashesBeforeReward) {
             val next = pickWeightedItem(
                 items = pool,
                 avoidResourceId = lastResourceId
             )
-            flashes += next
+            val shouldForceShiny = isShinyDraw &&
+                next.resourceType.equals("POKEMON", ignoreCase = true)
+            flashes += if (shouldForceShiny) {
+                next.copy(isShiny = true)
+            } else {
+                next.copy(isShiny = false)
+            }
             lastResourceId = next.resourceId
         }
         flashes += reward
