@@ -210,31 +210,6 @@ fun PokedexScreen(
                     }
 
                     item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
-                                .padding(bottom = 12.dp),
-                            horizontalArrangement = Arrangement.End,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Image(
-                                painter = painterResource(
-                                    id = if (shinyEnabled) R.drawable.shiny_on else R.drawable.shiny_off
-                                ),
-                                contentDescription = if (shinyEnabled) "Shiny ON" else "Shiny OFF",
-                                modifier = Modifier
-                                    .size(width = 112.dp, height = 40.dp)
-                                    .alpha(if (spriteType.supportsShiny) 1f else 0.45f)
-                                    .clickable(enabled = spriteType.supportsShiny) {
-                                        PokemonImageSettings.toggleShiny()
-                                    },
-                                contentScale = ContentScale.Fit
-                            )
-                        }
-                    }
-
-                    item {
                         val inputColors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = AuthInputText,
                             unfocusedTextColor = AuthInputText,
@@ -564,7 +539,8 @@ private fun FilterSelect(
             ) {
                 Text(
                     text = selected ?: "Tous",
-                    style = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthBodyFontFamily)
+                    style = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthBodyFontFamily),
+                    color = AuthInputText
                 )
             }
             DropdownMenu(
@@ -575,7 +551,8 @@ private fun FilterSelect(
                     text = {
                         Text(
                             text = "Tous",
-                            style = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthBodyFontFamily)
+                            style = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthBodyFontFamily),
+                            color = AuthInputText
                         )
                     },
                     onClick = {
@@ -588,7 +565,8 @@ private fun FilterSelect(
                         text = {
                             Text(
                                 text = option.label,
-                                style = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthBodyFontFamily)
+                                style = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthBodyFontFamily),
+                                color = AuthInputText
                             )
                         },
                         onClick = {

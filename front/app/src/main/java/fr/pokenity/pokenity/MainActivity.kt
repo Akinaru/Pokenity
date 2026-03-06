@@ -60,6 +60,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
@@ -173,6 +174,8 @@ class MainActivity : ComponentActivity() {
             val boxListUiState by boxListViewModel.uiState.collectAsState()
             val boxDetailUiState by boxDetailViewModel.uiState.collectAsState()
             val themeMode by AppThemeState.themeMode.collectAsState()
+            val navSpriteType by PokemonImageSettings.imageType.collectAsState()
+            val navShinyEnabled by PokemonImageSettings.isShiny.collectAsState()
 
             val systemDark = isSystemInDarkTheme()
             val isDarkTheme = when (themeMode) {
@@ -516,7 +519,28 @@ class MainActivity : ComponentActivity() {
                                                 )
                                             }
                                         },
-                                        colors = TopAppBarDefaults.topAppBarColors()
+                                        actions = {
+                                            Image(
+                                                painter = painterResource(
+                                                    id = if (navShinyEnabled) R.drawable.shiny_on else R.drawable.shiny_off
+                                                ),
+                                                contentDescription = if (navShinyEnabled) "Shiny ON" else "Shiny OFF",
+                                                modifier = Modifier
+                                                    .padding(end = 8.dp)
+                                                    .size(width = 112.dp, height = 40.dp)
+                                                    .alpha(if (navSpriteType.supportsShiny) 1f else 0.45f)
+                                                    .clickable(enabled = navSpriteType.supportsShiny) {
+                                                        PokemonImageSettings.toggleShiny()
+                                                    },
+                                                contentScale = ContentScale.Fit
+                                            )
+                                        },
+                                        colors = TopAppBarDefaults.topAppBarColors(
+                                            containerColor = Color(0xFF1B4167),
+                                            titleContentColor = Color.White,
+                                            navigationIconContentColor = Color.White,
+                                            actionIconContentColor = Color.White
+                                        )
                                     )
                                 }
                             ) { innerPadding ->
