@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
+import fr.pokenity.pokenity.ui.components.PrimaryButton
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
@@ -48,7 +48,7 @@ fun SettingsScreen(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(text = uiState.errorMessage, style = MaterialTheme.typography.bodyLarge)
-                Button(onClick = onRetry, modifier = Modifier.padding(top = 12.dp)) {
+                PrimaryButton(onClick = onRetry, modifier = Modifier.padding(top = 12.dp)) {
                     Text("Reessayer")
                 }
             }

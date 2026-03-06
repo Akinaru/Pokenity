@@ -21,7 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
+import fr.pokenity.pokenity.ui.components.PrimaryButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -502,6 +502,6 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
     ) {
         Text(text = message, style = MaterialTheme.typography.bodyLarge)
         Spacer(modifier = Modifier.height(12.dp))
-        Button(onClick = onRetry) { Text("Reessayer") }
+        PrimaryButton(onClick = onRetry) { Text("Reessayer") }
     }
 }

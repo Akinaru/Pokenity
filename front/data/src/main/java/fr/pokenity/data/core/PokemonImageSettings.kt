@@ -114,6 +114,13 @@ enum class PokemonImageType(
     val extension: String,
     val supportsShiny: Boolean
 ) {
+    SHOWDOWN(
+        key = "showdown",
+        label = "Showdown (GIF)",
+        folder = "showdown",
+        extension = "gif",
+        supportsShiny = true
+    ),
     OFFICIAL_ARTWORK(
         key = "official-artwork",
         label = "Official Artwork",
@@ -138,7 +145,7 @@ enum class PokemonImageType(
 }
 
 object PokemonImageSettings {
-    private val _imageType = MutableStateFlow(PokemonImageType.OFFICIAL_ARTWORK)
+    private val _imageType = MutableStateFlow(PokemonImageType.SHOWDOWN)
     val imageType: StateFlow<PokemonImageType> = _imageType.asStateFlow()
 
     private val _isShiny = MutableStateFlow(false)

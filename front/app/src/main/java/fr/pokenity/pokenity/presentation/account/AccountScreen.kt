@@ -16,8 +16,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import fr.pokenity.pokenity.ui.components.PrimaryButton
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -28,13 +28,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import fr.pokenity.pokenity.presentation.auth.AuthAccentYellow
-import fr.pokenity.pokenity.presentation.auth.AuthInputText
 import fr.pokenity.pokenity.ui.media.resolveCharacterMediaModel
 import fr.pokenity.pokenity.ui.theme.MistWhite
+import fr.pokenity.pokenity.ui.theme.PrimaryButtonOrange
 
 @Composable
 fun AccountScreen(
@@ -129,16 +131,18 @@ fun AccountScreen(
                     }
                 }
 
-                Button(
+                PrimaryButton(
                     onClick = onLogout,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = AuthAccentYellow,
-                        contentColor = AuthInputText
-                    )
+                    shape = RoundedCornerShape(0.dp),
+                    border = BorderStroke(3.dp, PrimaryButtonOrange)
                 ) {
-                    Text("Deconnexion", fontWeight = FontWeight.Bold)
+                    Text(
+                        text = "DECONNEXION",
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 1.2.sp,
+                        textDecoration = TextDecoration.None
+                    )
                 }
 
                 if (uiState.isLoading) {
@@ -158,14 +162,10 @@ fun AccountScreen(
                     color = MistWhite
                 )
 
-                Button(
+                PrimaryButton(
                     onClick = onGoToWelcome,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = AuthAccentYellow,
-                        contentColor = AuthInputText
-                    )
+                    shape = RoundedCornerShape(14.dp)
                 ) {
                     Text("Retour au Welcome", fontWeight = FontWeight.Bold)
                 }
