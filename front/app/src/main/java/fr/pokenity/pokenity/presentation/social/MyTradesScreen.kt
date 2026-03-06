@@ -41,6 +41,8 @@ fun MyTradesScreen(
         return
     }
 
+
+
     if (uiState.myTrades.isEmpty()) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
