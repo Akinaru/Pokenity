@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -450,6 +451,7 @@ class MainActivity : ComponentActivity() {
                                     MainBottomBar(
                                         selectedDestination = selectedDestination,
                                         onSelected = onMainDestinationSelected,
+                                        isDarkTheme = isDarkTheme,
                                         modifier = Modifier.align(Alignment.BottomCenter)
                                     )
                                 }
@@ -493,6 +495,7 @@ class MainActivity : ComponentActivity() {
                                     MainBottomBar(
                                         selectedDestination = selectedDestination,
                                         onSelected = onMainDestinationSelected,
+                                        isDarkTheme = isDarkTheme,
                                         modifier = Modifier.align(Alignment.BottomCenter)
                                     )
                                 }
@@ -548,6 +551,7 @@ class MainActivity : ComponentActivity() {
                                     MainBottomBar(
                                         selectedDestination = selectedDestination,
                                         onSelected = onMainDestinationSelected,
+                                        isDarkTheme = isDarkTheme,
                                         modifier = Modifier.align(Alignment.BottomCenter)
                                     )
                                 }
@@ -584,6 +588,7 @@ class MainActivity : ComponentActivity() {
                                     MainBottomBar(
                                         selectedDestination = selectedDestination,
                                         onSelected = onMainDestinationSelected,
+                                        isDarkTheme = isDarkTheme,
                                         modifier = Modifier.align(Alignment.BottomCenter)
                                     )
                                 }
@@ -629,6 +634,7 @@ class MainActivity : ComponentActivity() {
                                     MainBottomBar(
                                         selectedDestination = selectedDestination,
                                         onSelected = onMainDestinationSelected,
+                                        isDarkTheme = isDarkTheme,
                                         modifier = Modifier.align(Alignment.BottomCenter)
                                     )
                                 }
@@ -672,6 +678,7 @@ class MainActivity : ComponentActivity() {
                                     MainBottomBar(
                                         selectedDestination = selectedDestination,
                                         onSelected = onMainDestinationSelected,
+                                        isDarkTheme = isDarkTheme,
                                         modifier = Modifier.align(Alignment.BottomCenter)
                                     )
                                 }
@@ -701,6 +708,7 @@ class MainActivity : ComponentActivity() {
                                     MainBottomBar(
                                         selectedDestination = selectedDestination,
                                         onSelected = onMainDestinationSelected,
+                                        isDarkTheme = isDarkTheme,
                                         modifier = Modifier.align(Alignment.BottomCenter)
                                     )
                                 }
@@ -735,6 +743,7 @@ class MainActivity : ComponentActivity() {
                                     MainBottomBar(
                                         selectedDestination = selectedDestination,
                                         onSelected = onMainDestinationSelected,
+                                        isDarkTheme = isDarkTheme,
                                         modifier = Modifier.align(Alignment.BottomCenter)
                                     )
                                 }
@@ -775,6 +784,7 @@ class MainActivity : ComponentActivity() {
                                     MainBottomBar(
                                         selectedDestination = selectedDestination,
                                         onSelected = onMainDestinationSelected,
+                                        isDarkTheme = isDarkTheme,
                                         modifier = Modifier.align(Alignment.BottomCenter)
                                     )
                                 }
@@ -1400,9 +1410,12 @@ private fun ComparePickerScreen(
 private fun MainBottomBar(
     selectedDestination: MainDestination,
     onSelected: (MainDestination) -> Unit,
+    isDarkTheme: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val footerPainter = painterResource(id = R.drawable.footer)
+    val footerPainter = painterResource(
+        id = if (isDarkTheme) R.drawable.footer else R.drawable.footer_white
+    )
     val footerAspectRatio = remember(footerPainter) {
         val intrinsicSize = footerPainter.intrinsicSize
         if (intrinsicSize.isSpecified && intrinsicSize.height > 0f) {
@@ -1434,10 +1447,9 @@ private fun MainBottomBar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            FooterIconButton(
+            FooterSocialButton(
                 isSelected = selectedDestination == MainDestination.SOCIAL,
                 onClick = { onSelected(MainDestination.SOCIAL) },
-                imageVector = Icons.Filled.CatchingPokemon,
                 contentDescription = "Social"
             )
             FooterAccueilButton(
@@ -1452,6 +1464,34 @@ private fun MainBottomBar(
                 contentDescription = "Moi"
             )
         }
+    }
+}
+
+@Composable
+private fun FooterSocialButton(
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    contentDescription: String
+) {
+    Box(
+        modifier = Modifier
+            .size(52.dp)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            painter = painterResource(
+                id = if (isSelected) R.drawable.social_on else R.drawable.social_off
+            ),
+            contentDescription = contentDescription,
+            modifier = Modifier
+                .size(50.dp)
+                .offset(y = 26.dp),
+            contentScale = ContentScale.Fit
+        )
     }
 }
 
