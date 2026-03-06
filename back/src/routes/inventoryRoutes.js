@@ -11,6 +11,7 @@ function serializeItem(item) {
     resourceType: item.resourceType,
     resourceId: item.resourceId,
     resourceName: item.resourceName,
+    isShiny: item.isShiny,
     quantity: item.quantity,
     firstObtainedAt: item.firstObtainedAt,
     lastObtainedAt: item.lastObtainedAt,
