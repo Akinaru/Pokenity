@@ -12,7 +12,10 @@ internal interface BoxRetrofitApi {
     suspend fun getBoxes(): Response<BoxesResponseDto>
 
     @GET("boxes/{boxId}")
-    suspend fun getBoxById(@Path("boxId") boxId: String): Response<BoxResponseDto>
+    suspend fun getBoxById(
+        @Header("Authorization") authorization: String? = null,
+        @Path("boxId") boxId: String
+    ): Response<BoxResponseDto>
 
     @POST("boxes/{boxId}/open")
     suspend fun openBox(

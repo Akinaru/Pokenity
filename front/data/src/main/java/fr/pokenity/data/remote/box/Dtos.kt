@@ -24,9 +24,15 @@ internal data class BoxDto(
     @SerializedName("name") val name: String,
     @SerializedName("pokeballImage") val pokeballImage: String,
     @SerializedName("totalDropRate") val totalDropRate: Double? = null,
+    @SerializedName("stats") val stats: BoxStatsDto? = null,
     @SerializedName("createdAt") val createdAt: String? = null,
     @SerializedName("updatedAt") val updatedAt: String? = null,
     @SerializedName("entries") val entries: List<BoxEntryDto>? = null
+)
+
+internal data class BoxStatsDto(
+    @SerializedName("totalOpenings") val totalOpenings: Int? = null,
+    @SerializedName("myOpenings") val myOpenings: Int? = null
 )
 
 internal data class BoxEntryDto(
