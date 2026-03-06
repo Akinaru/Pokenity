@@ -57,6 +57,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -75,6 +76,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -82,6 +84,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import coil.compose.AsyncImage
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import fr.pokenity.data.core.AppThemeMode
 import fr.pokenity.data.core.AppThemeState
 import fr.pokenity.data.core.AuthSessionState
@@ -122,6 +125,7 @@ import fr.pokenity.pokenity.presentation.social.SocialScreen
 import fr.pokenity.pokenity.presentation.social.SocialViewModel
 import fr.pokenity.pokenity.ui.components.PokemonSpriteImage
 import fr.pokenity.pokenity.ui.media.resolveCharacterMediaModel
+import fr.pokenity.pokenity.ui.theme.AppTitleFontFamily
 import fr.pokenity.pokenity.ui.theme.AppBackground
 import fr.pokenity.pokenity.ui.theme.PokenityTheme
 
@@ -540,19 +544,10 @@ class MainActivity : ComponentActivity() {
                                             }
                                         },
                                         actions = {
-                                            Image(
-                                                painter = painterResource(
-                                                    id = if (navShinyEnabled) R.drawable.shiny_on else R.drawable.shiny_off
-                                                ),
-                                                contentDescription = if (navShinyEnabled) "Shiny ON" else "Shiny OFF",
-                                                modifier = Modifier
-                                                    .padding(end = 8.dp)
-                                                    .size(width = 112.dp, height = 40.dp)
-                                                    .alpha(if (navSpriteType.supportsShiny) 1f else 0.45f)
-                                                    .clickable(enabled = navSpriteType.supportsShiny) {
-                                                        PokemonImageSettings.toggleShiny()
-                                                    },
-                                                contentScale = ContentScale.Fit
+                                            ShinyToggleTopBarAction(
+                                                isShinyEnabled = navShinyEnabled,
+                                                isEnabled = navSpriteType.supportsShiny,
+                                                onToggle = { PokemonImageSettings.toggleShiny() }
                                             )
                                         },
                                         colors = TopAppBarDefaults.topAppBarColors(
@@ -1197,38 +1192,42 @@ private fun MoiProfileScreen(
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
         state = gridState,
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
+        modifier = modifier.fillMaxSize(),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 136.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
-            MoiHeaderCard(uiState = accountUiState)
+            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                MoiHeaderCard(uiState = accountUiState)
+            }
         }
 
         item(span = { GridItemSpan(maxLineSpan) }) {
-            Text(
-                text = "Collection: ${ownedPokemon.size} Pokemon",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                Text(
+                    text = "Collection: ${ownedPokemon.size} Pokemon",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
         }
 
         if (ownedPokemon.isEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    color = Color(0x33180707)
-                ) {
-                    Text(
-                        text = "Aucun Pokemon possede pour le moment.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(14.dp)
-                    )
+                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color(0x33180707)
+                    ) {
+                        Text(
+                            text = "Aucun Pokemon possede pour le moment.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(14.dp)
+                        )
+                    }
                 }
             }
         } else {
@@ -1337,19 +1336,31 @@ private fun ProfileClosetRow(
                             )
 
                             if (quantity > 1) {
-                                Surface(
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = MaterialTheme.colorScheme.primary,
+                                Box(
                                     modifier = Modifier
-                                        .align(Alignment.BottomEnd)
+                                        .align(Alignment.TopEnd)
                                         .padding(2.dp)
                                 ) {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.badge_duplicate),
+                                        contentDescription = "Duplicate badge",
+                                        modifier = Modifier.size(40.dp),
+                                        contentScale = ContentScale.Fit
+                                    )
                                     Text(
-                                        text = "x$quantity",
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        text = quantity.toString(),
+                                        color = Color.Black,
+                                        style = MaterialTheme.typography.labelLarge.copy(
+                                            fontFamily = AppTitleFontFamily,
+                                            fontSize = 18.sp,
+                                            shadow = androidx.compose.ui.graphics.Shadow(
+                                                color = Color.White,
+                                                offset = androidx.compose.ui.geometry.Offset(0f, 0f),
+                                                blurRadius = 4f
+                                            )
+                                        ),
+                                        fontWeight = FontWeight.ExtraBold,
+                                        modifier = Modifier.align(Alignment.Center)
                                     )
                                 }
                             }
@@ -1578,6 +1589,64 @@ private fun ComparePickerScreen(
             modifier = Modifier.padding(innerPadding)
         )
     }
+}
+
+@Composable
+private fun ShinyToggleTopBarAction(
+    isShinyEnabled: Boolean,
+    isEnabled: Boolean,
+    onToggle: () -> Unit
+) {
+    val frames = remember {
+        intArrayOf(
+            R.drawable.shiny_1,
+            R.drawable.shiny_2,
+            R.drawable.shiny_3,
+            R.drawable.shiny_4,
+            R.drawable.shiny_5
+        )
+    }
+    var frameIndex by remember { mutableIntStateOf(if (isShinyEnabled) 4 else 0) }
+    var isAnimating by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(isShinyEnabled, isAnimating) {
+        if (!isAnimating) {
+            frameIndex = if (isShinyEnabled) 4 else 0
+        }
+    }
+
+    Image(
+        painter = painterResource(id = frames[frameIndex]),
+        contentDescription = if (isShinyEnabled) "Shiny ON" else "Shiny OFF",
+        modifier = Modifier
+            .padding(end = 8.dp)
+            .size(width = 112.dp, height = 40.dp)
+            .alpha(if (isEnabled) 1f else 0.45f)
+            .clickable(
+                enabled = isEnabled && !isAnimating,
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) {
+                coroutineScope.launch {
+                    isAnimating = true
+                    if (isShinyEnabled) {
+                        for (index in 3 downTo 0) {
+                            frameIndex = index
+                            delay(55)
+                        }
+                    } else {
+                        for (index in 1..4) {
+                            frameIndex = index
+                            delay(55)
+                        }
+                    }
+                    onToggle()
+                    isAnimating = false
+                }
+            },
+        contentScale = ContentScale.Fit
+    )
 }
 
 @Composable
