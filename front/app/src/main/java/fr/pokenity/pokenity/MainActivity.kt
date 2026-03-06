@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Image
@@ -39,7 +40,6 @@ import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -123,11 +123,13 @@ import fr.pokenity.pokenity.presentation.settings.SettingsScreen
 import fr.pokenity.pokenity.presentation.settings.SettingsViewModel
 import fr.pokenity.pokenity.presentation.social.SocialScreen
 import fr.pokenity.pokenity.presentation.social.SocialViewModel
+import fr.pokenity.pokenity.ui.components.PrimaryButton
 import fr.pokenity.pokenity.ui.components.PokemonSpriteImage
 import fr.pokenity.pokenity.ui.media.resolveCharacterMediaModel
 import fr.pokenity.pokenity.ui.theme.AppTitleFontFamily
 import fr.pokenity.pokenity.ui.theme.AppBackground
 import fr.pokenity.pokenity.ui.theme.PokenityTheme
+import fr.pokenity.pokenity.ui.theme.PrimaryButtonOrange
 
 private enum class MainDestination {
     SOCIAL,
@@ -333,7 +335,7 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier.fillMaxSize(),
                                 containerColor = Color.Transparent,
                                 topBar = {
-                                    if (selectedDestination == MainDestination.MOI) {
+                                    if (selectedDestination == MainDestination.MOI && moiScreen != MoiScreen.PROFILE) {
                                         MoiTopBar(
                                             screen = moiScreen,
                                             onBack = {
@@ -483,6 +485,23 @@ class MainActivity : ComponentActivity() {
                                                 }
                                             }
                                         }
+                                    }
+
+                                    if (selectedDestination == MainDestination.MOI && moiScreen == MoiScreen.PROFILE) {
+                                        MoiTopBar(
+                                            screen = moiScreen,
+                                            onBack = {
+                                                moiScreen = when (moiScreen) {
+                                                    MoiScreen.PROFILE -> MoiScreen.PROFILE
+                                                    MoiScreen.SETTINGS -> MoiScreen.PROFILE
+                                                    MoiScreen.PREFERENCE -> MoiScreen.SETTINGS
+                                                    MoiScreen.COMPTE -> MoiScreen.SETTINGS
+                                                }
+                                            },
+                                            onOpenSettings = {
+                                                moiScreen = MoiScreen.SETTINGS
+                                            }
+                                        )
                                     }
 
                                     MainBottomBar(
@@ -886,7 +905,7 @@ private fun MoiTopBar(
 
         MoiScreen.SETTINGS -> {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text("Parametres") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
@@ -1160,23 +1179,19 @@ private fun SettingsMenuScreen(
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Text(
-            text = "Parametres",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
-        HorizontalDivider()
-        OutlinedButton(
+        PrimaryButton(
             onClick = onOpenPreference,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp)
+            shape = RoundedCornerShape(0.dp),
+            border = BorderStroke(3.dp, PrimaryButtonOrange)
         ) {
             Text("Preference")
         }
-        OutlinedButton(
+        PrimaryButton(
             onClick = onOpenCompte,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp)
+            shape = RoundedCornerShape(0.dp),
+            border = BorderStroke(3.dp, PrimaryButtonOrange)
         ) {
             Text("Compte")
         }
@@ -1205,7 +1220,7 @@ private fun MoiProfileScreen(
         columns = GridCells.Fixed(3),
         state = gridState,
         modifier = modifier.fillMaxSize(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 136.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 220.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
