@@ -5,6 +5,7 @@ const { PokeApiError, resolveDropResource } = require("../lib/pokeapi");
 const { authRequired } = require("../middleware/auth");
 
 const router = express.Router();
+const SHINY_CHANCE = 0.25;
 
 function serializeEntry(entry) {
   return {
@@ -120,6 +121,13 @@ function pickWeightedEntry(entries) {
   }
 
   return entries[entries.length - 1];
+}
+
+function rollShiny(entry) {
+  if (!entry || entry.resourceType !== "POKEMON") {
+    return false;
+  }
+  return Math.random() < SHINY_CHANCE;
 }
 
 router.get("/", async (req, res) => {
@@ -340,16 +348,18 @@ router.post("/:boxId/open", authRequired, async (req, res) => {
   }
 
   const selectedEntry = pickWeightedEntry(box.entries);
+  const isShiny = rollShiny(selectedEntry);
   const now = new Date();
 
   const { inventoryItem, boxOpening, userWithXp } = await prisma.$transaction(
     async (tx) => {
       const nextInventoryItem = await tx.inventoryItem.upsert({
         where: {
-          userId_resourceType_resourceId: {
+          userId_resourceType_resourceId_isShiny: {
             userId: req.user.sub,
             resourceType: selectedEntry.resourceType,
             resourceId: selectedEntry.resourceId,
+            isShiny,
           },
         },
         update: {
@@ -364,6 +374,7 @@ router.post("/:boxId/open", authRequired, async (req, res) => {
           resourceType: selectedEntry.resourceType,
           resourceId: selectedEntry.resourceId,
           resourceName: selectedEntry.resourceName,
+          isShiny,
           quantity: 1,
           firstObtainedAt: now,
           lastObtainedAt: now,
@@ -379,6 +390,7 @@ router.post("/:boxId/open", authRequired, async (req, res) => {
           resourceType: selectedEntry.resourceType,
           resourceId: selectedEntry.resourceId,
           resourceName: selectedEntry.resourceName,
+          isShiny,
           dropRate: selectedEntry.dropRate,
           openedAt: now,
         },
@@ -414,15 +426,18 @@ router.post("/:boxId/open", authRequired, async (req, res) => {
       resourceType: selectedEntry.resourceType,
       resourceId: selectedEntry.resourceId,
       resourceName: selectedEntry.resourceName,
+      isShiny,
       dropRate: selectedEntry.dropRate,
     },
     inventoryItem: {
       id: inventoryItem.id,
+      isShiny: inventoryItem.isShiny,
       quantity: inventoryItem.quantity,
       lastObtainedAt: inventoryItem.lastObtainedAt,
     },
     boxOpening: {
       id: boxOpening.id,
+      isShiny: boxOpening.isShiny,
       openedAt: boxOpening.openedAt,
     },
     user: {

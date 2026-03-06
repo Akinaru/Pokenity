@@ -262,6 +262,7 @@ fun PokedexScreen(
                                 text = "$ownedCount/$counterTotal",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
                             )
                         }
@@ -424,7 +425,8 @@ private fun FiltersSection(
         Text(
             text = "Filtres",
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
         )
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             item {
@@ -521,7 +523,8 @@ private fun FilterSelect(
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge.copy(fontFamily = AuthBodyFontFamily),
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
         )
         Box(modifier = Modifier.fillMaxWidth()) {
             OutlinedButton(

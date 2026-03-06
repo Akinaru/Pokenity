@@ -157,7 +157,7 @@ fun TradeCard(
                             modifier = Modifier.size(64.dp)
                         )
                         Text(
-                            text = offered.resourceName,
+                            text = if (offered.isShiny) "${offered.resourceName} ✨" else offered.resourceName,
                             style = MaterialTheme.typography.bodySmall
                         )
                     } else {
@@ -186,7 +186,7 @@ fun TradeCard(
                             modifier = Modifier.size(64.dp)
                         )
                         Text(
-                            text = received.resourceName,
+                            text = if (received.isShiny) "${received.resourceName} ✨" else received.resourceName,
                             style = MaterialTheme.typography.bodySmall
                         )
                     } else {
@@ -322,7 +322,7 @@ private fun AcceptTradeDialog(
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    text = item.resourceName,
+                                    text = if (item.isShiny) "${item.resourceName} ✨" else item.resourceName,
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold
                                 )

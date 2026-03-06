@@ -14,24 +14,28 @@ data class BoxDetailUiState(
     val isSpinning: Boolean = false,
     val openingErrorMessage: String? = null,
     val pendingReward: BoxPokemonUi? = null,
-    val showRewardDialog: Boolean = false
+    val showRewardDialog: Boolean = false,
+    val isNewPokemonReward: Boolean = false
 )
 
 data class BoxPokemonUi(
     val resourceType: String,
     val resourceId: Int,
     val resourceName: String,
-    val dropRate: Double
+    val dropRate: Double,
+    val isShiny: Boolean = false
 ) {
     val imageUrl: String
         get() {
             if (resourceId <= 0) return ""
-            return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/$resourceId.png"
+            val shinySegment = if (isShiny) "shiny/" else ""
+            return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/$shinySegment$resourceId.gif"
         }
 
     val gifUrl: String
         get() {
             if (resourceId <= 0) return ""
-            return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/$resourceId.gif"
+            val shinySegment = if (isShiny) "shiny/" else ""
+            return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/$shinySegment$resourceId.gif"
         }
 }

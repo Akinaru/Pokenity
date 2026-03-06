@@ -13,10 +13,10 @@ private val DarkColorScheme = darkColorScheme(
     background = Slate,
     surface = Color(0xFF151515),
     onPrimary = Color.Black,
-    onSecondary = MistWhite,
-    onBackground = MistWhite,
-    onSurface = MistWhite,
-    onSurfaceVariant = MistWhite
+    onSecondary = Color.White,
+    onBackground = Color.White,
+    onSurface = Color.White,
+    onSurfaceVariant = Color.White
 )
 
 private val LightColorScheme = lightColorScheme(

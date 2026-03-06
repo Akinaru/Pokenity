@@ -68,10 +68,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -626,6 +628,14 @@ class MainActivity : ComponentActivity() {
                         ) { backStackEntry ->
                             val boxId = backStackEntry.arguments?.getString("boxId")
                                 ?: return@composable
+                            var boxDetailBottomBarHeightPx by remember { mutableIntStateOf(0) }
+                            val density = LocalDensity.current
+                            val boxDetailBottomBarHeight = if (boxDetailBottomBarHeightPx > 0) {
+                                with(density) { boxDetailBottomBarHeightPx.toDp() }
+                            } else {
+                                96.dp
+                            }
+                            val isDrawOpen = boxDetailUiState.isOpening || boxDetailUiState.isSpinning
                             LaunchedEffect(boxId) {
                                 boxDetailViewModel.loadBox(boxId)
                             }
@@ -654,14 +664,19 @@ class MainActivity : ComponentActivity() {
                                         onOpenBox = boxDetailViewModel::openBox,
                                         onSpinAnimationCompleted = boxDetailViewModel::onSpinAnimationCompleted,
                                         onDismissRewardDialog = boxDetailViewModel::dismissRewardDialog,
+                                        bottomInset = boxDetailBottomBarHeight,
                                         modifier = Modifier.padding(innerPadding)
                                     )
-                                    MainBottomBar(
-                                        selectedDestination = selectedDestination,
-                                        onSelected = onMainDestinationSelected,
-                                        isDarkTheme = isDarkTheme,
-                                        modifier = Modifier.align(Alignment.BottomCenter)
-                                    )
+                                    if (!isDrawOpen) {
+                                        MainBottomBar(
+                                            selectedDestination = selectedDestination,
+                                            isDarkTheme = isDarkTheme,
+                                            onSelected = onMainDestinationSelected,
+                                            modifier = Modifier
+                                                .align(Alignment.BottomCenter)
+                                                .onSizeChanged { boxDetailBottomBarHeightPx = it.height }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -1168,7 +1183,7 @@ private fun MoiProfileScreen(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 16.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 136.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
@@ -1180,7 +1195,8 @@ private fun MoiProfileScreen(
             Text(
                 text = "Collection: ${ownedPokemon.size} Pokemon",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
 
@@ -1423,12 +1439,14 @@ private fun MoiHeaderCard(uiState: AccountUiState) {
                 Text(
                     text = "Niv. ${levelProgress.currentLevel}",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "Niv. ${levelProgress.nextLevel}",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 

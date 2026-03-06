@@ -43,7 +43,8 @@ internal data class TradeUserLightDto(
 internal data class TradePokemonDto(
     @SerializedName("resourceType") val resourceType: String?,
     @SerializedName("resourceId") val resourceId: Int?,
-    @SerializedName("resourceName") val resourceName: String?
+    @SerializedName("resourceName") val resourceName: String?,
+    @SerializedName("isShiny") val isShiny: Boolean? = null
 )
 
 // --- Request bodies ---
@@ -75,6 +76,7 @@ internal data class InventoryItemDto(
     @SerializedName("resourceType") val resourceType: String?,
     @SerializedName("resourceId") val resourceId: Int?,
     @SerializedName("resourceName") val resourceName: String?,
+    @SerializedName("isShiny") val isShiny: Boolean? = null,
     @SerializedName("quantity") val quantity: Int,
     @SerializedName("firstObtainedAt") val firstObtainedAt: String?,
     @SerializedName("lastObtainedAt") val lastObtainedAt: String?

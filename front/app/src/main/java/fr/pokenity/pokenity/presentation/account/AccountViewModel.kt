@@ -60,7 +60,8 @@ class AccountViewModel(
                     .asSequence()
                     .filter { it.resourceType.equals("POKEMON", ignoreCase = true) }
                     .filter { it.quantity > 0 }
-                    .associate { it.resourceId to it.quantity }
+                    .groupBy { it.resourceId }
+                    .mapValues { (_, values) -> values.sumOf { it.quantity } }
                 me to pokemonCollection
             }.onSuccess { (me, pokemonCollection) ->
                     _uiState.value = _uiState.value.copy(

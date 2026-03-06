@@ -5,6 +5,7 @@ data class InventoryItem(
     val resourceType: String,
     val resourceId: Int,
     val resourceName: String,
+    val isShiny: Boolean,
     val quantity: Int,
     val imageUrl: String
 )

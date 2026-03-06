@@ -214,13 +214,16 @@
     const rows = collection
       .sort((a, b) => a.resourceId - b.resourceId)
       .map((item) => {
-        const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${item.resourceId}.png`;
+        const shinySegment = item.isShiny ? "shiny/" : "";
+        const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${shinySegment}${item.resourceId}.png`;
         return `
           <tr>
             <td>
               <div style="display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:center;">
                 <img src="${escapeHtml(sprite)}" alt="" style="width:28px;height:28px;object-fit:contain;" onerror="this.style.visibility='hidden'" />
-                <span>${escapeHtml(toTitleCase(item.resourceName || "pokemon"))}</span>
+                <span>${escapeHtml(toTitleCase(item.resourceName || "pokemon"))}${
+                  item.isShiny ? " ✨Shiny" : ""
+                }</span>
               </div>
             </td>
             <td>#${item.resourceId}</td>
@@ -409,7 +412,7 @@
           <tr>
             <td><span class="bo-pill">${escapeHtml(item.resourceType)}</span></td>
             <td>#${item.resourceId}</td>
-            <td>${escapeHtml(item.resourceName)}</td>
+            <td>${escapeHtml(item.resourceName)}${item.isShiny ? " ✨Shiny" : ""}</td>
             <td>${item.quantity}</td>
             <td>${formatDate(item.lastObtainedAt)}</td>
           </tr>

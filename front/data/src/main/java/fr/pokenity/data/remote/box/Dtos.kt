@@ -48,17 +48,20 @@ internal data class OpenBoxRewardDto(
     @SerializedName("resourceType") val resourceType: String? = null,
     @SerializedName("resourceId") val resourceId: Int? = null,
     @SerializedName("resourceName") val resourceName: String? = null,
+    @SerializedName("isShiny") val isShiny: Boolean? = null,
     @SerializedName("dropRate") val dropRate: Double? = null
 )
 
 internal data class OpenBoxInventoryItemDto(
     @SerializedName("id") val id: String? = null,
+    @SerializedName("isShiny") val isShiny: Boolean? = null,
     @SerializedName("quantity") val quantity: Int? = null,
     @SerializedName("lastObtainedAt") val lastObtainedAt: String? = null
 )
 
 internal data class OpenBoxHistoryDto(
     @SerializedName("id") val id: String? = null,
+    @SerializedName("isShiny") val isShiny: Boolean? = null,
     @SerializedName("openedAt") val openedAt: String? = null
 )
 

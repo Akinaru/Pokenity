@@ -26,7 +26,8 @@
       return "-";
     }
 
-    return `${resource.resourceType} #${resource.resourceId} ${toTitleCase(resource.resourceName)}`;
+    const shinyLabel = resource.isShiny ? " ✨Shiny" : "";
+    return `${resource.resourceType} #${resource.resourceId} ${toTitleCase(resource.resourceName)}${shinyLabel}`;
   }
 
   function serializeSearchText(trade) {
