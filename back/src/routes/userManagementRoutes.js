@@ -61,6 +61,25 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function parseBoolean(value, fallback = false) {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value === "number") {
+    return value === 1;
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["1", "true", "yes", "y", "on"].includes(normalized)) {
+      return true;
+    }
+    if (["0", "false", "no", "n", "off"].includes(normalized)) {
+      return false;
+    }
+  }
+  return fallback;
+}
+
 async function ensureCharacterIdOrDefault(rawCharacterId) {
   const normalized =
     rawCharacterId === undefined || rawCharacterId === null
@@ -268,6 +287,7 @@ router.post("/:id/pokemon", async (req, res) => {
   const pokemonId = Math.trunc(Number(req.body.pokemonId));
   const quantityRaw = req.body.quantity === undefined ? 1 : Number(req.body.quantity);
   const quantity = Math.trunc(quantityRaw);
+  const isShiny = parseBoolean(req.body.isShiny, false);
 
   if (!userId) {
     return res.status(400).json({ error: "User id is required." });
@@ -296,10 +316,11 @@ router.post("/:id/pokemon", async (req, res) => {
 
     const inventoryItem = await prisma.inventoryItem.upsert({
       where: {
-        userId_resourceType_resourceId: {
+        userId_resourceType_resourceId_isShiny: {
           userId,
           resourceType: "POKEMON",
           resourceId: pokemon.resourceId,
+          isShiny,
         },
       },
       update: {
@@ -314,6 +335,7 @@ router.post("/:id/pokemon", async (req, res) => {
         resourceType: "POKEMON",
         resourceId: pokemon.resourceId,
         resourceName: pokemon.resourceName,
+        isShiny,
         quantity,
         firstObtainedAt: now,
         lastObtainedAt: now,
@@ -326,10 +348,12 @@ router.post("/:id/pokemon", async (req, res) => {
         resourceType: "POKEMON",
         resourceId: pokemon.resourceId,
         resourceName: pokemon.resourceName,
+        isShiny,
         quantityAdded: quantity,
       },
       inventoryItem: {
         id: inventoryItem.id,
+        isShiny: inventoryItem.isShiny,
         quantity: inventoryItem.quantity,
         lastObtainedAt: inventoryItem.lastObtainedAt,
       },

@@ -65,10 +65,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -613,6 +615,14 @@ class MainActivity : ComponentActivity() {
                         ) { backStackEntry ->
                             val boxId = backStackEntry.arguments?.getString("boxId")
                                 ?: return@composable
+                            var boxDetailBottomBarHeightPx by remember { mutableIntStateOf(0) }
+                            val density = LocalDensity.current
+                            val boxDetailBottomBarHeight = if (boxDetailBottomBarHeightPx > 0) {
+                                with(density) { boxDetailBottomBarHeightPx.toDp() }
+                            } else {
+                                96.dp
+                            }
+                            val isDrawOpen = boxDetailUiState.isOpening || boxDetailUiState.isSpinning
                             LaunchedEffect(boxId) {
                                 boxDetailViewModel.loadBox(boxId)
                             }
@@ -641,13 +651,18 @@ class MainActivity : ComponentActivity() {
                                         onOpenBox = boxDetailViewModel::openBox,
                                         onSpinAnimationCompleted = boxDetailViewModel::onSpinAnimationCompleted,
                                         onDismissRewardDialog = boxDetailViewModel::dismissRewardDialog,
+                                        bottomInset = boxDetailBottomBarHeight,
                                         modifier = Modifier.padding(innerPadding)
                                     )
-                                    MainBottomBar(
-                                        selectedDestination = selectedDestination,
-                                        onSelected = onMainDestinationSelected,
-                                        modifier = Modifier.align(Alignment.BottomCenter)
-                                    )
+                                    if (!isDrawOpen) {
+                                        MainBottomBar(
+                                            selectedDestination = selectedDestination,
+                                            onSelected = onMainDestinationSelected,
+                                            modifier = Modifier
+                                                .align(Alignment.BottomCenter)
+                                                .onSizeChanged { boxDetailBottomBarHeightPx = it.height }
+                                        )
+                                    }
                                 }
                             }
                         }

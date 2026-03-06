@@ -40,6 +40,7 @@ internal data class AuthInventoryItemDto(
     @SerializedName("resourceType") val resourceType: String,
     @SerializedName("resourceId") val resourceId: Int,
     @SerializedName("resourceName") val resourceName: String,
+    @SerializedName("isShiny") val isShiny: Boolean = false,
     @SerializedName("quantity") val quantity: Int
 )
 

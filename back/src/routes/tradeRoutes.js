@@ -32,13 +32,15 @@ function serializeTrade(trade) {
       resourceType: trade.offeredResourceType,
       resourceId: trade.offeredResourceId,
       resourceName: trade.offeredResourceName,
+      isShiny: trade.offeredIsShiny,
     },
     receivedPokemon:
-      trade.receivedResourceType && trade.receivedResourceId
+      trade.receivedResourceType && trade.receivedResourceId != null
         ? {
             resourceType: trade.receivedResourceType,
             resourceId: trade.receivedResourceId,
             resourceName: trade.receivedResourceName,
+            isShiny: trade.receivedIsShiny === true,
           }
         : null,
     requestedPokemons: (trade.requestedItems || []).map((item) => ({
@@ -179,13 +181,22 @@ async function decreaseOneInventoryItem(tx, item) {
   });
 }
 
-async function increaseInventory(tx, userId, resourceType, resourceId, resourceName, now) {
+async function increaseInventory(
+  tx,
+  userId,
+  resourceType,
+  resourceId,
+  resourceName,
+  isShiny,
+  now
+) {
   return tx.inventoryItem.upsert({
     where: {
-      userId_resourceType_resourceId: {
+      userId_resourceType_resourceId_isShiny: {
         userId,
         resourceType,
         resourceId,
+        isShiny,
       },
     },
     update: {
@@ -200,6 +211,7 @@ async function increaseInventory(tx, userId, resourceType, resourceId, resourceN
       resourceType,
       resourceId,
       resourceName,
+      isShiny,
       quantity: 1,
       firstObtainedAt: now,
       lastObtainedAt: now,
@@ -276,6 +288,7 @@ router.post("/", authRequired, async (req, res) => {
       offeredResourceType: offeredItem.resourceType,
       offeredResourceId: offeredItem.resourceId,
       offeredResourceName: offeredItem.resourceName,
+      offeredIsShiny: offeredItem.isShiny,
       expiresAt,
       requestedItems: {
         create: requestedPokemons.map((rp) => ({
@@ -498,6 +511,7 @@ router.post("/:tradeId/accept", authRequired, async (req, res) => {
       receivedResourceType: offeredItem.resourceType,
       receivedResourceId: offeredItem.resourceId,
       receivedResourceName: offeredItem.resourceName,
+      receivedIsShiny: offeredItem.isShiny,
       acceptedAt,
     },
   });
@@ -565,7 +579,10 @@ router.post("/:tradeId/confirm", authRequired, async (req, res) => {
         throw error;
       }
 
-      if (!currentTrade.receivedResourceType || !currentTrade.receivedResourceId) {
+      if (
+        !currentTrade.receivedResourceType ||
+        currentTrade.receivedResourceId == null
+      ) {
         const error = new Error("Recipient pokemon is missing on this trade.");
         error.status = 409;
         throw error;
@@ -583,12 +600,16 @@ router.post("/:tradeId/confirm", authRequired, async (req, res) => {
         throw error;
       }
 
+      const offeredIsShiny = currentTrade.offeredIsShiny === true;
+      const receivedIsShiny = currentTrade.receivedIsShiny === true;
+
       const proposerItem = await tx.inventoryItem.findUnique({
         where: {
-          userId_resourceType_resourceId: {
+          userId_resourceType_resourceId_isShiny: {
             userId: currentTrade.proposerId,
             resourceType: currentTrade.offeredResourceType,
             resourceId: currentTrade.offeredResourceId,
+            isShiny: offeredIsShiny,
           },
         },
       });
@@ -601,10 +622,11 @@ router.post("/:tradeId/confirm", authRequired, async (req, res) => {
 
       const recipientItem = await tx.inventoryItem.findUnique({
         where: {
-          userId_resourceType_resourceId: {
+          userId_resourceType_resourceId_isShiny: {
             userId: currentTrade.recipientId,
             resourceType: currentTrade.receivedResourceType,
             resourceId: currentTrade.receivedResourceId,
+            isShiny: receivedIsShiny,
           },
         },
       });
@@ -626,6 +648,7 @@ router.post("/:tradeId/confirm", authRequired, async (req, res) => {
         currentTrade.offeredResourceType,
         currentTrade.offeredResourceId,
         currentTrade.offeredResourceName,
+        offeredIsShiny,
         now
       );
 
@@ -635,6 +658,7 @@ router.post("/:tradeId/confirm", authRequired, async (req, res) => {
         currentTrade.receivedResourceType,
         currentTrade.receivedResourceId,
         currentTrade.receivedResourceName,
+        receivedIsShiny,
         now
       );
 

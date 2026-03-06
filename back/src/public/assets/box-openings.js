@@ -95,7 +95,9 @@
         const boxLabel = opening.box?.name || opening.boxName || "-";
         const rewardLabel = `${opening.reward?.resourceType || "-"} #${
           opening.reward?.resourceId || "-"
-        } ${toTitleCase(opening.reward?.resourceName || "")}`;
+        } ${toTitleCase(opening.reward?.resourceName || "")}${
+          opening.reward?.isShiny ? " ✨Shiny" : ""
+        }`;
 
         return `
           <tr>

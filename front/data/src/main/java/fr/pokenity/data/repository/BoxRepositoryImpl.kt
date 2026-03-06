@@ -73,11 +73,13 @@ class BoxRepositoryImpl internal constructor(
                 resourceType = rewardDto.resourceType ?: "pokemon",
                 resourceId = rewardDto.resourceId ?: 0,
                 resourceName = rewardDto.resourceName ?: "pokemon",
+                isShiny = rewardDto.isShiny ?: false,
                 dropRate = rewardDto.dropRate ?: 0.0
             ),
             inventoryItem = inventoryItem?.let { inventory ->
                 BoxOpenInventoryItem(
                     id = inventory.id ?: "",
+                    isShiny = inventory.isShiny ?: false,
                     quantity = inventory.quantity ?: 0,
                     lastObtainedAt = inventory.lastObtainedAt
                 )
@@ -85,6 +87,7 @@ class BoxRepositoryImpl internal constructor(
             boxOpening = boxOpening?.let { opening ->
                 BoxOpenHistory(
                     id = opening.id ?: "",
+                    isShiny = opening.isShiny ?: false,
                     openedAt = opening.openedAt
                 )
             },

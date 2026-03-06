@@ -65,6 +65,7 @@ model InventoryItem {
   resourceType    DropResourceType @map("resource_type")
   resourceId      Int              @map("resource_id")
   resourceName    String           @map("resource_name") @db.VarChar(120)
+  isShiny         Boolean          @default(false) @map("is_shiny")
   quantity        Int              @default(1)
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @updatedAt @map("updated_at")
@@ -72,7 +73,7 @@ model InventoryItem {
   lastObtainedAt  DateTime         @default(now()) @map("last_obtained_at")
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, resourceType, resourceId])
+  @@unique([userId, resourceType, resourceId, isShiny])
   @@map("inventory_items")
 }
 
@@ -97,6 +98,7 @@ model BoxOpening {
   resourceType     DropResourceType @map("resource_type")
   resourceId       Int              @map("resource_id")
   resourceName     String           @map("resource_name") @db.VarChar(120)
+  isShiny          Boolean          @default(false) @map("is_shiny")
   dropRate         Float            @map("drop_rate")
   details          Json?            @db.Json
   openedAt         DateTime         @default(now()) @map("opened_at")
@@ -126,9 +128,11 @@ model Trade {
   offeredResourceType  DropResourceType     @map("offered_resource_type")
   offeredResourceId    Int                  @map("offered_resource_id")
   offeredResourceName  String               @map("offered_resource_name") @db.VarChar(120)
+  offeredIsShiny       Boolean              @default(false) @map("offered_is_shiny")
   receivedResourceType DropResourceType?    @map("received_resource_type")
   receivedResourceId   Int?                 @map("received_resource_id")
   receivedResourceName String?              @map("received_resource_name") @db.VarChar(120)
+  receivedIsShiny      Boolean?             @map("received_is_shiny")
   acceptedAt           DateTime?            @map("accepted_at")
   confirmedAt          DateTime?            @map("confirmed_at")
   completedAt          DateTime?            @map("completed_at")

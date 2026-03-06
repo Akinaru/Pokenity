@@ -23,6 +23,7 @@ function serializeOpening(opening) {
       resourceType: opening.resourceType,
       resourceId: opening.resourceId,
       resourceName: opening.resourceName,
+      isShiny: opening.isShiny,
       dropRate: opening.dropRate,
     },
     details: opening.details,

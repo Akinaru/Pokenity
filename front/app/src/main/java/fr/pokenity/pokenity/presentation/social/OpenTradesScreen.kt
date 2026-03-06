@@ -176,10 +176,10 @@ fun TradeCard(
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
 
-                // Received pokemon if accepted, otherwise show requested pokemons
+                // Received pokemon (if trade accepted/confirmed)
                 val received = trade.receivedPokemon
-                if (received != null) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    if (received != null) {
                         AsyncImage(
                             model = received.imageUrl,
                             contentDescription = received.resourceName,
@@ -189,43 +189,44 @@ fun TradeCard(
                             text = received.resourceName,
                             style = MaterialTheme.typography.bodySmall
                         )
-                        Text(
-                            text = "Recu",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                } else if (trade.requestedPokemons.isNotEmpty()) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            items(trade.requestedPokemons, key = { it.resourceId }) { pokemon ->
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    AsyncImage(
-                                        model = pokemon.imageUrl,
-                                        contentDescription = pokemon.resourceName,
-                                        modifier = Modifier.size(48.dp)
-                                    )
-                                    Text(
-                                        text = pokemon.resourceName,
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
-                                }
-                            }
-                        }
-                        Text(
-                            text = "Souhaite",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                } else {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    } else {
                         Text("?", style = MaterialTheme.typography.headlineMedium)
-                        Text(
-                            text = "Souhaite",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    }
+                    Text(
+                        text = "Recu",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // Show requested Pokemon wishlist
+            if (trade.requestedPokemons.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Pokemon souhaites :",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    trade.requestedPokemons.forEach { pokemon ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            AsyncImage(
+                                model = pokemon.imageUrl,
+                                contentDescription = pokemon.resourceName,
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Spacer(modifier = Modifier.width(2.dp))
+                            Text(
+                                text = pokemon.resourceName,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
                     }
                 }
             }
@@ -265,7 +266,6 @@ fun TradeStatusBadge(status: TradeStatus, modifier: Modifier = Modifier) {
 
 @Composable
 private fun AcceptTradeDialog(
-    requestedPokemons: List<TradePokemon>,
     inventory: List<InventoryItem>,
     isLoading: Boolean,
     hasNoMatchingPokemon: Boolean,
