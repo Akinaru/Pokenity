@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -1156,6 +1157,7 @@ private fun MoiProfileScreen(
             .asSequence()
             .filter { (_, quantity) -> quantity > 0 }
             .sortedBy { (pokemonId, _) -> pokemonId }
+            .map { (pokemonId, quantity) -> pokemonId to quantity }
             .toList()
     }
     val gridState = rememberLazyGridState()
@@ -1197,17 +1199,130 @@ private fun MoiProfileScreen(
                 }
             }
         } else {
-            items(
-                items = ownedPokemon,
-                key = { (pokemonId, _) -> pokemonId }
-            ) { (pokemonId, quantity) ->
-                OwnedPokemonCard(
-                    pokemonId = pokemonId,
-                    quantity = quantity,
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                ProfileClosetCollection(
+                    ownedPokemon = ownedPokemon,
                     spriteType = spriteType,
                     shinyEnabled = shinyEnabled,
-                    onClick = { onPokemonClick(pokemonId) }
+                    onPokemonClick = onPokemonClick
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProfileClosetCollection(
+    ownedPokemon: List<Pair<Int, Int>>,
+    spriteType: PokemonImageType,
+    shinyEnabled: Boolean,
+    onPokemonClick: (Int) -> Unit
+) {
+    val rows = remember(ownedPokemon) { ownedPokemon.chunked(3) }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(0.dp)
+    ) {
+        rows.forEachIndexed { rowIndex, row ->
+            val backgroundRes = when {
+                rowIndex == 0 -> R.drawable.closet_top
+                rowIndex == rows.lastIndex -> R.drawable.closet_bottom
+                else -> R.drawable.closet_middle
+            }
+            ProfileClosetRow(
+                row = row,
+                backgroundRes = backgroundRes,
+                spriteType = spriteType,
+                shinyEnabled = shinyEnabled,
+                onPokemonClick = onPokemonClick
+            )
+        }
+    }
+}
+
+@Composable
+private fun ProfileClosetRow(
+    row: List<Pair<Int, Int>>,
+    backgroundRes: Int,
+    spriteType: PokemonImageType,
+    shinyEnabled: Boolean,
+    onPokemonClick: (Int) -> Unit
+) {
+    val backgroundPainter = painterResource(id = backgroundRes)
+    val backgroundRatio = remember(backgroundPainter) {
+        val size = backgroundPainter.intrinsicSize
+        if (size.isSpecified && size.height > 0f) size.width / size.height else 1f
+    }
+    val spriteYOffset = if (backgroundRes == R.drawable.closet_top) 12.dp else 4.dp
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(backgroundRatio)
+    ) {
+        Image(
+            painter = backgroundPainter,
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.FillWidth
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 30.dp, vertical = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            repeat(3) { slotIndex ->
+                val pokemonEntry = row.getOrNull(slotIndex)
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (pokemonEntry != null) {
+                        val pokemonId = pokemonEntry.first
+                        val quantity = pokemonEntry.second
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable { onPokemonClick(pokemonId) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            PokemonSpriteImage(
+                                pokemonId = pokemonId,
+                                contentDescription = "Pokemon #$pokemonId",
+                                imageType = spriteType,
+                                shiny = shinyEnabled,
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier
+                                    .size(76.dp)
+                                    .offset(y = spriteYOffset)
+                            )
+
+                            if (quantity > 1) {
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .padding(2.dp)
+                                ) {
+                                    Text(
+                                        text = "x$quantity",
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
