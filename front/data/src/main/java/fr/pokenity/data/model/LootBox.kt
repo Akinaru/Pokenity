@@ -19,3 +19,39 @@ data class LootBoxEntry(
     val createdAt: String? = null,
     val updatedAt: String? = null
 )
+
+data class BoxOpenResult(
+    val box: BoxOpenBox,
+    val reward: BoxOpenReward,
+    val inventoryItem: BoxOpenInventoryItem?,
+    val boxOpening: BoxOpenHistory?,
+    val user: BoxOpenUser?
+)
+
+data class BoxOpenBox(
+    val id: String,
+    val name: String,
+    val pokeballImage: String
+)
+
+data class BoxOpenReward(
+    val resourceType: String,
+    val resourceId: Int,
+    val resourceName: String,
+    val dropRate: Double
+)
+
+data class BoxOpenInventoryItem(
+    val id: String,
+    val quantity: Int,
+    val lastObtainedAt: String?
+)
+
+data class BoxOpenHistory(
+    val id: String,
+    val openedAt: String?
+)
+
+data class BoxOpenUser(
+    val xp: Int
+)

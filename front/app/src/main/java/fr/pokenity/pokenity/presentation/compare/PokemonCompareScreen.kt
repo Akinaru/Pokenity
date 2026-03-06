@@ -19,7 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
+import fr.pokenity.pokenity.ui.components.PrimaryButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -104,7 +104,7 @@ fun PokemonCompareScreen(
                 ) {
                     Text(uiState.errorMessage, style = MaterialTheme.typography.bodyLarge)
                     Spacer(modifier = Modifier.height(12.dp))
-                    Button(onClick = onRetry) { Text("Reessayer") }
+                    PrimaryButton(onClick = onRetry) { Text("Reessayer") }
                 }
             }
 
@@ -249,7 +249,7 @@ fun PokemonCompareScreen(
 
                     if (compared == null) {
                         item {
-                            Button(
+                            PrimaryButton(
                                 onClick = onOpenSelector,
                                 modifier = Modifier
                                     .fillMaxWidth()

@@ -8,8 +8,11 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -38,8 +42,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -50,6 +52,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -60,6 +63,10 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -69,13 +76,16 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import coil.compose.AsyncImage
+import kotlinx.coroutines.delay
 import fr.pokenity.data.core.AppThemeMode
 import fr.pokenity.data.core.AppThemeState
 import fr.pokenity.data.core.AuthSessionState
 import fr.pokenity.data.core.PokemonBrowseState
+import fr.pokenity.data.core.PokemonImageSettings
 import fr.pokenity.data.core.PokemonImageType
 import fr.pokenity.data.model.LootBox
 import fr.pokenity.data.model.PokemonFilterOption
+import fr.pokenity.pokenity.R
 import fr.pokenity.pokenity.presentation.account.AccountScreen
 import fr.pokenity.pokenity.presentation.account.AccountUiState
 import fr.pokenity.pokenity.presentation.account.AccountViewModel
@@ -171,6 +181,20 @@ class MainActivity : ComponentActivity() {
             }
 
             val navController = rememberNavController()
+            var selectedDestination by rememberSaveable {
+                mutableStateOf(MainDestination.ACCUEIL)
+            }
+            var moiScreen by rememberSaveable {
+                mutableStateOf(MoiScreen.PROFILE)
+            }
+            val onMainDestinationSelected: (MainDestination) -> Unit = { destination ->
+                selectedDestination = destination
+                if (navController.currentDestination?.route != "home") {
+                    navController.navigate("home") {
+                        launchSingleTop = true
+                    }
+                }
+            }
 
             PokenityTheme(darkTheme = isDarkTheme) {
                 AppBackground(darkTheme = isDarkTheme) {
@@ -264,13 +288,6 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable("home") {
-                            var selectedDestination by rememberSaveable {
-                                mutableStateOf(MainDestination.ACCUEIL)
-                            }
-                            var moiScreen by rememberSaveable {
-                                mutableStateOf(MoiScreen.PROFILE)
-                            }
-
                             LaunchedEffect(
                                 selectedDestination,
                                 moiScreen,
@@ -321,126 +338,120 @@ class MainActivity : ComponentActivity() {
                                             }
                                         )
                                     }
-                                },
-                                bottomBar = {
-                                    MainBottomBar(
-                                        selectedDestination = selectedDestination,
-                                        onSelected = { destination ->
-                                            selectedDestination = destination
-                                        }
-                                    )
                                 }
                             ) { innerPadding ->
-                                when (selectedDestination) {
-                                    MainDestination.SOCIAL -> {
-                                        SocialScreen(
-                                            uiState = socialUiState,
-                                            onSelectTab = socialViewModel::selectTab,
-                                            onAcceptTrade = socialViewModel::showAcceptDialog,
-                                            onAcceptTradeWithItem = socialViewModel::acceptTrade,
-                                            onDismissAcceptDialog = socialViewModel::dismissAcceptDialog,
-                                            onConfirmTrade = socialViewModel::confirmTrade,
-                                            onCancelTrade = socialViewModel::cancelTrade,
-                                            onDeclineTrade = socialViewModel::declineTrade,
-                                            onRefreshMyTrades = socialViewModel::loadMyTrades,
-                                            onSelectInventoryItem = socialViewModel::selectInventoryItem,
-                                            onPokemonSearchQueryChange = socialViewModel::updatePokemonSearchQuery,
-                                            onAddRequestedPokemon = socialViewModel::addRequestedPokemon,
-                                            onRemoveRequestedPokemon = socialViewModel::removeRequestedPokemon,
-                                            onCreateTrade = socialViewModel::createTrade,
-                                            onRefreshOpenTrades = socialViewModel::loadOpenTrades,
-                                            onClearMessages = socialViewModel::clearMessages,
-                                            modifier = Modifier.padding(innerPadding)
-                                        )
-                                    }
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    when (selectedDestination) {
+                                        MainDestination.SOCIAL -> {
+                                            SocialScreen(
+                                                uiState = socialUiState,
+                                                onSelectTab = socialViewModel::selectTab,
+                                                onAcceptTrade = socialViewModel::showAcceptDialog,
+                                                onAcceptTradeWithItem = socialViewModel::acceptTrade,
+                                                onDismissAcceptDialog = socialViewModel::dismissAcceptDialog,
+                                                onConfirmTrade = socialViewModel::confirmTrade,
+                                                onCancelTrade = socialViewModel::cancelTrade,
+                                                onDeclineTrade = socialViewModel::declineTrade,
+                                                onRefreshMyTrades = socialViewModel::loadMyTrades,
+                                                onSelectInventoryItem = socialViewModel::selectInventoryItem,
+                                                onPokemonSearchQueryChange = socialViewModel::updatePokemonSearchQuery,
+                                                onAddRequestedPokemon = socialViewModel::addRequestedPokemon,
+                                                onRemoveRequestedPokemon = socialViewModel::removeRequestedPokemon,
+                                                onCreateTrade = socialViewModel::createTrade,
+                                                onRefreshOpenTrades = socialViewModel::loadOpenTrades,
+                                                onClearMessages = socialViewModel::clearMessages,
+                                                modifier = Modifier.padding(innerPadding)
+                                            )
+                                        }
 
-                                    MainDestination.ACCUEIL -> {
-                                        HomeScreen(
-                                            uiState = homeUiState,
-                                            onRetry = homeViewModel::loadLatestBoxes,
-                                            onOpenMapExplorer = {
-                                                navController.navigate("map-explorer")
-                                            },
-                                            onOpenAllBoxes = {
-                                                navController.navigate("boxes")
-                                            },
-                                            onOpenBox = { boxId ->
-                                                navController.navigate("box-detail/$boxId")
-                                            },
-                                            modifier = Modifier.padding(innerPadding)
-                                        )
-                                    }
+                                        MainDestination.ACCUEIL -> {
+                                            HomeScreen(
+                                                uiState = homeUiState,
+                                                onRetry = homeViewModel::loadLatestBoxes,
+                                                onOpenPokedex = {
+                                                    navController.navigate("pokedex")
+                                                },
+                                                onOpenMapExplorer = {
+                                                    navController.navigate("map-explorer")
+                                                },
+                                                onOpenAllBoxes = {
+                                                    navController.navigate("boxes")
+                                                },
+                                                onOpenBox = { boxId ->
+                                                    navController.navigate("box-detail/$boxId")
+                                                },
+                                                modifier = Modifier.padding(innerPadding)
+                                            )
+                                        }
 
-                                    MainDestination.MOI -> {
-                                        when (moiScreen) {
-                                            MoiScreen.PROFILE -> {
-                                                MoiProfileScreen(
-                                                    accountUiState = accountUiState,
-                                                    pokedexUiState = pokedexUiState,
-                                                    onRetry = pokedexViewModel::loadPokedexData,
-                                                    onFilterCategorySelected = pokedexViewModel::onFilterCategorySelected,
-                                                    onLoadMore = pokedexViewModel::loadMorePokemonIfNeeded,
-                                                    onPokemonClick = { id, ids ->
-                                                        PokemonBrowseState.setList(ids)
-                                                        navController.navigate("detail/$id")
-                                                    },
-                                                    onTypeClicked = pokedexViewModel::onTypeClicked,
-                                                    onGenerationClicked = pokedexViewModel::onGenerationClicked,
-                                                    onAbilityClicked = pokedexViewModel::onAbilityClicked,
-                                                    onHabitatClicked = pokedexViewModel::onHabitatClicked,
-                                                    onRegionClicked = pokedexViewModel::onRegionClicked,
-                                                    onShapeClicked = pokedexViewModel::onShapeClicked,
-                                                    onClearTypeFilter = pokedexViewModel::clearTypeFilter,
-                                                    onClearGenerationFilter = pokedexViewModel::clearGenerationFilter,
-                                                    onClearAbilityFilter = pokedexViewModel::clearAbilityFilter,
-                                                    onClearHabitatFilter = pokedexViewModel::clearHabitatFilter,
-                                                    onClearRegionFilter = pokedexViewModel::clearRegionFilter,
-                                                    onClearShapeFilter = pokedexViewModel::clearShapeFilter,
-                                                    modifier = Modifier.padding(innerPadding)
-                                                )
-                                            }
+                                        MainDestination.MOI -> {
+                                            when (moiScreen) {
+                                                MoiScreen.PROFILE -> {
+                                                    MoiProfileScreen(
+                                                        accountUiState = accountUiState,
+                                                        onPokemonClick = { id ->
+                                                            PokemonBrowseState.setList(
+                                                                accountUiState.pokemonCollection
+                                                                    .asSequence()
+                                                                    .filter { (_, quantity) -> quantity > 0 }
+                                                                    .map { (pokemonId, _) -> pokemonId }
+                                                                    .sorted()
+                                                                    .toList()
+                                                            )
+                                                            navController.navigate("detail/$id")
+                                                        },
+                                                        modifier = Modifier.padding(innerPadding)
+                                                    )
+                                                }
 
-                                            MoiScreen.SETTINGS -> {
-                                                SettingsMenuScreen(
-                                                    onOpenPreference = { moiScreen = MoiScreen.PREFERENCE },
-                                                    onOpenCompte = { moiScreen = MoiScreen.COMPTE },
-                                                    modifier = Modifier.padding(innerPadding)
-                                                )
-                                            }
+                                                MoiScreen.SETTINGS -> {
+                                                    SettingsMenuScreen(
+                                                        onOpenPreference = { moiScreen = MoiScreen.PREFERENCE },
+                                                        onOpenCompte = { moiScreen = MoiScreen.COMPTE },
+                                                        modifier = Modifier.padding(innerPadding)
+                                                    )
+                                                }
 
-                                            MoiScreen.PREFERENCE -> {
-                                                SettingsScreen(
-                                                    uiState = settingsUiState,
-                                                    onRetry = settingsViewModel::loadLanguages,
-                                                    onLanguageSelected = settingsViewModel::onLanguageSelected,
-                                                    onImageTypeSelected = settingsViewModel::onImageTypeSelected,
-                                                    onThemeModeSelected = settingsViewModel::onThemeModeSelected,
-                                                    modifier = Modifier.padding(innerPadding)
-                                                )
-                                            }
+                                                MoiScreen.PREFERENCE -> {
+                                                    SettingsScreen(
+                                                        uiState = settingsUiState,
+                                                        onRetry = settingsViewModel::loadLanguages,
+                                                        onLanguageSelected = settingsViewModel::onLanguageSelected,
+                                                        onImageTypeSelected = settingsViewModel::onImageTypeSelected,
+                                                        onThemeModeSelected = settingsViewModel::onThemeModeSelected,
+                                                        modifier = Modifier.padding(innerPadding)
+                                                    )
+                                                }
 
-                                            MoiScreen.COMPTE -> {
-                                                AccountScreen(
-                                                    uiState = accountUiState,
-                                                    onFetchMe = accountViewModel::fetchMe,
-                                                    onLogout = {
-                                                        accountViewModel.logout()
-                                                        navController.navigate("welcome") {
-                                                            popUpTo(navController.graph.startDestinationId) { inclusive = true }
-                                                            launchSingleTop = true
-                                                        }
-                                                    },
-                                                    onGoToWelcome = {
-                                                        navController.navigate("welcome") {
-                                                            popUpTo(navController.graph.startDestinationId) { inclusive = true }
-                                                            launchSingleTop = true
-                                                        }
-                                                    },
-                                                    modifier = Modifier.padding(innerPadding)
-                                                )
+                                                MoiScreen.COMPTE -> {
+                                                    AccountScreen(
+                                                        uiState = accountUiState,
+                                                        onFetchMe = accountViewModel::fetchMe,
+                                                        onLogout = {
+                                                            accountViewModel.logout()
+                                                            navController.navigate("welcome") {
+                                                                popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                                                                launchSingleTop = true
+                                                            }
+                                                        },
+                                                        onGoToWelcome = {
+                                                            navController.navigate("welcome") {
+                                                                popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                                                                launchSingleTop = true
+                                                            }
+                                                        },
+                                                        modifier = Modifier.padding(innerPadding)
+                                                    )
+                                                }
                                             }
                                         }
                                     }
+
+                                    MainBottomBar(
+                                        selectedDestination = selectedDestination,
+                                        onSelected = onMainDestinationSelected,
+                                        modifier = Modifier.align(Alignment.BottomCenter)
+                                    )
                                 }
                             }
                         }
@@ -463,21 +474,83 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                             ) { innerPadding ->
-                                MapScreen(
-                                    uiState = mapUiState,
-                                    onRetry = mapViewModel::loadRegions,
-                                    onPokemonClick = { id, ids ->
-                                        PokemonBrowseState.setList(ids)
-                                        navController.navigate("detail/$id")
-                                    },
-                                    onRegionSelected = mapViewModel::onRegionSelected,
-                                    onLocationSelected = mapViewModel::onLocationSelected,
-                                    onAreaSelected = mapViewModel::onAreaSelected,
-                                    onBackToRegions = mapViewModel::backToRegions,
-                                    onBackToLocations = mapViewModel::backToLocations,
-                                    onBackToAreas = mapViewModel::backToAreas,
-                                    modifier = Modifier.padding(innerPadding)
-                                )
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    MapScreen(
+                                        uiState = mapUiState,
+                                        onRetry = mapViewModel::loadRegions,
+                                        onPokemonClick = { id, ids ->
+                                            PokemonBrowseState.setList(ids)
+                                            navController.navigate("detail/$id")
+                                        },
+                                        onRegionSelected = mapViewModel::onRegionSelected,
+                                        onLocationSelected = mapViewModel::onLocationSelected,
+                                        onAreaSelected = mapViewModel::onAreaSelected,
+                                        onBackToRegions = mapViewModel::backToRegions,
+                                        onBackToLocations = mapViewModel::backToLocations,
+                                        onBackToAreas = mapViewModel::backToAreas,
+                                        modifier = Modifier.padding(innerPadding)
+                                    )
+                                    MainBottomBar(
+                                        selectedDestination = selectedDestination,
+                                        onSelected = onMainDestinationSelected,
+                                        modifier = Modifier.align(Alignment.BottomCenter)
+                                    )
+                                }
+                            }
+                        }
+
+                        composable("pokedex") {
+                            Scaffold(
+                                containerColor = Color.Transparent,
+                                topBar = {
+                                    TopAppBar(
+                                        title = { Text("Pokedex") },
+                                        navigationIcon = {
+                                            IconButton(onClick = { navController.popBackStack() }) {
+                                                Icon(
+                                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                                    contentDescription = "Retour"
+                                                )
+                                            }
+                                        },
+                                        colors = TopAppBarDefaults.topAppBarColors()
+                                    )
+                                }
+                            ) { innerPadding ->
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    PokedexScreen(
+                                        uiState = pokedexUiState,
+                                        onRetry = pokedexViewModel::loadPokedexData,
+                                        onFilterCategorySelected = pokedexViewModel::onFilterCategorySelected,
+                                        onLoadMore = pokedexViewModel::loadMorePokemonIfNeeded,
+                                        onPokemonClick = { id, ids ->
+                                            PokemonBrowseState.setList(ids)
+                                            navController.navigate("detail/$id")
+                                        },
+                                        onTypeClicked = pokedexViewModel::onTypeClicked,
+                                        onGenerationClicked = pokedexViewModel::onGenerationClicked,
+                                        onAbilityClicked = pokedexViewModel::onAbilityClicked,
+                                        onHabitatClicked = pokedexViewModel::onHabitatClicked,
+                                        onRegionClicked = pokedexViewModel::onRegionClicked,
+                                        onShapeClicked = pokedexViewModel::onShapeClicked,
+                                        onClearTypeFilter = pokedexViewModel::clearTypeFilter,
+                                        onClearGenerationFilter = pokedexViewModel::clearGenerationFilter,
+                                        onClearAbilityFilter = pokedexViewModel::clearAbilityFilter,
+                                        onClearHabitatFilter = pokedexViewModel::clearHabitatFilter,
+                                        onClearRegionFilter = pokedexViewModel::clearRegionFilter,
+                                        onClearShapeFilter = pokedexViewModel::clearShapeFilter,
+                                        collectionMode = true,
+                                        ownedQuantities = accountUiState.pokemonCollection,
+                                        showOwnershipFilter = false,
+                                        totalPokemonCount = pokedexUiState.totalPokemonCount,
+                                        modifier = Modifier.padding(innerPadding)
+                                    )
+                                    MainBottomBar(
+                                        selectedDestination = selectedDestination,
+                                        onSelected = onMainDestinationSelected,
+                                        modifier = Modifier.align(Alignment.BottomCenter)
+                                    )
+                                }
                             }
                         }
 
@@ -499,14 +572,21 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                             ) { innerPadding ->
-                                BoxListScreen(
-                                    uiState = boxListUiState,
-                                    onRetry = boxListViewModel::loadBoxes,
-                                    onBoxClick = { boxId ->
-                                        navController.navigate("box-detail/$boxId")
-                                    },
-                                    modifier = Modifier.padding(innerPadding)
-                                )
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    BoxListScreen(
+                                        uiState = boxListUiState,
+                                        onRetry = boxListViewModel::loadBoxes,
+                                        onBoxClick = { boxId ->
+                                            navController.navigate("box-detail/$boxId")
+                                        },
+                                        modifier = Modifier.padding(innerPadding)
+                                    )
+                                    MainBottomBar(
+                                        selectedDestination = selectedDestination,
+                                        onSelected = onMainDestinationSelected,
+                                        modifier = Modifier.align(Alignment.BottomCenter)
+                                    )
+                                }
                             }
                         }
 
@@ -537,11 +617,21 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                             ) { innerPadding ->
-                                BoxDetailScreen(
-                                    uiState = boxDetailUiState,
-                                    onRetry = { boxDetailViewModel.loadBox(boxId) },
-                                    modifier = Modifier.padding(innerPadding)
-                                )
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    BoxDetailScreen(
+                                        uiState = boxDetailUiState,
+                                        onRetry = { boxDetailViewModel.loadBox(boxId) },
+                                        onOpenBox = boxDetailViewModel::openBox,
+                                        onSpinAnimationCompleted = boxDetailViewModel::onSpinAnimationCompleted,
+                                        onDismissRewardDialog = boxDetailViewModel::dismissRewardDialog,
+                                        modifier = Modifier.padding(innerPadding)
+                                    )
+                                    MainBottomBar(
+                                        selectedDestination = selectedDestination,
+                                        onSelected = onMainDestinationSelected,
+                                        modifier = Modifier.align(Alignment.BottomCenter)
+                                    )
+                                }
                             }
                         }
 
@@ -559,22 +649,33 @@ class MainActivity : ComponentActivity() {
                                 detailViewModel.loadPokemon(pokemonId)
                             }
 
-                            PokemonDetailScreen(
-                                uiState = detailUiState,
-                                onBack = { navController.popBackStack() },
-                                onRetry = { detailViewModel.loadPokemon(pokemonId) },
-                                onOpenComparator = { baseId -> navController.navigate("compare/$baseId") },
-                                onPreviousPokemon = if (previousId != null) {
-                                    { navController.navigate("detail/$previousId") }
-                                } else null,
-                                onNextPokemon = if (nextId != null) {
-                                    { navController.navigate("detail/$nextId") }
-                                } else null,
-                                ownedQuantities = accountUiState.pokemonCollection,
-                                onPokemonClick = { id ->
-                                    navController.navigate("detail/$id")
+                            Scaffold(
+                                containerColor = Color.Transparent
+                            ) { innerPadding ->
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    PokemonDetailScreen(
+                                        uiState = detailUiState,
+                                        onBack = { navController.popBackStack() },
+                                        onRetry = { detailViewModel.loadPokemon(pokemonId) },
+                                        onOpenComparator = { baseId -> navController.navigate("compare/$baseId") },
+                                        onPreviousPokemon = if (previousId != null) {
+                                            { navController.navigate("detail/$previousId") }
+                                        } else null,
+                                        onNextPokemon = if (nextId != null) {
+                                            { navController.navigate("detail/$nextId") }
+                                        } else null,
+                                        ownedQuantities = accountUiState.pokemonCollection,
+                                        onPokemonClick = { id ->
+                                            navController.navigate("detail/$id")
+                                        }
+                                    )
+                                    MainBottomBar(
+                                        selectedDestination = selectedDestination,
+                                        onSelected = onMainDestinationSelected,
+                                        modifier = Modifier.align(Alignment.BottomCenter)
+                                    )
                                 }
-                            )
+                            }
                         }
 
                         composable(
@@ -586,13 +687,24 @@ class MainActivity : ComponentActivity() {
                                 compareViewModel.load(basePokemonId = baseId, comparedPokemonId = null)
                             }
 
-                            PokemonCompareScreen(
-                                uiState = compareUiState,
-                                onBack = { navController.popBackStack() },
-                                onRetry = { compareViewModel.load(basePokemonId = baseId, comparedPokemonId = null) },
-                                onOpenSelector = { navController.navigate("compare-picker/$baseId") },
-                                onOpenPokemonDetail = { id -> navController.navigate("detail/$id") }
-                            )
+                            Scaffold(
+                                containerColor = Color.Transparent
+                            ) { innerPadding ->
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    PokemonCompareScreen(
+                                        uiState = compareUiState,
+                                        onBack = { navController.popBackStack() },
+                                        onRetry = { compareViewModel.load(basePokemonId = baseId, comparedPokemonId = null) },
+                                        onOpenSelector = { navController.navigate("compare-picker/$baseId") },
+                                        onOpenPokemonDetail = { id -> navController.navigate("detail/$id") }
+                                    )
+                                    MainBottomBar(
+                                        selectedDestination = selectedDestination,
+                                        onSelected = onMainDestinationSelected,
+                                        modifier = Modifier.align(Alignment.BottomCenter)
+                                    )
+                                }
+                            }
                         }
 
                         composable(
@@ -609,13 +721,24 @@ class MainActivity : ComponentActivity() {
                                 compareViewModel.load(basePokemonId = baseId, comparedPokemonId = comparedId)
                             }
 
-                            PokemonCompareScreen(
-                                uiState = compareUiState,
-                                onBack = { navController.popBackStack() },
-                                onRetry = { compareViewModel.load(basePokemonId = baseId, comparedPokemonId = comparedId) },
-                                onOpenSelector = { navController.navigate("compare-picker/$baseId") },
-                                onOpenPokemonDetail = { id -> navController.navigate("detail/$id") }
-                            )
+                            Scaffold(
+                                containerColor = Color.Transparent
+                            ) { innerPadding ->
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    PokemonCompareScreen(
+                                        uiState = compareUiState,
+                                        onBack = { navController.popBackStack() },
+                                        onRetry = { compareViewModel.load(basePokemonId = baseId, comparedPokemonId = comparedId) },
+                                        onOpenSelector = { navController.navigate("compare-picker/$baseId") },
+                                        onOpenPokemonDetail = { id -> navController.navigate("detail/$id") }
+                                    )
+                                    MainBottomBar(
+                                        selectedDestination = selectedDestination,
+                                        onSelected = onMainDestinationSelected,
+                                        modifier = Modifier.align(Alignment.BottomCenter)
+                                    )
+                                }
+                            }
                         }
 
                         composable(
@@ -623,28 +746,39 @@ class MainActivity : ComponentActivity() {
                             arguments = listOf(navArgument("baseId") { type = NavType.IntType })
                         ) { backStackEntry ->
                             val baseId = backStackEntry.arguments?.getInt("baseId") ?: return@composable
-                            ComparePickerScreen(
-                                uiState = pokedexUiState,
-                                onBack = { navController.popBackStack() },
-                                onRetry = pokedexViewModel::loadPokedexData,
-                                onFilterCategorySelected = pokedexViewModel::onFilterCategorySelected,
-                                onLoadMore = pokedexViewModel::loadMorePokemonIfNeeded,
-                                onTypeClicked = pokedexViewModel::onTypeClicked,
-                                onGenerationClicked = pokedexViewModel::onGenerationClicked,
-                                onAbilityClicked = pokedexViewModel::onAbilityClicked,
-                                onHabitatClicked = pokedexViewModel::onHabitatClicked,
-                                onRegionClicked = pokedexViewModel::onRegionClicked,
-                                onShapeClicked = pokedexViewModel::onShapeClicked,
-                                onClearTypeFilter = pokedexViewModel::clearTypeFilter,
-                                onClearGenerationFilter = pokedexViewModel::clearGenerationFilter,
-                                onClearAbilityFilter = pokedexViewModel::clearAbilityFilter,
-                                onClearHabitatFilter = pokedexViewModel::clearHabitatFilter,
-                                onClearRegionFilter = pokedexViewModel::clearRegionFilter,
-                                onClearShapeFilter = pokedexViewModel::clearShapeFilter,
-                                onPokemonPicked = { pickedId ->
-                                    navController.navigate("compare/$baseId/$pickedId")
+                            Scaffold(
+                                containerColor = Color.Transparent
+                            ) { innerPadding ->
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    ComparePickerScreen(
+                                        uiState = pokedexUiState,
+                                        onBack = { navController.popBackStack() },
+                                        onRetry = pokedexViewModel::loadPokedexData,
+                                        onFilterCategorySelected = pokedexViewModel::onFilterCategorySelected,
+                                        onLoadMore = pokedexViewModel::loadMorePokemonIfNeeded,
+                                        onTypeClicked = pokedexViewModel::onTypeClicked,
+                                        onGenerationClicked = pokedexViewModel::onGenerationClicked,
+                                        onAbilityClicked = pokedexViewModel::onAbilityClicked,
+                                        onHabitatClicked = pokedexViewModel::onHabitatClicked,
+                                        onRegionClicked = pokedexViewModel::onRegionClicked,
+                                        onShapeClicked = pokedexViewModel::onShapeClicked,
+                                        onClearTypeFilter = pokedexViewModel::clearTypeFilter,
+                                        onClearGenerationFilter = pokedexViewModel::clearGenerationFilter,
+                                        onClearAbilityFilter = pokedexViewModel::clearAbilityFilter,
+                                        onClearHabitatFilter = pokedexViewModel::clearHabitatFilter,
+                                        onClearRegionFilter = pokedexViewModel::clearRegionFilter,
+                                        onClearShapeFilter = pokedexViewModel::clearShapeFilter,
+                                        onPokemonPicked = { pickedId ->
+                                            navController.navigate("compare/$baseId/$pickedId")
+                                        }
+                                    )
+                                    MainBottomBar(
+                                        selectedDestination = selectedDestination,
+                                        onSelected = onMainDestinationSelected,
+                                        modifier = Modifier.align(Alignment.BottomCenter)
+                                    )
                                 }
-                            )
+                            }
                         }
                     }
                 }
@@ -734,6 +868,7 @@ private fun SocialScreen(modifier: Modifier = Modifier) {
 private fun HomeScreen(
     uiState: HomeUiState,
     onRetry: () -> Unit,
+    onOpenPokedex: () -> Unit,
     onOpenMapExplorer: () -> Unit,
     onOpenAllBoxes: () -> Unit,
     onOpenBox: (String) -> Unit,
@@ -750,6 +885,45 @@ private fun HomeScreen(
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
+
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .clickable(onClick = onOpenPokedex),
+            shape = RoundedCornerShape(20.dp),
+            tonalElevation = 2.dp
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 18.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.CatchingPokemon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Pokedex",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Acceder au Pokedex complet avec tous les filtres",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
+                    )
+                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = "Ouvrir"
+                )
+            }
+        }
 
         Surface(
             modifier = Modifier
@@ -938,50 +1112,114 @@ private fun SettingsMenuScreen(
 @Composable
 private fun MoiProfileScreen(
     accountUiState: AccountUiState,
-    pokedexUiState: PokedexUiState,
-    onRetry: () -> Unit,
-    onFilterCategorySelected: (PokedexSection) -> Unit,
-    onLoadMore: () -> Unit,
-    onPokemonClick: (Int, List<Int>) -> Unit,
-    onTypeClicked: (PokemonFilterOption) -> Unit,
-    onGenerationClicked: (PokemonFilterOption) -> Unit,
-    onAbilityClicked: (PokemonFilterOption) -> Unit,
-    onHabitatClicked: (PokemonFilterOption) -> Unit,
-    onRegionClicked: (PokemonFilterOption) -> Unit,
-    onShapeClicked: (PokemonFilterOption) -> Unit,
-    onClearTypeFilter: () -> Unit,
-    onClearGenerationFilter: () -> Unit,
-    onClearAbilityFilter: () -> Unit,
-    onClearHabitatFilter: () -> Unit,
-    onClearRegionFilter: () -> Unit,
-    onClearShapeFilter: () -> Unit,
+    onPokemonClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    PokedexScreen(
-        uiState = pokedexUiState,
-        onRetry = onRetry,
-        onFilterCategorySelected = onFilterCategorySelected,
-        onLoadMore = onLoadMore,
-        onPokemonClick = onPokemonClick,
-        onTypeClicked = onTypeClicked,
-        onGenerationClicked = onGenerationClicked,
-        onAbilityClicked = onAbilityClicked,
-        onHabitatClicked = onHabitatClicked,
-        onRegionClicked = onRegionClicked,
-        onShapeClicked = onShapeClicked,
-        onClearTypeFilter = onClearTypeFilter,
-        onClearGenerationFilter = onClearGenerationFilter,
-        onClearAbilityFilter = onClearAbilityFilter,
-        onClearHabitatFilter = onClearHabitatFilter,
-        onClearRegionFilter = onClearRegionFilter,
-        onClearShapeFilter = onClearShapeFilter,
-        collectionMode = true,
-        ownedQuantities = accountUiState.pokemonCollection,
-        showOwnershipFilter = true,
-        totalPokemonCount = pokedexUiState.totalPokemonCount,
-        headerContent = { MoiHeaderCard(uiState = accountUiState) },
+    val spriteType by PokemonImageSettings.imageType.collectAsState()
+    val shinyEnabled by PokemonImageSettings.isShiny.collectAsState()
+    val ownedPokemon = remember(accountUiState.pokemonCollection) {
+        accountUiState.pokemonCollection
+            .asSequence()
+            .filter { (_, quantity) -> quantity > 0 }
+            .sortedBy { (pokemonId, _) -> pokemonId }
+            .toList()
+    }
+    val gridState = rememberLazyGridState()
+
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(3),
+        state = gridState,
         modifier = modifier
-    )
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            MoiHeaderCard(uiState = accountUiState)
+        }
+
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Text(
+                text = "Collection: ${ownedPokemon.size} Pokemon",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        if (ownedPokemon.isEmpty()) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color(0x33180707)
+                ) {
+                    Text(
+                        text = "Aucun Pokemon possede pour le moment.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(14.dp)
+                    )
+                }
+            }
+        } else {
+            items(
+                items = ownedPokemon,
+                key = { (pokemonId, _) -> pokemonId }
+            ) { (pokemonId, quantity) ->
+                OwnedPokemonCard(
+                    pokemonId = pokemonId,
+                    quantity = quantity,
+                    spriteType = spriteType,
+                    shinyEnabled = shinyEnabled,
+                    onClick = { onPokemonClick(pokemonId) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun OwnedPokemonCard(
+    pokemonId: Int,
+    quantity: Int,
+    spriteType: PokemonImageType,
+    shinyEnabled: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        color = Color(0x33180707)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            PokemonSpriteImage(
+                pokemonId = pokemonId,
+                contentDescription = "Pokemon #$pokemonId",
+                imageType = spriteType,
+                shiny = shinyEnabled,
+                modifier = Modifier.size(64.dp)
+            )
+            Text(
+                text = "#$pokemonId",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = "x$quantity",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
+            )
+        }
+    }
 }
 
 @Composable
@@ -1161,41 +1399,132 @@ private fun ComparePickerScreen(
 @Composable
 private fun MainBottomBar(
     selectedDestination: MainDestination,
-    onSelected: (MainDestination) -> Unit
+    onSelected: (MainDestination) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    NavigationBar {
-        NavigationBarItem(
-            selected = selectedDestination == MainDestination.SOCIAL,
-            onClick = { onSelected(MainDestination.SOCIAL) },
-            icon = {
-                Icon(
-                    imageVector = Icons.Filled.CatchingPokemon,
-                    contentDescription = "Social"
-                )
-            },
-            label = { Text("Social") }
+    val footerPainter = painterResource(id = R.drawable.footer)
+    val footerAspectRatio = remember(footerPainter) {
+        val intrinsicSize = footerPainter.intrinsicSize
+        if (intrinsicSize.isSpecified && intrinsicSize.height > 0f) {
+            intrinsicSize.width / intrinsicSize.height
+        } else {
+            1f
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp))
+            .aspectRatio(footerAspectRatio)
+    ) {
+        Image(
+            painter = footerPainter,
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Fit,
+            alignment = Alignment.BottomCenter
         )
-        NavigationBarItem(
-            selected = selectedDestination == MainDestination.ACCUEIL,
-            onClick = { onSelected(MainDestination.ACCUEIL) },
-            icon = {
-                Icon(
-                    imageVector = Icons.Filled.Map,
-                    contentDescription = "Accueil"
-                )
-            },
-            label = { Text("Accueil") }
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(horizontal = 40.dp, vertical = 18.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            FooterIconButton(
+                isSelected = selectedDestination == MainDestination.SOCIAL,
+                onClick = { onSelected(MainDestination.SOCIAL) },
+                imageVector = Icons.Filled.CatchingPokemon,
+                contentDescription = "Social"
+            )
+            FooterAccueilButton(
+                isSelected = selectedDestination == MainDestination.ACCUEIL,
+                onClick = { onSelected(MainDestination.ACCUEIL) },
+                contentDescription = "Accueil"
+            )
+            FooterIconButton(
+                isSelected = selectedDestination == MainDestination.MOI,
+                onClick = { onSelected(MainDestination.MOI) },
+                imageVector = Icons.Filled.AccountCircle,
+                contentDescription = "Moi"
+            )
+        }
+    }
+}
+
+@Composable
+private fun FooterAccueilButton(
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    contentDescription: String
+) {
+    val frames = remember {
+        intArrayOf(
+            R.drawable.acceuil1,
+            R.drawable.acceuil2,
+            R.drawable.acceuil3
         )
-        NavigationBarItem(
-            selected = selectedDestination == MainDestination.MOI,
-            onClick = { onSelected(MainDestination.MOI) },
-            icon = {
-                Icon(
-                    imageVector = Icons.Filled.AccountCircle,
-                    contentDescription = "Moi"
-                )
+    }
+    var frameIndex by remember { mutableIntStateOf(0) }
+    var animationCount by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(animationCount) {
+        if (animationCount == 0) return@LaunchedEffect
+        frameIndex = 0
+        delay(180)
+        frameIndex = 1
+        delay(180)
+        frameIndex = 2
+        delay(180)
+        frameIndex = 0
+    }
+
+    Box(
+        modifier = Modifier
+            .size(112.dp)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) {
+                animationCount += 1
+                onClick()
             },
-            label = { Text("Moi") }
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            painter = painterResource(id = frames[frameIndex]),
+            contentDescription = contentDescription,
+            modifier = Modifier.size(104.dp),
+            contentScale = ContentScale.Fit,
+            alpha = if (isSelected) 1f else 0.9f
         )
+    }
+}
+
+@Composable
+private fun FooterIconButton(
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    imageVector: ImageVector,
+    contentDescription: String
+) {
+    IconButton(onClick = onClick, modifier = Modifier.size(44.dp)) {
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .clip(CircleShape)
+                .background(if (isSelected) Color(0x22FFFFFF) else Color.Transparent),
+            contentAlignment = Alignment.Center
+        ) {
+            val tint = if (isSelected) Color.White else Color.White.copy(alpha = 0.82f)
+            Icon(
+                imageVector = imageVector,
+                contentDescription = contentDescription,
+                tint = tint
+            )
+        }
     }
 }

@@ -14,12 +14,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import fr.pokenity.pokenity.ui.theme.AppFontFamily
+import fr.pokenity.pokenity.ui.theme.AppTitleFontFamily
 
 val AuthAccentYellow = Color(0xFFFFCC18)
 val AuthInputBackground = Color(0xFFD0EAFD)
-val AuthInputText = Color(0xFF180707)
+val AuthInputText = Color(0xFF000000)
+val AuthInputPlaceholder = Color(0xFF4B5563)
 
-val AuthFontFamily: FontFamily = AppFontFamily
+val AuthFontFamily: FontFamily = AppTitleFontFamily
+val AuthBodyFontFamily: FontFamily = AppFontFamily
 
 @Composable
 fun AuthBackgroundContainer(
