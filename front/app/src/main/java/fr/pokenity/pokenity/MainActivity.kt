@@ -1287,7 +1287,7 @@ private fun ProfileClosetRow(
         if (size.isSpecified && size.height > 0f) size.width / size.height else 1f
     }
     val spriteYOffset = if (backgroundRes == R.drawable.closet_top) 38.dp else 4.dp
-    val badgeYOffset = if (backgroundRes == R.drawable.closet_top) 38.dp else 0.dp
+    val badgeYOffset = if (backgroundRes == R.drawable.closet_top) 50.dp else 0.dp
 
     Box(
         modifier = Modifier
@@ -1421,83 +1421,97 @@ private fun MoiHeaderCard(uiState: AccountUiState) {
     val levelProgress = remember(uiState.user?.xp) {
         computeLevelProgress((uiState.user?.xp ?: 0).coerceAtLeast(0))
     }
+    val statsTextColor = Color(0xFF415E74)
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
-        color = Color(0x33180707)
+        color = Color.Transparent
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            val avatarUrl = uiState.user?.characterAvatarUrl ?: uiState.user?.characterImageUrl
-            val mediaModel = resolveCharacterMediaModel(avatarUrl)
-            Box(
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Image(
+                painter = painterResource(id = R.drawable.card_box),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+
+            Column(
                 modifier = Modifier
-                    .size(160.dp)
-                    .clip(CircleShape)
-                    .background(Color(0x22180707))
-                    .border(2.dp, Color.White.copy(alpha = 0.55f), CircleShape),
-                contentAlignment = Alignment.Center
+                    .align(Alignment.Center)
+                    .fillMaxWidth(0.84f)
+                    .padding(vertical = 14.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                if (mediaModel != null) {
-                    AsyncImage(
-                        model = mediaModel,
-                        contentDescription = "Avatar",
-                        modifier = Modifier.fillMaxSize()
+                val avatarUrl = uiState.user?.characterAvatarUrl ?: uiState.user?.characterImageUrl
+                val mediaModel = resolveCharacterMediaModel(avatarUrl)
+                Box(
+                    modifier = Modifier
+                        .size(128.dp)
+                        .clip(CircleShape)
+                        .background(Color(0x22180707))
+                        .border(2.dp, Color.White.copy(alpha = 0.55f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (mediaModel != null) {
+                        AsyncImage(
+                            model = mediaModel,
+                            contentDescription = "Avatar",
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Filled.AccountCircle,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.8f),
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Niv. ${levelProgress.currentLevel}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = statsTextColor
                     )
-                } else {
-                    Icon(
-                        imageVector = Icons.Filled.AccountCircle,
-                        contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.8f),
-                        modifier = Modifier.fillMaxSize()
+                    Text(
+                        text = "Niv. ${levelProgress.nextLevel}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = statsTextColor
                     )
                 }
-            }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.82f)
+                        .height(12.dp)
+                        .background(statsTextColor.copy(alpha = 0.22f))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(levelProgress.progressFraction.coerceIn(0f, 1f))
+                            .fillMaxHeight()
+                            .background(MaterialTheme.colorScheme.primary)
+                    )
+                }
+
                 Text(
-                    text = "Niv. ${levelProgress.currentLevel}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    text = "${levelProgress.xpInCurrentLevel}/${levelProgress.xpForNextLevel} XP",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = statsTextColor
                 )
-                Text(
-                    text = "Niv. ${levelProgress.nextLevel}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
 
-            LinearProgressIndicator(
-                progress = { levelProgress.progressFraction },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(10.dp)
-                    .clip(RoundedCornerShape(999.dp)),
-                trackColor = Color.White.copy(alpha = 0.18f),
-                color = MaterialTheme.colorScheme.primary,
-                gapSize = 0.dp
-            )
-
-            Text(
-                text = "${levelProgress.xpInCurrentLevel}/${levelProgress.xpForNextLevel} XP",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-            )
-
-            if (uiState.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                }
             }
         }
     }
