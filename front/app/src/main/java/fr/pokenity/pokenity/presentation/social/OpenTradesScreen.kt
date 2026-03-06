@@ -210,11 +210,10 @@ fun TradeCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    trade.requestedPokemons.forEach { pokemon ->
+                    items(trade.requestedPokemons, key = { it.resourceId }) { pokemon ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             AsyncImage(
                                 model = pokemon.imageUrl,
@@ -266,6 +265,7 @@ fun TradeStatusBadge(status: TradeStatus, modifier: Modifier = Modifier) {
 
 @Composable
 private fun AcceptTradeDialog(
+    requestedPokemons: List<TradePokemon>,
     inventory: List<InventoryItem>,
     isLoading: Boolean,
     hasNoMatchingPokemon: Boolean,

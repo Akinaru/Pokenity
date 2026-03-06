@@ -1,11 +1,11 @@
 const { Prisma } = require("@prisma/client");
 const express = require("express");
 const { prisma } = require("../lib/prisma");
+const { getShinyDropRate } = require("../lib/configuration");
 const { PokeApiError, resolveDropResource } = require("../lib/pokeapi");
 const { authRequired } = require("../middleware/auth");
 
 const router = express.Router();
-const SHINY_CHANCE = 0.5;
 const DRAW_SEQUENCE_BASE_STEPS = 30;
 const DRAW_SEQUENCE_RANDOM_EXTRA = 10;
 
@@ -134,11 +134,11 @@ function pickWeightedEntry(entries, avoidKey = null) {
   return selectionPool[selectionPool.length - 1];
 }
 
-function rollShiny(entry) {
+function rollShiny(entry, shinyDropRate) {
   if (!entry || entry.resourceType !== "POKEMON") {
     return false;
   }
-  return Math.random() < SHINY_CHANCE;
+  return Math.random() < shinyDropRate;
 }
 
 function toDrawItem(entry, isShiny) {
@@ -151,7 +151,7 @@ function toDrawItem(entry, isShiny) {
   };
 }
 
-function buildDrawSequence(entries, rewardEntry, rewardIsShiny) {
+function buildDrawSequence(entries, rewardEntry, rewardIsShiny, shinyDropRate) {
   const stepsBeforeReward =
     DRAW_SEQUENCE_BASE_STEPS + Math.floor(Math.random() * DRAW_SEQUENCE_RANDOM_EXTRA);
   const sequence = [];
@@ -159,7 +159,7 @@ function buildDrawSequence(entries, rewardEntry, rewardIsShiny) {
 
   for (let index = 0; index < stepsBeforeReward; index += 1) {
     const nextEntry = pickWeightedEntry(entries, previousKey);
-    const nextIsShiny = rollShiny(nextEntry);
+    const nextIsShiny = rollShiny(nextEntry, shinyDropRate);
     sequence.push(toDrawItem(nextEntry, nextIsShiny));
     previousKey = entryKey(nextEntry);
   }
@@ -385,9 +385,15 @@ router.post("/:boxId/open", authRequired, async (req, res) => {
     return res.status(400).json({ error: "Box has no entries." });
   }
 
+  const shinyDropRate = await getShinyDropRate();
   const selectedEntry = pickWeightedEntry(box.entries);
-  const isShiny = rollShiny(selectedEntry);
-  const drawSequence = buildDrawSequence(box.entries, selectedEntry, isShiny);
+  const isShiny = rollShiny(selectedEntry, shinyDropRate);
+  const drawSequence = buildDrawSequence(
+    box.entries,
+    selectedEntry,
+    isShiny,
+    shinyDropRate
+  );
   const now = new Date();
 
   const { inventoryItem, boxOpening, userWithXp } = await prisma.$transaction(
