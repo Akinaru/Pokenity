@@ -2,12 +2,12 @@ package fr.pokenity.pokenity.ui.media
 
 import android.net.Uri
 
-private const val ASSET_BASE_PATH = "file:///android_asset/characters"
+private const val RES_BASE_PATH = "android.resource://fr.pokenity.pokenity/drawable"
 
 /**
  * Resolves character media to a model usable by Coil.
  * - http(s) and absolute paths are returned as-is
- * - plain filenames are loaded from app assets/characters
+ * - plain filenames are loaded from app res/drawable
  */
 fun resolveCharacterMediaModel(rawValue: String?): String? {
     val value = (rawValue ?: "").trim()
@@ -24,5 +24,7 @@ fun resolveCharacterMediaModel(rawValue: String?): String? {
         return value
     }
 
-    return "$ASSET_BASE_PATH/${Uri.encode(value)}"
+    val fileName = value.substringAfterLast('/')
+    val resourceName = fileName.substringBeforeLast('.').lowercase()
+    return "$RES_BASE_PATH/${Uri.encode(resourceName)}"
 }
