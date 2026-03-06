@@ -614,7 +614,8 @@ class MainActivity : ComponentActivity() {
                                         onClearShapeFilter = pokedexViewModel::clearShapeFilter,
                                         collectionMode = true,
                                         ownedQuantities = accountUiState.pokemonCollection,
-                                        showOwnershipFilter = false,
+                                        showOwnershipFilter = true,
+                                        bottomContentPadding = 220.dp,
                                         totalPokemonCount = pokedexUiState.totalPokemonCount,
                                         modifier = Modifier.padding(innerPadding)
                                     )
