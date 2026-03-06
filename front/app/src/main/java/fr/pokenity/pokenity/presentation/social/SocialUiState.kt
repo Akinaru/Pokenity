@@ -31,9 +31,11 @@ data class SocialUiState(
     // Propose trade tab
     val myInventory: List<InventoryItem> = emptyList(),
     val selectedInventoryItems: List<InventoryItem> = emptyList(),
+    val selectedOfferedQuantities: Map<String, Int> = emptyMap(),
 
     // Wishlist: Pokemon requested by the proposer (1-5)
     val selectedRequestedPokemons: List<TradePokemon> = emptyList(),
+    val selectedRequestedQuantities: Map<Int, Int> = emptyMap(),
     val pokemonSearchQuery: String = "",
     val pokemonSearchResults: List<PokemonSummary> = emptyList(),
     val allPokemonList: List<PokemonSummary> = emptyList(),

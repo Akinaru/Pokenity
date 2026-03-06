@@ -21,6 +21,22 @@ function normalizeLimit(value, fallback = 30, max = 200) {
 }
 
 function serializeTrade(trade) {
+  const offeredPokemons = (trade.offeredItems || []).map((item) => ({
+    resourceType: item.resourceType,
+    resourceId: item.resourceId,
+    resourceName: item.resourceName,
+    isShiny: item.isShiny === true,
+    quantity: item.quantity,
+  }));
+
+  const requestedPokemons = (trade.requestedItems || []).map((item) => ({
+    resourceType: item.resourceType,
+    resourceId: item.resourceId,
+    resourceName: item.resourceName,
+    isShiny: item.isShiny === true,
+    quantity: item.quantity,
+  }));
+
   return {
     id: trade.id,
     status: trade.status,
@@ -28,11 +44,13 @@ function serializeTrade(trade) {
     recipientId: trade.recipientId,
     proposer: trade.proposer || null,
     recipient: trade.recipient || null,
+    offeredPokemons,
     offeredPokemon: {
       resourceType: trade.offeredResourceType,
       resourceId: trade.offeredResourceId,
       resourceName: trade.offeredResourceName,
       isShiny: trade.offeredIsShiny,
+      quantity: offeredPokemons[0]?.quantity || 1,
     },
     receivedPokemon:
       trade.receivedResourceType && trade.receivedResourceId != null
@@ -43,11 +61,7 @@ function serializeTrade(trade) {
             isShiny: trade.receivedIsShiny === true,
           }
         : null,
-    requestedPokemons: (trade.requestedItems || []).map((item) => ({
-      resourceType: item.resourceType,
-      resourceId: item.resourceId,
-      resourceName: item.resourceName,
-    })),
+    requestedPokemons,
     acceptedAt: trade.acceptedAt,
     confirmedAt: trade.confirmedAt,
     completedAt: trade.completedAt,
@@ -85,6 +99,7 @@ const tradeInclude = {
       xp: true,
     },
   },
+  offeredItems: true,
   requestedItems: true,
 };
 
@@ -146,21 +161,54 @@ router.get("/admin/current", async (req, res) => {
   });
 });
 
-async function findPokemonInventoryItem(itemId, userId, tx = prisma) {
+function toPositiveInt(value, fallback = 1) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return fallback;
+  }
+  return Math.trunc(parsed);
+}
+
+async function findPokemonInventoryItem(itemId, userId, minQuantity = 1, tx = prisma) {
   return tx.inventoryItem.findFirst({
     where: {
       id: itemId,
       userId,
       resourceType: "POKEMON",
       quantity: {
-        gte: 1,
+        gte: minQuantity,
       },
     },
   });
 }
 
-async function decreaseOneInventoryItem(tx, item) {
-  if (item.quantity <= 1) {
+async function findPokemonInventoryByKey(
+  userId,
+  resourceType,
+  resourceId,
+  isShiny,
+  minQuantity = 1,
+  tx = prisma
+) {
+  return tx.inventoryItem.findUnique({
+    where: {
+      userId_resourceType_resourceId_isShiny: {
+        userId,
+        resourceType,
+        resourceId,
+        isShiny,
+      },
+    },
+  }).then((item) => {
+    if (!item || item.quantity < minQuantity) {
+      return null;
+    }
+    return item;
+  });
+}
+
+async function decreaseInventoryQuantity(tx, item, quantity) {
+  if (item.quantity <= quantity) {
     await tx.inventoryItem.delete({
       where: {
         id: item.id,
@@ -175,7 +223,7 @@ async function decreaseOneInventoryItem(tx, item) {
     },
     data: {
       quantity: {
-        decrement: 1,
+        decrement: quantity,
       },
     },
   });
@@ -188,6 +236,7 @@ async function increaseInventory(
   resourceId,
   resourceName,
   isShiny,
+  quantity,
   now
 ) {
   return tx.inventoryItem.upsert({
@@ -202,7 +251,7 @@ async function increaseInventory(
     update: {
       resourceName,
       quantity: {
-        increment: 1,
+        increment: quantity,
       },
       lastObtainedAt: now,
     },
@@ -212,7 +261,7 @@ async function increaseInventory(
       resourceId,
       resourceName,
       isShiny,
-      quantity: 1,
+      quantity,
       firstObtainedAt: now,
       lastObtainedAt: now,
     },
@@ -220,14 +269,27 @@ async function increaseInventory(
 }
 
 router.post("/", authRequired, async (req, res) => {
+  const rawOfferedPokemons = Array.isArray(req.body.offeredPokemons)
+    ? req.body.offeredPokemons
+    : [];
   const offeredInventoryItemId = String(req.body.offeredInventoryItemId || "").trim();
   const rawRequestedPokemons = req.body.requestedPokemons;
 
-  if (!offeredInventoryItemId) {
-    return res.status(400).json({ error: "offeredInventoryItemId is required." });
+  const offeredPokemonBodies =
+    rawOfferedPokemons.length > 0
+      ? rawOfferedPokemons
+      : offeredInventoryItemId
+        ? [{ inventoryItemId: offeredInventoryItemId, quantity: 1 }]
+        : [];
+
+  if (!Array.isArray(offeredPokemonBodies) || offeredPokemonBodies.length < 1) {
+    return res.status(400).json({ error: "offeredPokemons must be an array with at least 1 item." });
   }
 
-  // Validate requestedPokemons: must be an array of 1-5 items with resourceId and resourceName
+  if (offeredPokemonBodies.length > 5) {
+    return res.status(400).json({ error: "offeredPokemons must have at most 5 items." });
+  }
+
   if (!Array.isArray(rawRequestedPokemons) || rawRequestedPokemons.length < 1) {
     return res.status(400).json({ error: "requestedPokemons must be an array with at least 1 item." });
   }
@@ -236,10 +298,12 @@ router.post("/", authRequired, async (req, res) => {
     return res.status(400).json({ error: "requestedPokemons must have at most 5 items." });
   }
 
-  const requestedPokemons = [];
+  const requestedByKey = new Map();
   for (const item of rawRequestedPokemons) {
     const resourceId = Number(item.resourceId);
     const resourceName = String(item.resourceName || "").trim();
+    const quantity = toPositiveInt(item.quantity, 1);
+    const isShiny = item.isShiny === true;
 
     if (!Number.isFinite(resourceId) || resourceId <= 0) {
       return res.status(400).json({ error: "Each requestedPokemon must have a valid resourceId." });
@@ -247,21 +311,72 @@ router.post("/", authRequired, async (req, res) => {
     if (!resourceName) {
       return res.status(400).json({ error: "Each requestedPokemon must have a resourceName." });
     }
+    if (quantity > 999) {
+      return res.status(400).json({ error: "Each requestedPokemon quantity must be <= 999." });
+    }
 
-    requestedPokemons.push({ resourceId, resourceName });
+    const key = `POKEMON:${resourceId}:${isShiny ? "1" : "0"}`;
+    const previous = requestedByKey.get(key);
+    if (previous) {
+      previous.quantity += quantity;
+    } else {
+      requestedByKey.set(key, {
+        resourceType: "POKEMON",
+        resourceId,
+        resourceName,
+        isShiny,
+        quantity,
+      });
+    }
   }
 
-  const offeredItem = await findPokemonInventoryItem(
-    offeredInventoryItemId,
-    req.user.sub,
-    prisma
-  );
+  const requestedPokemons = Array.from(requestedByKey.values());
+  if (requestedPokemons.length > 5) {
+    return res.status(400).json({ error: "requestedPokemons must contain at most 5 distinct Pokemon." });
+  }
 
-  if (!offeredItem) {
-    return res.status(404).json({
-      error:
-        "Offered pokemon not found in your inventory (or quantity is 0).",
+  const offeredByInventoryId = new Map();
+  for (const item of offeredPokemonBodies) {
+    const inventoryItemId = String(item.inventoryItemId || "").trim();
+    const quantity = toPositiveInt(item.quantity, 1);
+
+    if (!inventoryItemId) {
+      return res.status(400).json({ error: "Each offeredPokemon must have an inventoryItemId." });
+    }
+    if (quantity > 999) {
+      return res.status(400).json({ error: "Each offeredPokemon quantity must be <= 999." });
+    }
+
+    const previousQty = offeredByInventoryId.get(inventoryItemId) || 0;
+    offeredByInventoryId.set(inventoryItemId, previousQty + quantity);
+  }
+
+  const offeredPokemons = [];
+  for (const [inventoryItemId, quantity] of offeredByInventoryId.entries()) {
+    const offeredItem = await findPokemonInventoryItem(
+      inventoryItemId,
+      req.user.sub,
+      quantity,
+      prisma
+    );
+
+    if (!offeredItem) {
+      return res.status(404).json({
+        error: `Offered pokemon ${inventoryItemId} not found in your inventory with requested quantity.`,
+      });
+    }
+
+    offeredPokemons.push({
+      resourceType: offeredItem.resourceType,
+      resourceId: offeredItem.resourceId,
+      resourceName: offeredItem.resourceName,
+      isShiny: offeredItem.isShiny === true,
+      quantity,
     });
+  }
+
+  if (offeredPokemons.length < 1) {
+    return res.status(400).json({ error: "At least one offered pokemon is required." });
   }
 
   const expiresAtRaw =
@@ -281,20 +396,33 @@ router.post("/", authRequired, async (req, res) => {
     expiresAt = parsed;
   }
 
+  const primaryOffered = offeredPokemons[0];
+
   const trade = await prisma.trade.create({
     data: {
       proposerId: req.user.sub,
       status: TRADE_STATUS.PENDING,
-      offeredResourceType: offeredItem.resourceType,
-      offeredResourceId: offeredItem.resourceId,
-      offeredResourceName: offeredItem.resourceName,
-      offeredIsShiny: offeredItem.isShiny,
+      offeredResourceType: primaryOffered.resourceType,
+      offeredResourceId: primaryOffered.resourceId,
+      offeredResourceName: primaryOffered.resourceName,
+      offeredIsShiny: primaryOffered.isShiny,
       expiresAt,
+      offeredItems: {
+        create: offeredPokemons.map((op) => ({
+          resourceType: op.resourceType,
+          resourceId: op.resourceId,
+          resourceName: op.resourceName,
+          isShiny: op.isShiny,
+          quantity: op.quantity,
+        })),
+      },
       requestedItems: {
         create: requestedPokemons.map((rp) => ({
-          resourceType: "POKEMON",
+          resourceType: rp.resourceType,
           resourceId: rp.resourceId,
           resourceName: rp.resourceName,
+          isShiny: rp.isShiny,
+          quantity: rp.quantity,
         })),
       },
     },
@@ -410,11 +538,6 @@ router.get("/:tradeId", authRequired, async (req, res) => {
 
 router.post("/:tradeId/accept", authRequired, async (req, res) => {
   const tradeId = String(req.params.tradeId || "");
-  const offeredInventoryItemId = String(req.body.offeredInventoryItemId || "").trim();
-
-  if (!offeredInventoryItemId) {
-    return res.status(400).json({ error: "offeredInventoryItemId is required." });
-  }
 
   const trade = await prisma.trade.findUnique({
     where: {
@@ -447,32 +570,48 @@ router.post("/:tradeId/accept", authRequired, async (req, res) => {
     });
   }
 
-  const offeredItem = await findPokemonInventoryItem(
-    offeredInventoryItemId,
-    req.user.sub,
-    prisma
+  const recipientHasAllRequested = await Promise.all(
+    (trade.requestedItems || []).map(async (requestedItem) => {
+      const quantity = toPositiveInt(requestedItem.quantity, 1);
+      const inventoryItem = await findPokemonInventoryByKey(
+        req.user.sub,
+        requestedItem.resourceType,
+        requestedItem.resourceId,
+        requestedItem.isShiny === true,
+        quantity,
+        prisma
+      );
+      return inventoryItem != null;
+    })
   );
 
-  if (!offeredItem) {
-    return res.status(404).json({
-      error:
-        "Selected pokemon not found in your inventory (or quantity is 0).",
+  if (recipientHasAllRequested.some((hasItem) => !hasItem)) {
+    return res.status(409).json({
+      error: "Vous ne possedez pas toutes les ressources demandees avec les quantites requises.",
     });
   }
 
-  // Validate offered pokemon matches one of the requested pokemons
-  if (trade.requestedItems && trade.requestedItems.length > 0) {
-    const matches = trade.requestedItems.some(
-      (ri) => ri.resourceId === offeredItem.resourceId && ri.resourceType === offeredItem.resourceType
-    );
-    if (!matches) {
-      return res.status(400).json({
-        error: "The offered Pokemon does not match any of the requested Pokemon.",
-      });
-    }
-  }
+  const primaryRequested = (trade.requestedItems || [])[0] || null;
 
   const acceptedAt = new Date();
+  const updateData = {
+    recipientId: req.user.sub,
+    status: TRADE_STATUS.WAITING_CONFIRMATION,
+    acceptedAt,
+  };
+
+  if (primaryRequested) {
+    updateData.receivedResourceType = primaryRequested.resourceType;
+    updateData.receivedResourceId = primaryRequested.resourceId;
+    updateData.receivedResourceName = primaryRequested.resourceName;
+    updateData.receivedIsShiny = primaryRequested.isShiny === true;
+  } else {
+    updateData.receivedResourceType = null;
+    updateData.receivedResourceId = null;
+    updateData.receivedResourceName = null;
+    updateData.receivedIsShiny = null;
+  }
+
   const updateResult = await prisma.trade.updateMany({
     where: {
       id: trade.id,
@@ -505,15 +644,7 @@ router.post("/:tradeId/accept", authRequired, async (req, res) => {
         },
       ],
     },
-    data: {
-      recipientId: req.user.sub,
-      status: TRADE_STATUS.WAITING_CONFIRMATION,
-      receivedResourceType: offeredItem.resourceType,
-      receivedResourceId: offeredItem.resourceId,
-      receivedResourceName: offeredItem.resourceName,
-      receivedIsShiny: offeredItem.isShiny,
-      acceptedAt,
-    },
+    data: updateData,
   });
 
   if (updateResult.count !== 1) {
@@ -547,6 +678,10 @@ router.post("/:tradeId/confirm", authRequired, async (req, res) => {
         where: {
           id: tradeId,
         },
+        include: {
+          offeredItems: true,
+          requestedItems: true,
+        },
       });
 
       if (!currentTrade) {
@@ -573,94 +708,91 @@ router.post("/:tradeId/confirm", authRequired, async (req, res) => {
         throw error;
       }
 
-      if (currentTrade.offeredResourceType !== "POKEMON") {
-        const error = new Error("Only pokemon trades are supported.");
+      if (!currentTrade.offeredItems || currentTrade.offeredItems.length === 0) {
+        const error = new Error("Trade has no offered pokemon.");
         error.status = 409;
         throw error;
       }
 
-      if (
-        !currentTrade.receivedResourceType ||
-        currentTrade.receivedResourceId == null
-      ) {
-        const error = new Error("Recipient pokemon is missing on this trade.");
+      if (!currentTrade.requestedItems || currentTrade.requestedItems.length === 0) {
+        const error = new Error("Trade has no requested pokemon.");
         error.status = 409;
         throw error;
       }
 
-      if (currentTrade.receivedResourceType !== "POKEMON") {
-        const error = new Error("Only pokemon trades are supported.");
+      const proposerItems = await Promise.all(
+        currentTrade.offeredItems.map(async (offeredItem) => {
+          const quantity = toPositiveInt(offeredItem.quantity, 1);
+          const inventoryItem = await findPokemonInventoryByKey(
+            currentTrade.proposerId,
+            offeredItem.resourceType,
+            offeredItem.resourceId,
+            offeredItem.isShiny === true,
+            quantity,
+            tx
+          );
+          return { inventoryItem, offeredItem, quantity };
+        })
+      );
+
+      const missingProposerItem = proposerItems.find((entry) => !entry.inventoryItem);
+      if (missingProposerItem) {
+        const error = new Error("You no longer own all offered pokemon quantities.");
         error.status = 409;
         throw error;
       }
 
-      if (!currentTrade.receivedResourceName) {
-        const error = new Error("Recipient pokemon name is missing on this trade.");
-        error.status = 409;
-        throw error;
-      }
+      const recipientItems = await Promise.all(
+        currentTrade.requestedItems.map(async (requestedItem) => {
+          const quantity = toPositiveInt(requestedItem.quantity, 1);
+          const inventoryItem = await findPokemonInventoryByKey(
+            currentTrade.recipientId,
+            requestedItem.resourceType,
+            requestedItem.resourceId,
+            requestedItem.isShiny === true,
+            quantity,
+            tx
+          );
+          return { inventoryItem, requestedItem, quantity };
+        })
+      );
 
-      const offeredIsShiny = currentTrade.offeredIsShiny === true;
-      const receivedIsShiny = currentTrade.receivedIsShiny === true;
-
-      const proposerItem = await tx.inventoryItem.findUnique({
-        where: {
-          userId_resourceType_resourceId_isShiny: {
-            userId: currentTrade.proposerId,
-            resourceType: currentTrade.offeredResourceType,
-            resourceId: currentTrade.offeredResourceId,
-            isShiny: offeredIsShiny,
-          },
-        },
-      });
-
-      if (!proposerItem || proposerItem.quantity < 1) {
-        const error = new Error("You no longer own the offered pokemon.");
-        error.status = 409;
-        throw error;
-      }
-
-      const recipientItem = await tx.inventoryItem.findUnique({
-        where: {
-          userId_resourceType_resourceId_isShiny: {
-            userId: currentTrade.recipientId,
-            resourceType: currentTrade.receivedResourceType,
-            resourceId: currentTrade.receivedResourceId,
-            isShiny: receivedIsShiny,
-          },
-        },
-      });
-
-      if (!recipientItem || recipientItem.quantity < 1) {
-        const error = new Error("Recipient no longer owns the selected pokemon.");
+      const missingRecipientItem = recipientItems.find((entry) => !entry.inventoryItem);
+      if (missingRecipientItem) {
+        const error = new Error("Recipient no longer owns all requested pokemon quantities.");
         error.status = 409;
         throw error;
       }
 
       const now = new Date();
 
-      await decreaseOneInventoryItem(tx, proposerItem);
-      await decreaseOneInventoryItem(tx, recipientItem);
+      for (const entry of proposerItems) {
+        await decreaseInventoryQuantity(tx, entry.inventoryItem, entry.quantity);
+        await increaseInventory(
+          tx,
+          currentTrade.recipientId,
+          entry.offeredItem.resourceType,
+          entry.offeredItem.resourceId,
+          entry.offeredItem.resourceName,
+          entry.offeredItem.isShiny === true,
+          entry.quantity,
+          now
+        );
+      }
 
-      await increaseInventory(
-        tx,
-        currentTrade.recipientId,
-        currentTrade.offeredResourceType,
-        currentTrade.offeredResourceId,
-        currentTrade.offeredResourceName,
-        offeredIsShiny,
-        now
-      );
-
-      await increaseInventory(
-        tx,
-        currentTrade.proposerId,
-        currentTrade.receivedResourceType,
-        currentTrade.receivedResourceId,
-        currentTrade.receivedResourceName,
-        receivedIsShiny,
-        now
-      );
+      for (const entry of recipientItems) {
+        await decreaseInventoryQuantity(tx, entry.inventoryItem, entry.quantity);
+        await increaseInventory(
+          tx,
+          currentTrade.proposerId,
+          entry.requestedItem.resourceType,
+          entry.requestedItem.resourceId,
+          entry.requestedItem.resourceName,
+          entry.requestedItem.isShiny === true,
+          entry.quantity,
+          now
+        );
+      }
 
       await tx.user.update({
         where: {

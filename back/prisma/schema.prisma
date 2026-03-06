@@ -143,6 +143,7 @@ model Trade {
   updatedAt            DateTime             @updatedAt @map("updated_at")
   proposer             User                 @relation("TradeProposer", fields: [proposerId], references: [id], onDelete: Cascade)
   recipient            User?                @relation("TradeRecipient", fields: [recipientId], references: [id], onDelete: SetNull)
+  offeredItems         TradeOfferedItem[]
   requestedItems       TradeRequestedItem[]
 
   @@index([proposerId, status])
@@ -156,9 +157,26 @@ model TradeRequestedItem {
   resourceType DropResourceType @default(POKEMON) @map("resource_type")
   resourceId   Int              @map("resource_id")
   resourceName String           @map("resource_name") @db.VarChar(120)
+  isShiny      Boolean          @default(false) @map("is_shiny")
+  quantity     Int              @default(1)
   createdAt    DateTime         @default(now()) @map("created_at")
   trade        Trade            @relation(fields: [tradeId], references: [id], onDelete: Cascade)
 
   @@index([tradeId])
   @@map("trade_requested_items")
+}
+
+model TradeOfferedItem {
+  id           String           @id @default(uuid()) @db.Char(36)
+  tradeId      String           @map("trade_id") @db.Char(36)
+  resourceType DropResourceType @default(POKEMON) @map("resource_type")
+  resourceId   Int              @map("resource_id")
+  resourceName String           @map("resource_name") @db.VarChar(120)
+  isShiny      Boolean          @default(false) @map("is_shiny")
+  quantity     Int              @default(1)
+  createdAt    DateTime         @default(now()) @map("created_at")
+  trade        Trade            @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+
+  @@index([tradeId])
+  @@map("trade_offered_items")
 }

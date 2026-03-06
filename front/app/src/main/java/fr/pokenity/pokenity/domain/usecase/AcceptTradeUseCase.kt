@@ -6,7 +6,7 @@ import fr.pokenity.data.repository.SocialRepository
 class AcceptTradeUseCase(
     private val socialRepository: SocialRepository
 ) {
-    suspend operator fun invoke(tradeId: String, offeredInventoryItemId: String): Trade {
-        return socialRepository.acceptTrade(tradeId, offeredInventoryItemId)
+    suspend operator fun invoke(tradeId: String): Trade {
+        return socialRepository.acceptTrade(tradeId)
     }
 }

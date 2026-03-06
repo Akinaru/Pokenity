@@ -64,7 +64,9 @@ fun ProposeTradeScreen(
     uiState: SocialUiState,
     pokedexUiState: PokedexUiState,
     onSelectInventoryItem: (InventoryItem?) -> Unit,
+    onUpdateOfferedQuantity: (itemId: String, quantity: Int) -> Unit,
     onAddRequestedPokemon: (PokemonSummary) -> Unit,
+    onUpdateRequestedQuantity: (resourceId: Int, quantity: Int) -> Unit,
     onRemoveRequestedPokemonAt: (Int) -> Unit,
     onOpenInventorySelector: () -> Unit,
     onCloseInventorySelector: () -> Unit,
@@ -167,30 +169,63 @@ fun ProposeTradeScreen(
                             Text("Retirer tout")
                         }
                     }
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(selectedItems, key = { it.id }) { selectedItem ->
-                            InputChip(
-                                selected = true,
-                                onClick = { onSelectInventoryItem(selectedItem) },
-                                label = {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        AsyncImage(
-                                            model = selectedItem.imageUrl,
-                                            contentDescription = selectedItem.resourceName,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(selectedItem.resourceName)
-                                    }
-                                },
-                                trailingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Filled.Close,
-                                        contentDescription = "Retirer",
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
+                    selectedItems.forEach { selectedItem ->
+                        val qty = uiState.selectedOfferedQuantities[selectedItem.id] ?: 1
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            AsyncImage(
+                                model = selectedItem.imageUrl,
+                                contentDescription = selectedItem.resourceName,
+                                modifier = Modifier.size(32.dp)
                             )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (selectedItem.isShiny) "${selectedItem.resourceName} ✨" else selectedItem.resourceName,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(
+                                    onClick = { onUpdateOfferedQuantity(selectedItem.id, qty - 1) },
+                                    enabled = qty > 1,
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Text("-", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                }
+                                Text(
+                                    text = "$qty",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.width(28.dp),
+                                    textAlign = TextAlign.Center
+                                )
+                                IconButton(
+                                    onClick = { onUpdateOfferedQuantity(selectedItem.id, qty + 1) },
+                                    enabled = qty < selectedItem.quantity,
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Text("+", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                }
+                                Text(
+                                    text = "/${selectedItem.quantity}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            IconButton(
+                                onClick = { onSelectInventoryItem(selectedItem) },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Close,
+                                    contentDescription = "Retirer",
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -229,38 +264,68 @@ fun ProposeTradeScreen(
         }
 
         if (uiState.selectedRequestedPokemons.isNotEmpty()) {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(uiState.selectedRequestedPokemons.size) { index ->
-                    val pokemon = uiState.selectedRequestedPokemons[index]
-                    InputChip(
-                        selected = true,
-                        onClick = { onRemoveRequestedPokemonAt(index) },
-                        label = {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    uiState.selectedRequestedPokemons.forEachIndexed { index, pokemon ->
+                        val qty = uiState.selectedRequestedQuantities[pokemon.resourceId] ?: 1
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            AsyncImage(
+                                model = pokemon.imageUrl,
+                                contentDescription = pokemon.resourceName,
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = pokemon.resourceName,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f)
+                            )
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                AsyncImage(
-                                    model = pokemon.imageUrl,
-                                    contentDescription = pokemon.resourceName,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
+                                IconButton(
+                                    onClick = { onUpdateRequestedQuantity(pokemon.resourceId, qty - 1) },
+                                    enabled = qty > 1,
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Text("-", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                }
                                 Text(
-                                    text = pokemon.resourceName,
-                                    style = MaterialTheme.typography.labelMedium
+                                    text = "$qty",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.width(28.dp),
+                                    textAlign = TextAlign.Center
+                                )
+                                IconButton(
+                                    onClick = { onUpdateRequestedQuantity(pokemon.resourceId, qty + 1) },
+                                    enabled = qty < 999,
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Text("+", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                            IconButton(
+                                onClick = { onRemoveRequestedPokemonAt(index) },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Close,
+                                    contentDescription = "Retirer",
+                                    modifier = Modifier.size(16.dp)
                                 )
                             }
-                        },
-                        trailingIcon = {
-                            Icon(
-                                imageVector = Icons.Filled.Close,
-                                contentDescription = "Retirer",
-                                modifier = Modifier.size(16.dp)
-                            )
-                        },
-                        shape = RoundedCornerShape(20.dp),
-                        colors = InputChipDefaults.inputChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer
-                        )
-                    )
+                        }
+                    }
                 }
             }
         }
@@ -301,7 +366,9 @@ fun ProposeTradeScreen(
                     Text(
                         text = "Pokemon proposes : ${
                             selectedItems.joinToString(", ") { item ->
-                                if (item.isShiny) "${item.resourceName} ✨" else item.resourceName
+                                val qty = uiState.selectedOfferedQuantities[item.id] ?: 1
+                                val name = if (item.isShiny) "${item.resourceName} ✨" else item.resourceName
+                                "$name x$qty"
                             }
                         }",
                         style = MaterialTheme.typography.bodyMedium
@@ -309,7 +376,10 @@ fun ProposeTradeScreen(
                     if (uiState.selectedRequestedPokemons.isNotEmpty()) {
                         Text(
                             text = "Pokemon souhaites : ${
-                                uiState.selectedRequestedPokemons.joinToString(", ") { it.resourceName }
+                                uiState.selectedRequestedPokemons.joinToString(", ") { pokemon ->
+                                    val qty = uiState.selectedRequestedQuantities[pokemon.resourceId] ?: 1
+                                    "${pokemon.resourceName} x$qty"
+                                }
                             }",
                             style = MaterialTheme.typography.bodyMedium
                         )

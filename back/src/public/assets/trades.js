@@ -27,7 +27,15 @@
     }
 
     const shinyLabel = resource.isShiny ? " ✨Shiny" : "";
-    return `${resource.resourceType} #${resource.resourceId} ${toTitleCase(resource.resourceName)}${shinyLabel}`;
+    const quantityLabel = resource.quantity && resource.quantity > 1 ? ` x${resource.quantity}` : "";
+    return `${resource.resourceType} #${resource.resourceId} ${toTitleCase(resource.resourceName)}${shinyLabel}${quantityLabel}`;
+  }
+
+  function resourcesLabel(resources) {
+    if (!Array.isArray(resources) || resources.length === 0) {
+      return "-";
+    }
+    return resources.map((resource) => escapeHtml(resourceLabel(resource))).join("<br>");
   }
 
   function serializeSearchText(trade) {
@@ -38,11 +46,11 @@
       trade.proposer?.email,
       trade.recipient?.username,
       trade.recipient?.email,
-      trade.offeredPokemon?.resourceName,
+      ...(trade.offeredPokemons || []).map((rp) => rp.resourceName),
       trade.receivedPokemon?.resourceName,
-      trade.offeredPokemon?.resourceType,
+      ...(trade.offeredPokemons || []).map((rp) => rp.resourceType),
       trade.receivedPokemon?.resourceType,
-      trade.offeredPokemon?.resourceId,
+      ...(trade.offeredPokemons || []).map((rp) => rp.resourceId),
       trade.receivedPokemon?.resourceId,
       ...(trade.requestedPokemons || []).map((rp) => rp.resourceName),
       ...(trade.requestedPokemons || []).map((rp) => rp.resourceId),
@@ -93,9 +101,8 @@
           ? `${trade.recipient.username} (XP ${trade.recipient.xp})`
           : "En attente d'un joueur";
 
-        const requestedLabel = (trade.requestedPokemons || []).length > 0
-          ? (trade.requestedPokemons || []).map((rp) => escapeHtml(resourceLabel(rp))).join("<br>")
-          : "-";
+        const offeredLabel = resourcesLabel(trade.offeredPokemons || []);
+        const requestedLabel = resourcesLabel(trade.requestedPokemons || []);
 
         return `
           <tr>
@@ -108,7 +115,7 @@
               ${escapeHtml(proposerLabel)}
               <div class="bo-meta">${escapeHtml(trade.proposer?.id || trade.proposerId)}</div>
             </td>
-            <td>${escapeHtml(resourceLabel(trade.offeredPokemon))}</td>
+            <td>${offeredLabel}</td>
             <td>${requestedLabel}</td>
             <td>
               ${escapeHtml(recipientLabel)}

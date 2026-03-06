@@ -31,45 +31,22 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import fr.pokenity.data.model.InventoryItem
 import fr.pokenity.data.model.Trade
 import fr.pokenity.data.model.TradeStatus
-import fr.pokenity.data.model.TradePokemon
 
 @Composable
 fun OpenTradesScreen(
     uiState: SocialUiState,
     onAcceptTrade: (tradeId: String) -> Unit,
-    onSelectInventoryItemForAccept: (tradeId: String, inventoryItem: InventoryItem) -> Unit,
     onDismissAcceptDialog: () -> Unit,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Inventory picker dialog for accepting a trade
-    val acceptingTradeId = uiState.acceptingTradeId
-    if (acceptingTradeId != null) {
-        // Find the trade being accepted to filter inventory by requestedPokemons
-        val acceptingTrade = uiState.openTrades.find { it.id == acceptingTradeId }
-        val requestedIds = acceptingTrade?.requestedPokemons?.map { it.resourceId }?.toSet()
-
-        // Filter inventory: only show items whose resourceId matches a requested Pokemon
-        val filteredInventory = if (requestedIds != null && requestedIds.isNotEmpty()) {
-            uiState.myInventory.filter { it.resourceId in requestedIds }
-        } else {
-            uiState.myInventory
-        }
-
-        AcceptTradeDialog(
-            requestedPokemons = acceptingTrade?.requestedPokemons ?: emptyList(),
-            inventory = filteredInventory,
-            isLoading = uiState.isLoading && uiState.myInventory.isEmpty(),
-            hasNoMatchingPokemon = requestedIds != null && requestedIds.isNotEmpty() && filteredInventory.isEmpty() && uiState.myInventory.isNotEmpty(),
-            onItemSelected = { item -> onSelectInventoryItemForAccept(acceptingTradeId, item) },
-            onDismiss = onDismissAcceptDialog
-        )
+    if (uiState.acceptingTradeId != null) {
+        onDismissAcceptDialog()
     }
 
-    if (uiState.isLoading && uiState.openTrades.isEmpty() && acceptingTradeId == null) {
+    if (uiState.isLoading && uiState.openTrades.isEmpty()) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
@@ -147,19 +124,31 @@ fun TradeCard(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Offered pokemon
-                val offered = trade.offeredPokemon
+                val offeredList = if (trade.offeredPokemons.isNotEmpty()) trade.offeredPokemons else listOfNotNull(trade.offeredPokemon)
+
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    if (offered != null) {
-                        AsyncImage(
-                            model = offered.imageUrl,
-                            contentDescription = offered.resourceName,
-                            modifier = Modifier.size(64.dp)
-                        )
-                        Text(
-                            text = offered.resourceName,
-                            style = MaterialTheme.typography.bodySmall
-                        )
+                    if (offeredList.isNotEmpty()) {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(offeredList, key = { "${it.resourceId}-${it.isShiny}" }) { offered ->
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    AsyncImage(
+                                        model = offered.imageUrl,
+                                        contentDescription = offered.resourceName,
+                                        modifier = Modifier.size(56.dp)
+                                    )
+                                    Text(
+                                        text = buildString {
+                                            append(offered.resourceName)
+                                            if (offered.isShiny) append(" ✨")
+                                            append(" x")
+                                            append(offered.quantity)
+                                        },
+                                        style = MaterialTheme.typography.labelSmall,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
                     } else {
                         Text("?", style = MaterialTheme.typography.headlineMedium)
                     }
@@ -176,58 +165,37 @@ fun TradeCard(
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
 
-                // Received pokemon (if trade accepted/confirmed)
-                val received = trade.receivedPokemon
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    if (received != null) {
-                        AsyncImage(
-                            model = received.imageUrl,
-                            contentDescription = received.resourceName,
-                            modifier = Modifier.size(64.dp)
-                        )
-                        Text(
-                            text = received.resourceName,
-                            style = MaterialTheme.typography.bodySmall
-                        )
+                    if (trade.requestedPokemons.isNotEmpty()) {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(trade.requestedPokemons, key = { "${it.resourceId}-${it.isShiny}" }) { requested ->
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    AsyncImage(
+                                        model = requested.imageUrl,
+                                        contentDescription = requested.resourceName,
+                                        modifier = Modifier.size(56.dp)
+                                    )
+                                    Text(
+                                        text = buildString {
+                                            append(requested.resourceName)
+                                            if (requested.isShiny) append(" ✨")
+                                            append(" x")
+                                            append(requested.quantity)
+                                        },
+                                        style = MaterialTheme.typography.labelSmall,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
                     } else {
                         Text("?", style = MaterialTheme.typography.headlineMedium)
                     }
                     Text(
-                        text = "Recu",
+                        text = "Demande",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                }
-            }
-
-            // Show requested Pokemon wishlist
-            if (trade.requestedPokemons.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Pokemon souhaites :",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    trade.requestedPokemons.forEach { pokemon ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            AsyncImage(
-                                model = pokemon.imageUrl,
-                                contentDescription = pokemon.resourceName,
-                                modifier = Modifier.size(28.dp)
-                            )
-                            Spacer(modifier = Modifier.width(2.dp))
-                            Text(
-                                text = pokemon.resourceName,
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        }
-                    }
                 }
             }
 
@@ -261,123 +229,5 @@ fun TradeStatusBadge(status: TradeStatus, modifier: Modifier = Modifier) {
         style = MaterialTheme.typography.labelSmall,
         color = color,
         modifier = modifier
-    )
-}
-
-@Composable
-private fun AcceptTradeDialog(
-    inventory: List<InventoryItem>,
-    isLoading: Boolean,
-    hasNoMatchingPokemon: Boolean,
-    onItemSelected: (InventoryItem) -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Choisir un Pokemon a offrir") },
-        text = {
-            Column {
-                // Requested pokemons section
-                if (requestedPokemons.isNotEmpty()) {
-                    Text(
-                        text = "Pokemons souhaites par le proposant :",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(requestedPokemons, key = { it.resourceId }) { pokemon ->
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                AsyncImage(
-                                    model = pokemon.imageUrl,
-                                    contentDescription = pokemon.resourceName,
-                                    modifier = Modifier.size(40.dp)
-                                )
-                                Text(
-                                    text = pokemon.resourceName,
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "Vos Pokemons correspondants :",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                }
-
-                if (isLoading) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(120.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
-                } else if (hasNoMatchingPokemon) {
-                    Text(
-                        text = "Vous ne possedez aucun Pokemon souhaite.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                } else if (inventory.isEmpty()) {
-                    Text(
-                        text = "Votre inventaire est vide.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(220.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(inventory, key = { it.id }) { item ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { onItemSelected(item) }
-                                    .padding(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                AsyncImage(
-                                    model = item.imageUrl,
-                                    contentDescription = item.resourceName,
-                                    modifier = Modifier.size(48.dp)
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column {
-                                    Text(
-                                        text = item.resourceName,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = "x${item.quantity}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Annuler")
-            }
-        }
     )
 }
