@@ -347,6 +347,7 @@ class MainActivity : ComponentActivity() {
                                         MainDestination.SOCIAL -> {
                                             SocialScreen(
                                                 uiState = socialUiState,
+                                                pokedexUiState = pokedexUiState,
                                                 onSelectTab = socialViewModel::selectTab,
                                                 onAcceptTrade = socialViewModel::showAcceptDialog,
                                                 onAcceptTradeWithItem = socialViewModel::acceptTrade,
@@ -356,12 +357,28 @@ class MainActivity : ComponentActivity() {
                                                 onDeclineTrade = socialViewModel::declineTrade,
                                                 onRefreshMyTrades = socialViewModel::loadMyTrades,
                                                 onSelectInventoryItem = socialViewModel::selectInventoryItem,
-                                                onPokemonSearchQueryChange = socialViewModel::updatePokemonSearchQuery,
                                                 onAddRequestedPokemon = socialViewModel::addRequestedPokemon,
-                                                onRemoveRequestedPokemon = socialViewModel::removeRequestedPokemon,
+                                                onRemoveRequestedPokemonAt = socialViewModel::removeRequestedPokemonAt,
+                                                onOpenInventorySelector = socialViewModel::openInventorySelector,
+                                                onCloseInventorySelector = socialViewModel::closeInventorySelector,
+                                                onOpenPokedexSelector = socialViewModel::openPokedexSelector,
+                                                onClosePokedexSelector = socialViewModel::closePokedexSelector,
                                                 onCreateTrade = socialViewModel::createTrade,
                                                 onRefreshOpenTrades = socialViewModel::loadOpenTrades,
                                                 onClearMessages = socialViewModel::clearMessages,
+                                                onFilterCategorySelected = pokedexViewModel::onFilterCategorySelected,
+                                                onTypeClicked = pokedexViewModel::onTypeClicked,
+                                                onGenerationClicked = pokedexViewModel::onGenerationClicked,
+                                                onAbilityClicked = pokedexViewModel::onAbilityClicked,
+                                                onHabitatClicked = pokedexViewModel::onHabitatClicked,
+                                                onRegionClicked = pokedexViewModel::onRegionClicked,
+                                                onShapeClicked = pokedexViewModel::onShapeClicked,
+                                                onClearTypeFilter = pokedexViewModel::clearTypeFilter,
+                                                onClearGenerationFilter = pokedexViewModel::clearGenerationFilter,
+                                                onClearAbilityFilter = pokedexViewModel::clearAbilityFilter,
+                                                onClearHabitatFilter = pokedexViewModel::clearHabitatFilter,
+                                                onClearRegionFilter = pokedexViewModel::clearRegionFilter,
+                                                onClearShapeFilter = pokedexViewModel::clearShapeFilter,
                                                 modifier = Modifier.padding(innerPadding)
                                             )
                                         }

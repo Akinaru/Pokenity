@@ -338,7 +338,7 @@ fun PokedexScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FiltersSection(
+fun FiltersSection(
     uiState: PokedexUiState,
     typeExpanded: Boolean,
     onTypeExpandedChange: (Boolean) -> Unit,
@@ -449,7 +449,7 @@ private fun FiltersSection(
 }
 
 @Composable
-private fun FilterSelect(
+fun FilterSelect(
     label: String,
     selected: String?,
     options: List<PokemonFilterOption>,
@@ -497,7 +497,7 @@ private fun FilterSelect(
 }
 
 @Composable
-private fun ActiveFilterBar(
+fun ActiveFilterBar(
     uiState: PokedexUiState,
     onClearTypeFilter: () -> Unit,
     onClearGenerationFilter: () -> Unit,

@@ -21,12 +21,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import fr.pokenity.data.model.InventoryItem
+import fr.pokenity.data.model.PokemonFilterOption
 import fr.pokenity.data.model.PokemonSummary
-import fr.pokenity.data.model.TradePokemon
+import fr.pokenity.pokenity.presentation.pokedex.PokedexSection
+import fr.pokenity.pokenity.presentation.pokedex.PokedexUiState
 
 @Composable
 fun SocialScreen(
     uiState: SocialUiState,
+    pokedexUiState: PokedexUiState,
     onSelectTab: (SocialTab) -> Unit,
     onAcceptTrade: (tradeId: String) -> Unit,
     onAcceptTradeWithItem: (tradeId: String, inventoryItemId: String) -> Unit,
@@ -36,12 +39,29 @@ fun SocialScreen(
     onDeclineTrade: (tradeId: String) -> Unit,
     onRefreshMyTrades: () -> Unit,
     onSelectInventoryItem: (InventoryItem?) -> Unit,
-    onPokemonSearchQueryChange: (String) -> Unit,
     onAddRequestedPokemon: (PokemonSummary) -> Unit,
-    onRemoveRequestedPokemon: (TradePokemon) -> Unit,
+    onRemoveRequestedPokemonAt: (Int) -> Unit,
+    onOpenInventorySelector: () -> Unit,
+    onCloseInventorySelector: () -> Unit,
+    onOpenPokedexSelector: () -> Unit,
+    onClosePokedexSelector: () -> Unit,
     onCreateTrade: () -> Unit,
     onRefreshOpenTrades: () -> Unit,
     onClearMessages: () -> Unit,
+    // Pokedex filter callbacks
+    onFilterCategorySelected: (PokedexSection) -> Unit,
+    onTypeClicked: (PokemonFilterOption) -> Unit,
+    onGenerationClicked: (PokemonFilterOption) -> Unit,
+    onAbilityClicked: (PokemonFilterOption) -> Unit,
+    onHabitatClicked: (PokemonFilterOption) -> Unit,
+    onRegionClicked: (PokemonFilterOption) -> Unit,
+    onShapeClicked: (PokemonFilterOption) -> Unit,
+    onClearTypeFilter: () -> Unit,
+    onClearGenerationFilter: () -> Unit,
+    onClearAbilityFilter: () -> Unit,
+    onClearHabitatFilter: () -> Unit,
+    onClearRegionFilter: () -> Unit,
+    onClearShapeFilter: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -128,11 +148,28 @@ fun SocialScreen(
             SocialTab.PROPOSE_TRADE -> {
                 ProposeTradeScreen(
                     uiState = uiState,
+                    pokedexUiState = pokedexUiState,
                     onSelectInventoryItem = onSelectInventoryItem,
-                    onPokemonSearchQueryChange = onPokemonSearchQueryChange,
                     onAddRequestedPokemon = onAddRequestedPokemon,
-                    onRemoveRequestedPokemon = onRemoveRequestedPokemon,
-                    onCreateTrade = onCreateTrade
+                    onRemoveRequestedPokemonAt = onRemoveRequestedPokemonAt,
+                    onOpenInventorySelector = onOpenInventorySelector,
+                    onCloseInventorySelector = onCloseInventorySelector,
+                    onOpenPokedexSelector = onOpenPokedexSelector,
+                    onClosePokedexSelector = onClosePokedexSelector,
+                    onCreateTrade = onCreateTrade,
+                    onFilterCategorySelected = onFilterCategorySelected,
+                    onTypeClicked = onTypeClicked,
+                    onGenerationClicked = onGenerationClicked,
+                    onAbilityClicked = onAbilityClicked,
+                    onHabitatClicked = onHabitatClicked,
+                    onRegionClicked = onRegionClicked,
+                    onShapeClicked = onShapeClicked,
+                    onClearTypeFilter = onClearTypeFilter,
+                    onClearGenerationFilter = onClearGenerationFilter,
+                    onClearAbilityFilter = onClearAbilityFilter,
+                    onClearHabitatFilter = onClearHabitatFilter,
+                    onClearRegionFilter = onClearRegionFilter,
+                    onClearShapeFilter = onClearShapeFilter
                 )
             }
 

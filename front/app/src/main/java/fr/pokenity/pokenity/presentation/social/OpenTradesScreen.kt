@@ -4,8 +4,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -35,6 +34,7 @@ import coil.compose.AsyncImage
 import fr.pokenity.data.model.InventoryItem
 import fr.pokenity.data.model.Trade
 import fr.pokenity.data.model.TradeStatus
+import fr.pokenity.data.model.TradePokemon
 
 @Composable
 fun OpenTradesScreen(
@@ -60,6 +60,7 @@ fun OpenTradesScreen(
         }
 
         AcceptTradeDialog(
+            requestedPokemons = acceptingTrade?.requestedPokemons ?: emptyList(),
             inventory = filteredInventory,
             isLoading = uiState.isLoading && uiState.myInventory.isEmpty(),
             hasNoMatchingPokemon = requestedIds != null && requestedIds.isNotEmpty() && filteredInventory.isEmpty() && uiState.myInventory.isNotEmpty(),
@@ -110,7 +111,6 @@ fun OpenTradesScreen(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TradeCard(
     trade: Trade,
@@ -157,7 +157,7 @@ fun TradeCard(
                             modifier = Modifier.size(64.dp)
                         )
                         Text(
-                            text = if (offered.isShiny) "${offered.resourceName} ✨" else offered.resourceName,
+                            text = offered.resourceName,
                             style = MaterialTheme.typography.bodySmall
                         )
                     } else {
@@ -186,7 +186,7 @@ fun TradeCard(
                             modifier = Modifier.size(64.dp)
                         )
                         Text(
-                            text = if (received.isShiny) "${received.resourceName} ✨" else received.resourceName,
+                            text = received.resourceName,
                             style = MaterialTheme.typography.bodySmall
                         )
                     } else {
@@ -276,61 +276,97 @@ private fun AcceptTradeDialog(
         onDismissRequest = onDismiss,
         title = { Text("Choisir un Pokemon a offrir") },
         text = {
-            if (isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
+            Column {
+                // Requested pokemons section
+                if (requestedPokemons.isNotEmpty()) {
+                    Text(
+                        text = "Pokemons souhaites par le proposant :",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(requestedPokemons, key = { it.resourceId }) { pokemon ->
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                AsyncImage(
+                                    model = pokemon.imageUrl,
+                                    contentDescription = pokemon.resourceName,
+                                    modifier = Modifier.size(40.dp)
+                                )
+                                Text(
+                                    text = pokemon.resourceName,
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "Vos Pokemons correspondants :",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
                 }
-            } else if (hasNoMatchingPokemon) {
-                Text(
-                    text = "Vous ne possedez aucun des Pokemon souhaites.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            } else if (inventory.isEmpty()) {
-                Text(
-                    text = "Votre inventaire est vide.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(300.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(inventory, key = { it.id }) { item ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onItemSelected(item) }
-                                .padding(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            AsyncImage(
-                                model = item.imageUrl,
-                                contentDescription = item.resourceName,
-                                modifier = Modifier.size(48.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text(
-                                    text = if (item.isShiny) "${item.resourceName} ✨" else item.resourceName,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold
+
+                if (isLoading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                } else if (hasNoMatchingPokemon) {
+                    Text(
+                        text = "Vous ne possedez aucun Pokemon souhaite.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else if (inventory.isEmpty()) {
+                    Text(
+                        text = "Votre inventaire est vide.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(220.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(inventory, key = { it.id }) { item ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onItemSelected(item) }
+                                    .padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                AsyncImage(
+                                    model = item.imageUrl,
+                                    contentDescription = item.resourceName,
+                                    modifier = Modifier.size(48.dp)
                                 )
-                                Text(
-                                    text = "x${item.quantity}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = item.resourceName,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = "x${item.quantity}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
                     }
