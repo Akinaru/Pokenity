@@ -25,17 +25,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.Image
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import fr.pokenity.pokenity.ui.components.PrimaryButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
@@ -43,7 +42,6 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -62,6 +60,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -79,6 +78,7 @@ import fr.pokenity.data.model.PokemonDetail
 import fr.pokenity.data.model.PokemonMove
 import fr.pokenity.data.model.PokemonStat
 import fr.pokenity.data.model.PokemonType
+import fr.pokenity.pokenity.R
 import fr.pokenity.pokenity.ui.components.PokemonSpriteImage
 import fr.pokenity.pokenity.ui.components.TypeSpriteImage
 
@@ -128,7 +128,6 @@ private enum class DetailTab(val label: String) {
     Evolutions("Evolutions")
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PokemonDetailScreen(
     uiState: PokemonDetailUiState,
@@ -176,16 +175,8 @@ fun PokemonDetailScreen(
             uiState.pokemon != null -> {
                 val pokemon = uiState.pokemon
                 val primaryTypeColor = TypeColors[pokemon.types.firstOrNull()?.name] ?: MaterialTheme.colorScheme.primary
+                val overlayColor = primaryTypeColor.copy(alpha = 0.34f)
 
-                var showBottomSheet by rememberSaveable(pokemon.id) { mutableStateOf(true) }
-                val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
-
-                // Ouvrir le sheet automatiquement a l'entree
-                LaunchedEffect(pokemon.id) {
-                    sheetState.show()
-                }
-
-                // Background : header plein ecran
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -205,42 +196,29 @@ fun PokemonDetailScreen(
                             )
                         }
                 ) {
-                    DetailHeader(
-                        pokemon = pokemon,
-                        isOwned = (ownedQuantities[pokemon.id] ?: 0) > 0,
-                        primaryTypeColor = primaryTypeColor,
-                        imageType = imageType,
-                        shinyEnabled = effectiveShiny,
-                        visualPreset = selectedPreset,
-                        canUseShiny = imageType.supportsShiny && selectedPreset.supportsShiny,
-                        onToggleShiny = { PokemonImageSettings.toggleShiny() },
-                        onPresetSelected = { preset -> visualPresetKey = preset.key },
-                        onBack = onBack
+                    Image(
+                        painter = painterResource(id = R.drawable.stats_background),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
                     )
-                }
-
-                // ModalBottomSheet
-                if (showBottomSheet) {
-                    ModalBottomSheet(
-                        onDismissRequest = {
-                            showBottomSheet = false
-                            onBack()
-                        },
-                        sheetState = sheetState,
-                        shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp),
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-                        dragHandle = {
-                            // Petit handle de drag
-                            Box(
-                                modifier = Modifier
-                                    .padding(vertical = 10.dp)
-                                    .width(40.dp)
-                                    .height(4.dp)
-                                    .clip(RoundedCornerShape(2.dp))
-                                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
-                            )
-                        }
-                    ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(overlayColor)
+                    )
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        DetailHeader(
+                            pokemon = pokemon,
+                            isOwned = (ownedQuantities[pokemon.id] ?: 0) > 0,
+                            imageType = imageType,
+                            shinyEnabled = effectiveShiny,
+                            visualPreset = selectedPreset,
+                            canUseShiny = imageType.supportsShiny && selectedPreset.supportsShiny,
+                            onToggleShiny = { PokemonImageSettings.toggleShiny() },
+                            onPresetSelected = { preset -> visualPresetKey = preset.key },
+                            onBack = onBack
+                        )
                         SheetTabContent(
                             pokemon = pokemon,
                             primaryTypeColor = primaryTypeColor,
@@ -249,7 +227,10 @@ fun PokemonDetailScreen(
                             ownedQuantities = ownedQuantities,
                             visualPreset = selectedPreset,
                             onOpenComparator = onOpenComparator,
-                            onPokemonClick = onPokemonClick
+                            onPokemonClick = onPokemonClick,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
                         )
                     }
                 }
@@ -264,7 +245,6 @@ fun PokemonDetailScreen(
 private fun DetailHeader(
     pokemon: PokemonDetail,
     isOwned: Boolean,
-    primaryTypeColor: Color,
     imageType: PokemonImageType,
     shinyEnabled: Boolean,
     visualPreset: PokemonVisualPreset,
@@ -278,15 +258,7 @@ private fun DetailHeader(
 
     Box(
         modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        primaryTypeColor,
-                        primaryTypeColor.copy(alpha = 0.6f)
-                    )
-                )
-            )
+            .fillMaxWidth()
     ) {
         // Back button
         IconButton(
@@ -315,8 +287,7 @@ private fun DetailHeader(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .align(Alignment.Center)
-                .padding(bottom = 60.dp),
+                .padding(top = statusBarPadding + 56.dp, bottom = 18.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
@@ -378,12 +349,13 @@ private fun SheetTabContent(
     ownedQuantities: Map<Int, Int>,
     visualPreset: PokemonVisualPreset,
     onOpenComparator: (Int) -> Unit,
-    onPokemonClick: (Int) -> Unit
+    onPokemonClick: (Int) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var selectedTab by rememberSaveable(pokemon.id) { mutableIntStateOf(0) }
     val tabs = DetailTab.entries
 
-    Column(modifier = Modifier.fillMaxWidth()) {
+    Column(modifier = modifier) {
         // Tab row
         TabRow(
             selectedTabIndex = selectedTab,
