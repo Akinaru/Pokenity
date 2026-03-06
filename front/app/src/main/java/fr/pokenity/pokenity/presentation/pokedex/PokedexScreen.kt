@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
@@ -27,12 +28,14 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import fr.pokenity.pokenity.ui.components.PrimaryButton
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -62,6 +65,11 @@ import fr.pokenity.data.core.PokemonImageType
 import fr.pokenity.data.model.PokemonFilterOption
 import fr.pokenity.data.model.PokemonSummary
 import fr.pokenity.pokenity.R
+import fr.pokenity.pokenity.presentation.auth.AuthAccentYellow
+import fr.pokenity.pokenity.presentation.auth.AuthBodyFontFamily
+import fr.pokenity.pokenity.presentation.auth.AuthInputBackground
+import fr.pokenity.pokenity.presentation.auth.AuthInputPlaceholder
+import fr.pokenity.pokenity.presentation.auth.AuthInputText
 import fr.pokenity.pokenity.ui.components.PokemonSpriteImage
 
 private enum class OwnershipFilter {
@@ -227,6 +235,21 @@ fun PokedexScreen(
                     }
 
                     item {
+                        val inputColors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = AuthInputText,
+                            unfocusedTextColor = AuthInputText,
+                            disabledTextColor = AuthInputText.copy(alpha = 0.7f),
+                            focusedContainerColor = AuthInputBackground,
+                            unfocusedContainerColor = AuthInputBackground,
+                            disabledContainerColor = AuthInputBackground.copy(alpha = 0.8f),
+                            cursorColor = AuthInputText,
+                            focusedBorderColor = AuthAccentYellow,
+                            unfocusedBorderColor = AuthInputBackground,
+                            disabledBorderColor = AuthInputBackground.copy(alpha = 0.8f),
+                            focusedLabelColor = AuthInputText,
+                            unfocusedLabelColor = AuthInputText,
+                            disabledLabelColor = AuthInputText
+                        )
                         OutlinedTextField(
                             value = query,
                             onValueChange = { query = it },
@@ -234,10 +257,27 @@ fun PokedexScreen(
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp)
                                 .padding(bottom = 12.dp),
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(0.dp),
                             singleLine = true,
-                            label = { Text("Recherche") },
-                            placeholder = { Text("Nom ou numero") }
+                            label = {
+                                Text(
+                                    text = "Recherche",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthBodyFontFamily),
+                                    color = AuthInputText,
+                                    modifier = Modifier
+                                        .background(AuthInputBackground)
+                                        .padding(horizontal = 4.dp)
+                                )
+                            },
+                            placeholder = {
+                                Text(
+                                    text = "Nom ou numero",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontFamily = AuthBodyFontFamily),
+                                    color = AuthInputPlaceholder
+                                )
+                            },
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthBodyFontFamily),
+                            colors = inputColors
                         )
                     }
 
@@ -503,20 +543,41 @@ private fun FilterSelect(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Text(text = label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge.copy(fontFamily = AuthBodyFontFamily),
+            fontWeight = FontWeight.SemiBold
+        )
         Box(modifier = Modifier.fillMaxWidth()) {
             OutlinedButton(
                 onClick = { onExpandedChange(true) },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(0.dp),
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = if (selected != null) AuthAccentYellow else AuthInputBackground
+                ),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = AuthInputBackground,
+                    contentColor = AuthInputText
+                )
             ) {
-                Text(selected ?: "Tous")
+                Text(
+                    text = selected ?: "Tous",
+                    style = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthBodyFontFamily)
+                )
             }
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { onExpandedChange(false) }
             ) {
                 DropdownMenuItem(
-                    text = { Text("Tous") },
+                    text = {
+                        Text(
+                            text = "Tous",
+                            style = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthBodyFontFamily)
+                        )
+                    },
                     onClick = {
                         onClear()
                         onExpandedChange(false)
@@ -524,7 +585,12 @@ private fun FilterSelect(
                 )
                 options.forEach { option ->
                     DropdownMenuItem(
-                        text = { Text(option.label) },
+                        text = {
+                            Text(
+                                text = option.label,
+                                style = MaterialTheme.typography.bodyLarge.copy(fontFamily = AuthBodyFontFamily)
+                            )
+                        },
                         onClick = {
                             onSelected(option)
                             onExpandedChange(false)
@@ -640,6 +706,7 @@ private fun ClosetPokemonRow(
         val size = backgroundPainter.intrinsicSize
         if (size.isSpecified && size.height > 0f) size.width / size.height else 1f
     }
+    val spriteYOffset = if (backgroundRes == R.drawable.closet_top) 36.dp else 4.dp
 
     BoxWithConstraints(
         modifier = Modifier
@@ -692,7 +759,9 @@ private fun ClosetPokemonRow(
                                     shiny = shinyEnabled,
                                     colorFilter = if (owned) null else ColorFilter.tint(Color.Black, BlendMode.SrcIn),
                                     contentScale = ContentScale.Fit,
-                                    modifier = Modifier.size(76.dp)
+                                    modifier = Modifier
+                                        .size(76.dp)
+                                        .offset(y = spriteYOffset)
                                 )
 
                                 if (quantity > 1) {
