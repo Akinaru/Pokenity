@@ -12,6 +12,7 @@ const pokemonRoutes = require("./routes/pokemonRoutes");
 const tradeRoutes = require("./routes/tradeRoutes");
 const userManagementRoutes = require("./routes/userManagementRoutes");
 const characterRoutes = require("./routes/characterRoutes");
+const configurationRoutes = require("./routes/configurationRoutes");
 
 const app = express();
 
@@ -50,6 +51,7 @@ app.use("/api/pokemon", pokemonRoutes);
 app.use("/api/trades", tradeRoutes);
 app.use("/api/users", userManagementRoutes);
 app.use("/api/characters", characterRoutes);
+app.use("/api/configurations", configurationRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: "Route not found." });
