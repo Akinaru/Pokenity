@@ -108,6 +108,9 @@ fun BoxDetailScreen(
             val pageBackgroundResId = remember {
                 context.resources.getIdentifier("draw_background", "drawable", context.packageName)
             }
+            val boxButtonBackgroundResId = remember {
+                context.resources.getIdentifier("card_box", "drawable", context.packageName)
+            }
 
             Box(
                 modifier = modifier.fillMaxSize()
@@ -141,29 +144,53 @@ fun BoxDetailScreen(
                                     onClick = onOpenBox
                                 ),
                             shape = RoundedCornerShape(18.dp),
-                            tonalElevation = 2.dp
+                            color = Color.Transparent,
+                            tonalElevation = 0.dp
                         ) {
-                            Column(
+                            Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(16.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    .clip(RoundedCornerShape(18.dp))
                             ) {
-                                AsyncImage(
-                                    model = box.pokeballImage,
-                                    contentDescription = box.name,
-                                    modifier = Modifier.size(96.dp)
-                                )
-                                Text(
-                                    text = box.name,
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "${box.entries.size} pokemons dans la box",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
+                                if (boxButtonBackgroundResId != 0) {
+                                    Image(
+                                        painter = painterResource(id = boxButtonBackgroundResId),
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(Color(0xFF1A2A44))
+                                    )
+                                }
+
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    AsyncImage(
+                                        model = box.pokeballImage,
+                                        contentDescription = box.name,
+                                        modifier = Modifier.size(96.dp)
+                                    )
+                                    Text(
+                                        text = box.name,
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                    Text(
+                                        text = "${box.entries.size} pokemons dans la box",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = Color.White
+                                    )
+                                }
                             }
                         }
                     }
