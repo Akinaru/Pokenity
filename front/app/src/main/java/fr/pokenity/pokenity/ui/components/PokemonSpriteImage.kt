@@ -9,6 +9,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import coil.ImageLoader
@@ -28,7 +29,8 @@ fun PokemonSpriteImage(
     visualPreset: PokemonVisualPreset? = null,
     colorFilter: ColorFilter? = null,
     modifier: Modifier = Modifier,
-    contentScale: ContentScale = ContentScale.Fit
+    contentScale: ContentScale = ContentScale.Fit,
+    filterQuality: FilterQuality = FilterQuality.Low
 ) {
     val context = LocalContext.current
     val imageLoader = remember(context) {
@@ -58,6 +60,7 @@ fun PokemonSpriteImage(
         contentDescription = contentDescription,
         colorFilter = colorFilter,
         contentScale = contentScale,
+        filterQuality = filterQuality,
         modifier = modifier,
         onError = {
             if (candidateIndex < candidates.lastIndex) {

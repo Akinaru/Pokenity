@@ -10,6 +10,7 @@ import fr.pokenity.data.model.BoxOpenReward
 import fr.pokenity.data.model.BoxOpenUser
 import fr.pokenity.data.model.LootBox
 import fr.pokenity.data.model.LootBoxEntry
+import fr.pokenity.data.model.LootBoxStats
 import fr.pokenity.data.remote.box.BoxApiService
 import fr.pokenity.data.remote.box.BoxDto
 import fr.pokenity.data.remote.box.BoxEntryDto
@@ -29,7 +30,8 @@ class BoxRepositoryImpl internal constructor(
     }
 
     override suspend fun getBoxById(boxId: String): LootBox {
-        return boxApiService.getBoxById(boxId).toDomain()
+        val token = AuthSessionState.token.value
+        return boxApiService.getBoxById(boxId = boxId, token = token).toDomain()
     }
 
     override suspend fun openBox(boxId: String): BoxOpenResult {
@@ -43,6 +45,10 @@ class BoxRepositoryImpl internal constructor(
             name = name,
             pokeballImage = pokeballImage,
             totalDropRate = totalDropRate ?: 0.0,
+            stats = LootBoxStats(
+                totalOpenings = stats?.totalOpenings ?: 0,
+                myOpenings = stats?.myOpenings ?: 0
+            ),
             createdAt = createdAt,
             updatedAt = updatedAt,
             entries = (entries ?: emptyList()).map { it.toDomain() }

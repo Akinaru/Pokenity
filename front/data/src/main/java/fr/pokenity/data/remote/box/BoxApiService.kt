@@ -16,8 +16,11 @@ internal class BoxApiService(
         return response.body()?.boxes ?: emptyList()
     }
 
-    suspend fun getBoxById(boxId: String): BoxDto {
-        val response = api.getBoxById(boxId)
+    suspend fun getBoxById(boxId: String, token: String? = null): BoxDto {
+        val response = api.getBoxById(
+            authorization = token?.let { "Bearer $it" },
+            boxId = boxId
+        )
         if (!response.isSuccessful) {
             val errorBody = response.errorBody()?.string() ?: ""
             throw IllegalStateException(parseApiError(errorBody, "Erreur API (${response.code()})"))

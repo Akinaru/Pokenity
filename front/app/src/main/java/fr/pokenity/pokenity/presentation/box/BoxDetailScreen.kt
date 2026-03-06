@@ -27,11 +27,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -44,6 +43,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,14 +59,23 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import fr.pokenity.data.core.PokemonImageType
+import fr.pokenity.data.core.PokemonVisualPresets
 import fr.pokenity.pokenity.R
+import fr.pokenity.pokenity.ui.components.PrimaryButton
 import fr.pokenity.pokenity.ui.components.PokemonSpriteImage
 import kotlinx.coroutines.delay
 import java.util.Locale
 import kotlin.math.pow
 import kotlin.math.roundToLong
+import kotlin.math.roundToInt
+
+private val BOX_PIXEL_PRESET =
+    PokemonVisualPresets.firstOrNull { it.key == "gen-v-black-white" }
 
 @Composable
 fun BoxDetailScreen(
@@ -130,11 +139,7 @@ fun BoxDetailScreen(
                         val canOpenBox = !uiState.isOpening && !uiState.isSpinning && uiState.orderedEntries.isNotEmpty()
                         Surface(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable(
-                                    enabled = canOpenBox,
-                                    onClick = onOpenBox
-                                ),
+                                .fillMaxWidth(),
                             shape = RoundedCornerShape(18.dp),
                             color = Color.Transparent,
                             tonalElevation = 0.dp
@@ -185,14 +190,34 @@ fun BoxDetailScreen(
                                         color = Color.Black
                                     )
                                     Text(
-                                        text = "Touchez cette carte pour ouvrir la box",
-                                        style = MaterialTheme.typography.labelLarge,
+                                        text = "Ouvertures totales: ${box.stats.totalOpenings}  •  Mes ouvertures: ${box.stats.myOpenings}",
+                                        style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.SemiBold,
                                         color = Color.Black.copy(alpha = 0.88f),
                                         textAlign = TextAlign.Center,
                                         modifier = Modifier.fillMaxWidth()
                                     )
                                 }
+                            }
+                        }
+                    }
+                    item {
+                        val canOpenBox = !uiState.isOpening && !uiState.isSpinning && uiState.orderedEntries.isNotEmpty()
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            PrimaryButton(
+                                onClick = onOpenBox,
+                                enabled = canOpenBox,
+                                modifier = Modifier.fillMaxWidth(0.72f),
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Text(
+                                    text = "Ouvrir la box",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
                     }
@@ -235,67 +260,163 @@ fun BoxDetailScreen(
 
             val reward = uiState.pendingReward
             if (uiState.showRewardDialog && reward != null) {
-                AlertDialog(
-                    onDismissRequest = onDismissRewardDialog,
-                    title = {
-                        Text(
-                            text = if (uiState.isNewPokemonReward) {
-                                "NOUVEAU POKEMON !"
+                RewardResultDialog(
+                    reward = reward,
+                    isNewPokemonReward = uiState.isNewPokemonReward,
+                    onDismiss = onDismissRewardDialog
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RewardResultDialog(
+    reward: BoxPokemonUi,
+    isNewPokemonReward: Boolean,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val cardBackgroundResId = remember {
+        context.resources.getIdentifier("card_big_box", "drawable", context.packageName)
+    }
+    val shinyBadgeResId = remember {
+        val preferred = context.resources.getIdentifier("badge_shiny", "drawable", context.packageName)
+        if (preferred != 0) preferred
+        else context.resources.getIdentifier("shiny", "drawable", context.packageName)
+    }
+    val modalOffsetY = remember { Animatable(0f) }
+    var isClosing by remember { mutableStateOf(false) }
+    val dismissTravel = configuration.screenHeightDp.dp.value * 3f
+
+    LaunchedEffect(isClosing, dismissTravel) {
+        if (!isClosing) return@LaunchedEffect
+        modalOffsetY.animateTo(
+            targetValue = dismissTravel,
+            animationSpec = tween(durationMillis = 320, easing = FastOutSlowInEasing)
+        )
+        onDismiss()
+    }
+
+    Dialog(
+        onDismissRequest = {
+            if (!isClosing) {
+                isClosing = true
+            }
+        },
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .offset { IntOffset(0, modalOffsetY.value.roundToInt()) }
+        ) {
+            if (cardBackgroundResId != 0) {
+                Image(
+                    painter = painterResource(id = cardBackgroundResId),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFF1D2A3B))
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 22.dp, vertical = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Top
+            ) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        modifier = Modifier.offset(y = -4.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        if (reward.isShiny) {
+                            if (shinyBadgeResId != 0) {
+                                Image(
+                                    painter = painterResource(id = shinyBadgeResId),
+                                    contentDescription = "Badge shiny",
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.42f)
+                                        .height(34.dp)
+                                )
                             } else {
-                                "Pokemon gagne"
-                            },
-                            fontWeight = FontWeight.Bold
-                        )
-                    },
-                    text = {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            PokemonSpriteImage(
-                                pokemonId = reward.resourceId,
-                                contentDescription = reward.resourceName.prettyPokemonName(),
-                                imageType = PokemonImageType.SHOWDOWN,
-                                shiny = reward.isShiny,
-                                modifier = Modifier.size(124.dp)
-                            )
-                            if (uiState.isNewPokemonReward) {
-                                NewPokemonAnimatedBadge()
-                            }
-                            Text(
-                                text = reward.resourceName.prettyPokemonName(),
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            if (reward.isShiny) {
                                 Text(
-                                    text = "Version Shiny ✨",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFFFD54F),
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.fillMaxWidth()
+                                    text = "SHINY",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color.Black,
+                                    textAlign = TextAlign.Center
                                 )
                             }
-                            Text(
-                                text = if (uiState.isNewPokemonReward) {
-                                    "Premiere obtention, bien joue !"
-                                } else {
-                                    "Drop rate: ${"%.2f".format(reward.dropRate)}%"
-                                },
-                                style = MaterialTheme.typography.bodyMedium
-                            )
+                        }
+
+                        Text(
+                            text = if (isNewPokemonReward) "NOUVEAU" else "OBTENTION",
+                            style = MaterialTheme.typography.displaySmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.Black,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Text(
+                            text = reward.resourceName.prettyPokemonName(),
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            textAlign = TextAlign.Center,
+                            color = Color.Black,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        PokemonSpriteImage(
+                            pokemonId = reward.resourceId,
+                            contentDescription = reward.resourceName.prettyPokemonName(),
+                            imageType = PokemonImageType.OFFICIAL_ARTWORK,
+                            visualPreset = BOX_PIXEL_PRESET,
+                            shiny = reward.isShiny,
+                            filterQuality = FilterQuality.None,
+                            modifier = Modifier
+                                .fillMaxWidth(0.9f)
+                                .aspectRatio(1f)
+                        )
+
+                    }
+                }
+
+                PrimaryButton(
+                    onClick = {
+                        if (!isClosing) {
+                            isClosing = true
                         }
                     },
-                    confirmButton = {
-                        Button(onClick = onDismissRewardDialog) {
-                            Text("Fermer")
-                        }
-                    }
-                )
+                    enabled = !isClosing,
+                    modifier = Modifier.fillMaxWidth(0.72f),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Text(
+                        text = "Fermer",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
             }
         }
     }
@@ -381,8 +502,10 @@ private fun BoxClosetRow(
                                 PokemonSpriteImage(
                                     pokemonId = pokemon.resourceId,
                                     contentDescription = pokemon.resourceName.prettyPokemonName(),
-                                    imageType = PokemonImageType.SHOWDOWN,
+                                    imageType = PokemonImageType.OFFICIAL_ARTWORK,
+                                    visualPreset = BOX_PIXEL_PRESET,
                                     shiny = pokemon.isShiny,
+                                    filterQuality = FilterQuality.None,
                                     contentScale = ContentScale.Fit,
                                     modifier = Modifier
                                         .size(76.dp)
@@ -684,21 +807,15 @@ private fun RouletteItemTile(
             PokemonSpriteImage(
                 pokemonId = pokemon.resourceId,
                 contentDescription = pokemon.resourceName.prettyPokemonName(),
-                imageType = PokemonImageType.SHOWDOWN,
+                imageType = PokemonImageType.OFFICIAL_ARTWORK,
+                visualPreset = BOX_PIXEL_PRESET,
                 shiny = pokemon.isShiny,
+                filterQuality = FilterQuality.None,
                 modifier = Modifier
                     .align(Alignment.Center)
                     .size(imageSize),
                 contentScale = ContentScale.Fit
             )
-
-            if (pokemon.isShiny) {
-                ShinyBadge(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 4.dp)
-                )
-            }
         }
     }
 }
@@ -739,21 +856,15 @@ private fun BoxPokemonTile(
                 PokemonSpriteImage(
                     pokemonId = pokemon.resourceId,
                     contentDescription = pokemon.resourceName.prettyPokemonName(),
-                    imageType = PokemonImageType.SHOWDOWN,
+                    imageType = PokemonImageType.OFFICIAL_ARTWORK,
+                    visualPreset = BOX_PIXEL_PRESET,
                     shiny = pokemon.isShiny,
+                    filterQuality = FilterQuality.None,
                     modifier = Modifier
                         .align(Alignment.Center)
                         .size(maxWidth * 0.84f),
                     contentScale = ContentScale.Fit
                 )
-
-                if (pokemon.isShiny) {
-                    ShinyBadge(
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(top = 4.dp)
-                    )
-                }
             }
         }
 
@@ -804,24 +915,6 @@ private fun BoxPokemonTile(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun ShinyBadge(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(Color(0xFFFFD54F))
-            .padding(horizontal = 8.dp, vertical = 3.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "SHINY ✨",
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.ExtraBold,
-            color = Color(0xFF111111)
-        )
     }
 }
 
