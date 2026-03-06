@@ -48,6 +48,8 @@ data class SocialUiState(
 
     // Accept trade dialog
     val acceptingTradeId: String? = null,
+    val acceptDialogSelectedOffered: Set<String> = emptySet(), // keys: "resourceId:isShiny"
+    val acceptDialogGivenItems: Map<String, Int> = emptyMap(), // inventoryItemId → quantity to give
 
     // Incremented when a trade action changes inventory (accept/confirm),
     // observed by MainActivity to refresh AccountViewModel

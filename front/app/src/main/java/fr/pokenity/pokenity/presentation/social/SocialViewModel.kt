@@ -327,14 +327,34 @@ class SocialViewModel(
     }
 
     fun acceptTrade(tradeId: String) {
+        val state = _uiState.value
+        val trade = state.openTrades.find { it.id == tradeId } ?: return
+
+        val selectedOffered = trade.offeredPokemons.filter { pokemon ->
+            val key = "${pokemon.resourceId}:${pokemon.isShiny}"
+            state.acceptDialogSelectedOffered.contains(key)
+        }
+        val givenPokemons = state.acceptDialogGivenItems.map { (inventoryItemId, quantity) ->
+            TradeOfferSelection(inventoryItemId = inventoryItemId, quantity = quantity)
+        }
+
+        if (selectedOffered.isEmpty() || givenPokemons.isEmpty()) {
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "Veuillez selectionner au moins un pokemon a recevoir et un a donner."
+            )
+            return
+        }
+
         _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null, successMessage = null, acceptingTradeId = null)
         viewModelScope.launch(Dispatchers.IO) {
-            runCatching { acceptTradeUseCase(tradeId) }
+            runCatching { acceptTradeUseCase(tradeId, selectedOffered, givenPokemons) }
                 .onSuccess {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         successMessage = "Echange accepte. En attente de confirmation du proposant.",
-                        inventoryVersion = _uiState.value.inventoryVersion + 1
+                        inventoryVersion = _uiState.value.inventoryVersion + 1,
+                        acceptDialogSelectedOffered = emptySet(),
+                        acceptDialogGivenItems = emptyMap()
                     )
                     loadOpenTrades()
                     loadMyInventory()
@@ -411,14 +431,54 @@ class SocialViewModel(
     }
 
     fun showAcceptDialog(tradeId: String) {
-        _uiState.value = _uiState.value.copy(acceptingTradeId = tradeId)
+        val trade = _uiState.value.openTrades.find { it.id == tradeId }
+        val allOfferedKeys = trade?.offeredPokemons?.map { "${it.resourceId}:${it.isShiny}" }?.toSet() ?: emptySet()
+        _uiState.value = _uiState.value.copy(
+            acceptingTradeId = tradeId,
+            acceptDialogSelectedOffered = allOfferedKeys,
+            acceptDialogGivenItems = emptyMap()
+        )
         if (_uiState.value.myInventory.isEmpty()) {
             loadMyInventory()
         }
     }
 
     fun dismissAcceptDialog() {
-        _uiState.value = _uiState.value.copy(acceptingTradeId = null)
+        _uiState.value = _uiState.value.copy(
+            acceptingTradeId = null,
+            acceptDialogSelectedOffered = emptySet(),
+            acceptDialogGivenItems = emptyMap()
+        )
+    }
+
+    fun toggleOfferedSelection(key: String) {
+        val current = _uiState.value.acceptDialogSelectedOffered.toMutableSet()
+        if (current.contains(key)) {
+            if (current.size > 1) current.remove(key)
+        } else {
+            current.add(key)
+        }
+        _uiState.value = _uiState.value.copy(acceptDialogSelectedOffered = current)
+    }
+
+    fun toggleGivenItem(inventoryItemId: String, suggestedQty: Int) {
+        val current = _uiState.value.acceptDialogGivenItems.toMutableMap()
+        if (current.containsKey(inventoryItemId)) {
+            current.remove(inventoryItemId)
+        } else {
+            val inventoryItem = _uiState.value.myInventory.find { it.id == inventoryItemId }
+            val maxQty = inventoryItem?.quantity ?: suggestedQty
+            current[inventoryItemId] = suggestedQty.coerceIn(1, maxQty)
+        }
+        _uiState.value = _uiState.value.copy(acceptDialogGivenItems = current)
+    }
+
+    fun updateGivenQuantity(inventoryItemId: String, quantity: Int) {
+        val inventoryItem = _uiState.value.myInventory.find { it.id == inventoryItemId } ?: return
+        val bounded = quantity.coerceIn(1, inventoryItem.quantity)
+        val current = _uiState.value.acceptDialogGivenItems.toMutableMap()
+        current[inventoryItemId] = bounded
+        _uiState.value = _uiState.value.copy(acceptDialogGivenItems = current)
     }
 
     private fun loadMyInventory() {

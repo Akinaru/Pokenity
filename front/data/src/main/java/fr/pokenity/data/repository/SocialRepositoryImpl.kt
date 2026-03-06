@@ -10,6 +10,8 @@ import fr.pokenity.data.model.TradeStatus
 import fr.pokenity.data.model.UserProfile
 import fr.pokenity.data.remote.auth.AuthApiService
 import fr.pokenity.data.remote.auth.AcceptTradeRequestBody
+import fr.pokenity.data.remote.auth.GivenPokemonBody
+import fr.pokenity.data.remote.auth.SelectedOfferedBody
 import fr.pokenity.data.remote.auth.AuthCharacterDto
 import fr.pokenity.data.remote.auth.AuthUserDto
 import fr.pokenity.data.remote.auth.CreateTradeRequestBody
@@ -60,9 +62,23 @@ class SocialRepositoryImpl internal constructor(
         return authApiService.createTrade(token, body).toDomain()
     }
 
-    override suspend fun acceptTrade(tradeId: String): Trade {
+    override suspend fun acceptTrade(tradeId: String, selectedOffered: List<TradePokemon>, givenPokemons: List<TradeOfferSelection>): Trade {
         val token = requireToken()
-        val body = AcceptTradeRequestBody()
+        val body = AcceptTradeRequestBody(
+            selectedOffered = selectedOffered.map { pokemon ->
+                SelectedOfferedBody(
+                    resourceId = pokemon.resourceId,
+                    isShiny = pokemon.isShiny,
+                    quantity = pokemon.quantity
+                )
+            },
+            givenPokemons = givenPokemons.map { selection ->
+                GivenPokemonBody(
+                    inventoryItemId = selection.inventoryItemId,
+                    quantity = selection.quantity
+                )
+            }
+        )
         return authApiService.acceptTrade(token, tradeId, body).toDomain()
     }
 
