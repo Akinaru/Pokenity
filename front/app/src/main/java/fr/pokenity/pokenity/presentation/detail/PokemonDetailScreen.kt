@@ -2,6 +2,7 @@ package fr.pokenity.pokenity.presentation.detail
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -227,7 +228,7 @@ fun PokemonDetailScreen(
                         },
                         sheetState = sheetState,
                         shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp),
-                        containerColor = MaterialTheme.colorScheme.surface,
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
                         dragHandle = {
                             // Petit handle de drag
                             Box(
@@ -386,7 +387,7 @@ private fun SheetTabContent(
         // Tab row
         TabRow(
             selectedTabIndex = selectedTab,
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0f),
             contentColor = primaryTypeColor,
             indicator = { tabPositions ->
                 if (selectedTab < tabPositions.size) {
@@ -477,7 +478,10 @@ private fun AboutTabContent(
     // Height / Weight
     Surface(
         shape = RoundedCornerShape(20.dp),
-        tonalElevation = 2.dp,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.18f),
+        tonalElevation = 0.dp,
+        shadowElevation = 6.dp,
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.28f)),
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
@@ -660,7 +664,10 @@ private fun StatsSection(
         if (genderText.isNotBlank()) {
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                tonalElevation = 1.dp,
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.18f),
+                tonalElevation = 0.dp,
+                shadowElevation = 4.dp,
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.28f)),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 10.dp)
@@ -687,7 +694,10 @@ private fun StatsSection(
 
         Surface(
             shape = RoundedCornerShape(20.dp),
-            tonalElevation = 2.dp,
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.18f),
+            tonalElevation = 0.dp,
+            shadowElevation = 6.dp,
+            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.28f)),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
@@ -813,7 +823,10 @@ private fun EvolutionSection(
 
         Surface(
             shape = RoundedCornerShape(20.dp),
-            tonalElevation = 2.dp,
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.18f),
+            tonalElevation = 0.dp,
+            shadowElevation = 6.dp,
+            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.28f)),
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
@@ -940,7 +953,10 @@ private fun MoveCard(move: PokemonMove, visualPreset: PokemonVisualPreset) {
 
     Surface(
         shape = RoundedCornerShape(16.dp),
-        tonalElevation = 2.dp,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.18f),
+        tonalElevation = 0.dp,
+        shadowElevation = 6.dp,
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.28f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
@@ -1035,7 +1051,10 @@ private fun AbilitiesSection(abilities: List<PokemonAbility>) {
             abilities.forEach { ability ->
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    tonalElevation = 2.dp,
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.18f),
+                    tonalElevation = 0.dp,
+                    shadowElevation = 6.dp,
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.28f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
@@ -1092,7 +1111,10 @@ private fun GallerySection(
 
         Surface(
             shape = RoundedCornerShape(20.dp),
-            tonalElevation = 2.dp,
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.18f),
+            tonalElevation = 0.dp,
+            shadowElevation = 6.dp,
+            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.28f)),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
