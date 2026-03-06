@@ -3,6 +3,7 @@ package fr.pokenity.data.repository
 import fr.pokenity.data.core.AuthSessionState
 import fr.pokenity.data.model.AuthCharacter
 import fr.pokenity.data.model.InventoryItem
+import fr.pokenity.data.model.TradeOfferSelection
 import fr.pokenity.data.model.Trade
 import fr.pokenity.data.model.TradePokemon
 import fr.pokenity.data.model.TradeStatus
@@ -13,6 +14,7 @@ import fr.pokenity.data.remote.auth.AuthCharacterDto
 import fr.pokenity.data.remote.auth.AuthUserDto
 import fr.pokenity.data.remote.auth.CreateTradeRequestBody
 import fr.pokenity.data.remote.auth.InventoryItemDto
+import fr.pokenity.data.remote.auth.OfferedPokemonBody
 import fr.pokenity.data.remote.auth.RequestedPokemonBody
 import fr.pokenity.data.remote.auth.TradeDto
 import fr.pokenity.data.remote.auth.TradePokemonDto
@@ -37,23 +39,30 @@ class SocialRepositoryImpl internal constructor(
         return authApiService.getMyTrades(token).map { it.toDomain() }
     }
 
-    override suspend fun createTrade(offeredInventoryItemId: String, requestedPokemons: List<TradePokemon>): Trade {
+    override suspend fun createTrade(offeredPokemons: List<TradeOfferSelection>, requestedPokemons: List<TradePokemon>): Trade {
         val token = requireToken()
         val body = CreateTradeRequestBody(
-            offeredInventoryItemId = offeredInventoryItemId,
+            offeredPokemons = offeredPokemons.map { offered ->
+                OfferedPokemonBody(
+                    inventoryItemId = offered.inventoryItemId,
+                    quantity = offered.quantity
+                )
+            },
             requestedPokemons = requestedPokemons.map { rp ->
                 RequestedPokemonBody(
                     resourceId = rp.resourceId,
-                    resourceName = rp.resourceName
+                    resourceName = rp.resourceName,
+                    quantity = rp.quantity,
+                    isShiny = rp.isShiny
                 )
             }
         )
         return authApiService.createTrade(token, body).toDomain()
     }
 
-    override suspend fun acceptTrade(tradeId: String, offeredInventoryItemId: String): Trade {
+    override suspend fun acceptTrade(tradeId: String): Trade {
         val token = requireToken()
-        val body = AcceptTradeRequestBody(offeredInventoryItemId = offeredInventoryItemId)
+        val body = AcceptTradeRequestBody()
         return authApiService.acceptTrade(token, tradeId, body).toDomain()
     }
 
@@ -91,6 +100,7 @@ class SocialRepositoryImpl internal constructor(
             recipientId = recipientId,
             proposer = proposer?.toDomain(),
             recipient = recipient?.toDomain(),
+            offeredPokemons = offeredPokemons?.map { it.toDomain() } ?: emptyList(),
             offeredPokemon = offeredPokemon?.toDomain(),
             receivedPokemon = receivedPokemon?.toDomain(),
             requestedPokemons = requestedPokemons?.map { it.toDomain() } ?: emptyList(),
@@ -113,6 +123,7 @@ class SocialRepositoryImpl internal constructor(
             resourceId = resourceId ?: 0,
             resourceName = resourceName ?: "",
             isShiny = isShiny == true,
+            quantity = quantity ?: 1,
             imageUrl = pokemonSpriteUrl(resourceId, isShiny == true)
         )
     }

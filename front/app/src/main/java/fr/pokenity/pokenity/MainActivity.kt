@@ -351,6 +351,13 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             ) { innerPadding ->
+                                var mainBottomBarHeightPx by remember { mutableIntStateOf(0) }
+                                val density = LocalDensity.current
+                                val mainBottomBarHeight = if (mainBottomBarHeightPx > 0) {
+                                    with(density) { mainBottomBarHeightPx.toDp() }
+                                } else {
+                                    96.dp
+                                }
                                 Box(modifier = Modifier.fillMaxSize()) {
                                     when (selectedDestination) {
                                         MainDestination.SOCIAL -> {
@@ -358,15 +365,16 @@ class MainActivity : ComponentActivity() {
                                                 uiState = socialUiState,
                                                 pokedexUiState = pokedexUiState,
                                                 onSelectTab = socialViewModel::selectTab,
-                                                onAcceptTrade = socialViewModel::showAcceptDialog,
-                                                onAcceptTradeWithItem = socialViewModel::acceptTrade,
+                                                onAcceptTrade = socialViewModel::acceptTrade,
                                                 onDismissAcceptDialog = socialViewModel::dismissAcceptDialog,
                                                 onConfirmTrade = socialViewModel::confirmTrade,
                                                 onCancelTrade = socialViewModel::cancelTrade,
                                                 onDeclineTrade = socialViewModel::declineTrade,
                                                 onRefreshMyTrades = socialViewModel::loadMyTrades,
                                                 onSelectInventoryItem = socialViewModel::selectInventoryItem,
+                                                onUpdateOfferedQuantity = socialViewModel::updateOfferedQuantity,
                                                 onAddRequestedPokemon = socialViewModel::addRequestedPokemon,
+                                                onUpdateRequestedQuantity = socialViewModel::updateRequestedQuantity,
                                                 onRemoveRequestedPokemonAt = socialViewModel::removeRequestedPokemonAt,
                                                 onOpenInventorySelector = socialViewModel::openInventorySelector,
                                                 onCloseInventorySelector = socialViewModel::closeInventorySelector,
@@ -388,7 +396,9 @@ class MainActivity : ComponentActivity() {
                                                 onClearHabitatFilter = pokedexViewModel::clearHabitatFilter,
                                                 onClearRegionFilter = pokedexViewModel::clearRegionFilter,
                                                 onClearShapeFilter = pokedexViewModel::clearShapeFilter,
-                                                modifier = Modifier.padding(innerPadding)
+                                                modifier = Modifier
+                                                    .padding(innerPadding)
+                                                    .padding(bottom = mainBottomBarHeight)
                                             )
                                         }
 
@@ -479,7 +489,9 @@ class MainActivity : ComponentActivity() {
                                         selectedDestination = selectedDestination,
                                         onSelected = onMainDestinationSelected,
                                         isDarkTheme = isDarkTheme,
-                                        modifier = Modifier.align(Alignment.BottomCenter)
+                                        modifier = Modifier
+                                            .align(Alignment.BottomCenter)
+                                            .onSizeChanged { mainBottomBarHeightPx = it.height }
                                     )
                                 }
                             }

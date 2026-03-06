@@ -5,5 +5,6 @@ data class TradePokemon(
     val resourceId: Int,
     val resourceName: String,
     val isShiny: Boolean,
+    val quantity: Int = 1,
     val imageUrl: String
 )

@@ -21,6 +21,7 @@ internal data class TradeDto(
     @SerializedName("recipientId") val recipientId: String?,
     @SerializedName("proposer") val proposer: TradeUserLightDto?,
     @SerializedName("recipient") val recipient: TradeUserLightDto?,
+    @SerializedName("offeredPokemons") val offeredPokemons: List<TradePokemonDto>?,
     @SerializedName("offeredPokemon") val offeredPokemon: TradePokemonDto?,
     @SerializedName("receivedPokemon") val receivedPokemon: TradePokemonDto?,
     @SerializedName("requestedPokemons") val requestedPokemons: List<TradePokemonDto>?,
@@ -44,23 +45,31 @@ internal data class TradePokemonDto(
     @SerializedName("resourceType") val resourceType: String?,
     @SerializedName("resourceId") val resourceId: Int?,
     @SerializedName("resourceName") val resourceName: String?,
-    @SerializedName("isShiny") val isShiny: Boolean? = null
+    @SerializedName("isShiny") val isShiny: Boolean? = null,
+    @SerializedName("quantity") val quantity: Int? = null
 )
 
 // --- Request bodies ---
 
 internal data class CreateTradeRequestBody(
-    @SerializedName("offeredInventoryItemId") val offeredInventoryItemId: String,
+    @SerializedName("offeredPokemons") val offeredPokemons: List<OfferedPokemonBody>,
     @SerializedName("requestedPokemons") val requestedPokemons: List<RequestedPokemonBody>
+)
+
+internal data class OfferedPokemonBody(
+    @SerializedName("inventoryItemId") val inventoryItemId: String,
+    @SerializedName("quantity") val quantity: Int
 )
 
 internal data class RequestedPokemonBody(
     @SerializedName("resourceId") val resourceId: Int,
-    @SerializedName("resourceName") val resourceName: String
+    @SerializedName("resourceName") val resourceName: String,
+    @SerializedName("quantity") val quantity: Int,
+    @SerializedName("isShiny") val isShiny: Boolean = false
 )
 
 internal data class AcceptTradeRequestBody(
-    @SerializedName("offeredInventoryItemId") val offeredInventoryItemId: String
+    @SerializedName("noop") val noop: String = ""
 )
 
 // --- Inventory ---

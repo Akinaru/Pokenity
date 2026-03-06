@@ -32,14 +32,15 @@ fun SocialScreen(
     pokedexUiState: PokedexUiState,
     onSelectTab: (SocialTab) -> Unit,
     onAcceptTrade: (tradeId: String) -> Unit,
-    onAcceptTradeWithItem: (tradeId: String, inventoryItemId: String) -> Unit,
     onDismissAcceptDialog: () -> Unit,
     onConfirmTrade: (tradeId: String) -> Unit,
     onCancelTrade: (tradeId: String) -> Unit,
     onDeclineTrade: (tradeId: String) -> Unit,
     onRefreshMyTrades: () -> Unit,
     onSelectInventoryItem: (InventoryItem?) -> Unit,
+    onUpdateOfferedQuantity: (itemId: String, quantity: Int) -> Unit,
     onAddRequestedPokemon: (PokemonSummary) -> Unit,
+    onUpdateRequestedQuantity: (resourceId: Int, quantity: Int) -> Unit,
     onRemoveRequestedPokemonAt: (Int) -> Unit,
     onOpenInventorySelector: () -> Unit,
     onCloseInventorySelector: () -> Unit,
@@ -127,9 +128,6 @@ fun SocialScreen(
                 OpenTradesScreen(
                     uiState = uiState,
                     onAcceptTrade = onAcceptTrade,
-                    onSelectInventoryItemForAccept = { tradeId, item ->
-                        onAcceptTradeWithItem(tradeId, item.id)
-                    },
                     onDismissAcceptDialog = onDismissAcceptDialog,
                     onRefresh = onRefreshOpenTrades
                 )
@@ -150,7 +148,9 @@ fun SocialScreen(
                     uiState = uiState,
                     pokedexUiState = pokedexUiState,
                     onSelectInventoryItem = onSelectInventoryItem,
+                    onUpdateOfferedQuantity = onUpdateOfferedQuantity,
                     onAddRequestedPokemon = onAddRequestedPokemon,
+                    onUpdateRequestedQuantity = onUpdateRequestedQuantity,
                     onRemoveRequestedPokemonAt = onRemoveRequestedPokemonAt,
                     onOpenInventorySelector = onOpenInventorySelector,
                     onCloseInventorySelector = onCloseInventorySelector,
