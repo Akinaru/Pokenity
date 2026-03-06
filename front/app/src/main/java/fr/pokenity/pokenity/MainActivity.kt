@@ -1484,7 +1484,7 @@ private fun FooterAccueilButton(
 
     Box(
         modifier = Modifier
-            .size(60.dp)
+            .size(112.dp)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
@@ -1497,7 +1497,7 @@ private fun FooterAccueilButton(
         Image(
             painter = painterResource(id = frames[frameIndex]),
             contentDescription = contentDescription,
-            modifier = Modifier.size(52.dp),
+            modifier = Modifier.size(104.dp),
             contentScale = ContentScale.Fit,
             alpha = if (isSelected) 1f else 0.9f
         )
