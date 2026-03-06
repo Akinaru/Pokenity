@@ -1,6 +1,5 @@
 package fr.pokenity.pokenity.presentation.social
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,13 +14,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.verticalScroll
 import fr.pokenity.pokenity.ui.components.PrimaryButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -30,20 +34,43 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
+import fr.pokenity.data.model.InventoryItem
 import fr.pokenity.data.model.Trade
+import fr.pokenity.data.model.TradePokemon
 import fr.pokenity.data.model.TradeStatus
 
 @Composable
 fun OpenTradesScreen(
     uiState: SocialUiState,
     onAcceptTrade: (tradeId: String) -> Unit,
+    onConfirmAccept: (tradeId: String) -> Unit,
     onDismissAcceptDialog: () -> Unit,
+    onToggleOfferedSelection: (key: String) -> Unit,
+    onToggleGivenItem: (inventoryItemId: String, suggestedQty: Int) -> Unit,
+    onUpdateGivenQuantity: (inventoryItemId: String, quantity: Int) -> Unit,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    if (uiState.acceptingTradeId != null) {
-        onDismissAcceptDialog()
+    val acceptingTradeId = uiState.acceptingTradeId
+    val acceptingTrade = if (acceptingTradeId != null) {
+        uiState.openTrades.find { it.id == acceptingTradeId }
+    } else null
+
+    if (acceptingTradeId != null && acceptingTrade != null) {
+        AcceptTradeDialog(
+            trade = acceptingTrade,
+            myInventory = uiState.myInventory,
+            selectedOfferedKeys = uiState.acceptDialogSelectedOffered,
+            givenItems = uiState.acceptDialogGivenItems,
+            onToggleOfferedSelection = onToggleOfferedSelection,
+            onToggleGivenItem = onToggleGivenItem,
+            onUpdateGivenQuantity = onUpdateGivenQuantity,
+            onConfirm = { onConfirmAccept(acceptingTradeId) },
+            onDismiss = onDismissAcceptDialog
+        )
     }
 
     if (uiState.isLoading && uiState.openTrades.isEmpty()) {
@@ -230,4 +257,242 @@ fun TradeStatusBadge(status: TradeStatus, modifier: Modifier = Modifier) {
         color = color,
         modifier = modifier
     )
+}
+
+@Composable
+private fun AcceptTradeDialog(
+    trade: Trade,
+    myInventory: List<InventoryItem>,
+    selectedOfferedKeys: Set<String>,
+    givenItems: Map<String, Int>,
+    onToggleOfferedSelection: (key: String) -> Unit,
+    onToggleGivenItem: (inventoryItemId: String, suggestedQty: Int) -> Unit,
+    onUpdateGivenQuantity: (inventoryItemId: String, quantity: Int) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val offeredList = if (trade.offeredPokemons.isNotEmpty()) trade.offeredPokemons
+                      else listOfNotNull(trade.offeredPokemon)
+    val canConfirm = selectedOfferedKeys.isNotEmpty() && givenItems.isNotEmpty()
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(20.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Text(
+                    text = "Confirmer l'echange",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Propose par ${trade.proposer?.username ?: "Inconnu"}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "Vous allez recevoir :",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                offeredList.forEach { pokemon ->
+                    val key = "${pokemon.resourceId}:${pokemon.isShiny}"
+                    val isSelected = selectedOfferedKeys.contains(key)
+                    OfferedPokemonRow(
+                        pokemon = pokemon,
+                        isSelected = isSelected,
+                        onToggle = { onToggleOfferedSelection(key) }
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "Vous allez donner :",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.error
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                if (trade.requestedPokemons.isEmpty()) {
+                    Text(
+                        text = "Aucun pokemon demande.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    trade.requestedPokemons.forEach { requested ->
+                        val inventoryItem = myInventory.find {
+                            it.resourceId == requested.resourceId && it.isShiny == requested.isShiny
+                        }
+                        val isSelected = inventoryItem != null && givenItems.containsKey(inventoryItem.id)
+                        val givenQty = if (inventoryItem != null) givenItems[inventoryItem.id] ?: 0 else 0
+                        RequestedPokemonRow(
+                            requested = requested,
+                            inventoryItem = inventoryItem,
+                            isSelected = isSelected,
+                            givenQty = givenQty,
+                            onToggle = {
+                                if (inventoryItem != null) {
+                                    val suggested = requested.quantity.coerceAtMost(inventoryItem.quantity)
+                                    onToggleGivenItem(inventoryItem.id, suggested)
+                                }
+                            },
+                            onUpdateQty = { qty ->
+                                if (inventoryItem != null) onUpdateGivenQuantity(inventoryItem.id, qty)
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    TextButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Annuler", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    PrimaryButton(
+                        onClick = onConfirm,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                        enabled = canConfirm
+                    ) {
+                        Text("Confirmer", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OfferedPokemonRow(
+    pokemon: TradePokemon,
+    isSelected: Boolean,
+    onToggle: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Checkbox(checked = isSelected, onCheckedChange = { onToggle() })
+        Spacer(modifier = Modifier.width(8.dp))
+        AsyncImage(
+            model = pokemon.imageUrl,
+            contentDescription = pokemon.resourceName,
+            modifier = Modifier.size(48.dp)
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = buildString {
+                    append(pokemon.resourceName)
+                    if (pokemon.isShiny) append(" ✨")
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = "x${pokemon.quantity}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+@Composable
+private fun RequestedPokemonRow(
+    requested: TradePokemon,
+    inventoryItem: InventoryItem?,
+    isSelected: Boolean,
+    givenQty: Int,
+    onToggle: () -> Unit,
+    onUpdateQty: (Int) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Checkbox(
+            checked = isSelected,
+            onCheckedChange = { onToggle() },
+            enabled = inventoryItem != null
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        AsyncImage(
+            model = requested.imageUrl,
+            contentDescription = requested.resourceName,
+            modifier = Modifier.size(48.dp)
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = buildString {
+                    append(requested.resourceName)
+                    if (requested.isShiny) append(" ✨")
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            if (inventoryItem != null) {
+                Text(
+                    text = "Vous avez : x${inventoryItem.quantity}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Text(
+                    text = "Non disponible",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+        if (isSelected && inventoryItem != null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { onUpdateQty(givenQty - 1) }) {
+                    Text("-", style = MaterialTheme.typography.titleMedium)
+                }
+                Text(
+                    text = "$givenQty",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                IconButton(onClick = { onUpdateQty(givenQty + 1) }) {
+                    Text("+", style = MaterialTheme.typography.titleMedium)
+                }
+            }
+        }
+    }
 }

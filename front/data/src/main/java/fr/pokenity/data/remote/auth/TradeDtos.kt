@@ -69,7 +69,19 @@ internal data class RequestedPokemonBody(
 )
 
 internal data class AcceptTradeRequestBody(
-    @SerializedName("noop") val noop: String = ""
+    @SerializedName("selectedOffered") val selectedOffered: List<SelectedOfferedBody>,
+    @SerializedName("givenPokemons") val givenPokemons: List<GivenPokemonBody>
+)
+
+internal data class SelectedOfferedBody(
+    @SerializedName("resourceId") val resourceId: Int,
+    @SerializedName("isShiny") val isShiny: Boolean,
+    @SerializedName("quantity") val quantity: Int
+)
+
+internal data class GivenPokemonBody(
+    @SerializedName("inventoryItemId") val inventoryItemId: String,
+    @SerializedName("quantity") val quantity: Int
 )
 
 // --- Inventory ---

@@ -10,7 +10,7 @@ interface SocialRepository {
     suspend fun getOpenTrades(): List<Trade>
     suspend fun getMyTrades(): List<Trade>
     suspend fun createTrade(offeredPokemons: List<TradeOfferSelection>, requestedPokemons: List<TradePokemon>): Trade
-    suspend fun acceptTrade(tradeId: String): Trade
+    suspend fun acceptTrade(tradeId: String, selectedOffered: List<TradePokemon>, givenPokemons: List<TradeOfferSelection>): Trade
     suspend fun confirmTrade(tradeId: String): Trade
     suspend fun cancelTrade(tradeId: String): Trade
     suspend fun declineTrade(tradeId: String): Trade

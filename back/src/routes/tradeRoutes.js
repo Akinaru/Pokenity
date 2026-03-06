@@ -538,14 +538,20 @@ router.get("/:tradeId", authRequired, async (req, res) => {
 
 router.post("/:tradeId/accept", authRequired, async (req, res) => {
   const tradeId = String(req.params.tradeId || "");
+  const rawSelectedOffered = Array.isArray(req.body.selectedOffered) ? req.body.selectedOffered : [];
+  const rawGivenPokemons = Array.isArray(req.body.givenPokemons) ? req.body.givenPokemons : [];
+
+  if (rawSelectedOffered.length === 0) {
+    return res.status(400).json({ error: "You must select at least one offered pokemon to receive." });
+  }
+
+  if (rawGivenPokemons.length === 0) {
+    return res.status(400).json({ error: "You must provide at least one pokemon to give." });
+  }
 
   const trade = await prisma.trade.findUnique({
-    where: {
-      id: tradeId,
-    },
-    include: {
-      requestedItems: true,
-    },
+    where: { id: tradeId },
+    include: { offeredItems: true, requestedItems: true },
   });
 
   if (!trade) {
@@ -565,108 +571,127 @@ router.post("/:tradeId/accept", authRequired, async (req, res) => {
   }
 
   if (trade.recipientId && trade.recipientId !== req.user.sub) {
-    return res.status(403).json({
-      error: "This trade is reserved for another user.",
-    });
+    return res.status(403).json({ error: "This trade is reserved for another user." });
   }
 
-  const recipientHasAllRequested = await Promise.all(
-    (trade.requestedItems || []).map(async (requestedItem) => {
-      const quantity = toPositiveInt(requestedItem.quantity, 1);
-      const inventoryItem = await findPokemonInventoryByKey(
-        req.user.sub,
-        requestedItem.resourceType,
-        requestedItem.resourceId,
-        requestedItem.isShiny === true,
-        quantity,
-        prisma
-      );
-      return inventoryItem != null;
-    })
-  );
+  // Validate selectedOffered are actual offered items in this trade
+  const selectedOfferedItems = [];
+  for (const sel of rawSelectedOffered) {
+    const resourceId = Number(sel.resourceId);
+    const isShiny = sel.isShiny === true;
+    const quantity = toPositiveInt(sel.quantity, 1);
 
-  if (recipientHasAllRequested.some((hasItem) => !hasItem)) {
-    return res.status(409).json({
-      error: "Vous ne possedez pas toutes les ressources demandees avec les quantites requises.",
-    });
+    const offeredItem = trade.offeredItems.find(
+      (item) => item.resourceId === resourceId && item.isShiny === isShiny
+    );
+    if (!offeredItem) {
+      return res.status(400).json({ error: `Offered item with resourceId ${resourceId} not found in this trade.` });
+    }
+    if (quantity > offeredItem.quantity) {
+      return res.status(400).json({ error: `Selected quantity exceeds offered quantity for ${offeredItem.resourceName}.` });
+    }
+    selectedOfferedItems.push({ offeredItem, quantity });
   }
 
-  const primaryRequested = (trade.requestedItems || [])[0] || null;
+  // Validate recipient has the given pokemons
+  const givenItems = [];
+  for (const given of rawGivenPokemons) {
+    const inventoryItemId = String(given.inventoryItemId || "").trim();
+    const quantity = toPositiveInt(given.quantity, 1);
+
+    if (!inventoryItemId) {
+      return res.status(400).json({ error: "Each givenPokemon must have an inventoryItemId." });
+    }
+
+    const inventoryItem = await findPokemonInventoryItem(inventoryItemId, req.user.sub, quantity, prisma);
+    if (!inventoryItem) {
+      return res.status(409).json({ error: "You don't have enough of the required pokemon to give." });
+    }
+    givenItems.push({ inventoryItem, quantity });
+  }
 
   const acceptedAt = new Date();
-  const updateData = {
-    recipientId: req.user.sub,
-    status: TRADE_STATUS.WAITING_CONFIRMATION,
-    acceptedAt,
-  };
 
-  if (primaryRequested) {
-    updateData.receivedResourceType = primaryRequested.resourceType;
-    updateData.receivedResourceId = primaryRequested.resourceId;
-    updateData.receivedResourceName = primaryRequested.resourceName;
-    updateData.receivedIsShiny = primaryRequested.isShiny === true;
-  } else {
-    updateData.receivedResourceType = null;
-    updateData.receivedResourceId = null;
-    updateData.receivedResourceName = null;
-    updateData.receivedIsShiny = null;
-  }
-
-  const updateResult = await prisma.trade.updateMany({
-    where: {
-      id: trade.id,
-      status: TRADE_STATUS.PENDING,
-      proposerId: {
-        not: req.user.sub,
-      },
-      AND: [
-        {
-          OR: [
-            {
-              recipientId: null,
-            },
-            {
-              recipientId: req.user.sub,
-            },
+  try {
+    const updatedTrade = await prisma.$transaction(async (tx) => {
+      const updateResult = await tx.trade.updateMany({
+        where: {
+          id: trade.id,
+          status: TRADE_STATUS.PENDING,
+          proposerId: { not: req.user.sub },
+          AND: [
+            { OR: [{ recipientId: null }, { recipientId: req.user.sub }] },
+            { OR: [{ expiresAt: null }, { expiresAt: { gt: acceptedAt } }] },
           ],
         },
-        {
-          OR: [
-            {
-              expiresAt: null,
-            },
-            {
-              expiresAt: {
-                gt: acceptedAt,
-              },
-            },
-          ],
+        data: {
+          recipientId: req.user.sub,
+          status: TRADE_STATUS.WAITING_CONFIRMATION,
+          acceptedAt,
+          receivedResourceType: givenItems[0]?.inventoryItem.resourceType || null,
+          receivedResourceId: givenItems[0]?.inventoryItem.resourceId || null,
+          receivedResourceName: givenItems[0]?.inventoryItem.resourceName || null,
+          receivedIsShiny: givenItems[0]?.inventoryItem.isShiny === true,
+          offeredResourceType: selectedOfferedItems[0]?.offeredItem.resourceType || trade.offeredResourceType,
+          offeredResourceId: selectedOfferedItems[0]?.offeredItem.resourceId || trade.offeredResourceId,
+          offeredResourceName: selectedOfferedItems[0]?.offeredItem.resourceName || trade.offeredResourceName,
+          offeredIsShiny: selectedOfferedItems[0]?.offeredItem.isShiny === true,
         },
-      ],
-    },
-    data: updateData,
-  });
+      });
 
-  if (updateResult.count !== 1) {
-    return res.status(409).json({
-      error: "Trade changed meanwhile. Reload trade and try again.",
+      if (updateResult.count !== 1) {
+        const error = new Error("Trade changed meanwhile. Reload and try again.");
+        error.status = 409;
+        throw error;
+      }
+
+      // Replace offered items with selected subset
+      await tx.tradeOfferedItem.deleteMany({ where: { tradeId: trade.id } });
+      for (const { offeredItem, quantity } of selectedOfferedItems) {
+        await tx.tradeOfferedItem.create({
+          data: {
+            tradeId: trade.id,
+            resourceType: offeredItem.resourceType,
+            resourceId: offeredItem.resourceId,
+            resourceName: offeredItem.resourceName,
+            isShiny: offeredItem.isShiny,
+            quantity,
+          },
+        });
+      }
+
+      // Replace requested items with given pokemons
+      await tx.tradeRequestedItem.deleteMany({ where: { tradeId: trade.id } });
+      for (const { inventoryItem, quantity } of givenItems) {
+        await tx.tradeRequestedItem.create({
+          data: {
+            tradeId: trade.id,
+            resourceType: inventoryItem.resourceType,
+            resourceId: inventoryItem.resourceId,
+            resourceName: inventoryItem.resourceName,
+            isShiny: inventoryItem.isShiny,
+            quantity,
+          },
+        });
+      }
+
+      return tx.trade.findUnique({
+        where: { id: trade.id },
+        include: tradeInclude,
+      });
     });
+
+    if (!updatedTrade) {
+      return res.status(404).json({ error: "Trade not found after update." });
+    }
+
+    return res.json({ trade: serializeTrade(updatedTrade) });
+  } catch (error) {
+    if (error && typeof error.status === "number") {
+      return res.status(error.status).json({ error: error.message });
+    }
+    throw error;
   }
-
-  const updatedTrade = await prisma.trade.findUnique({
-    where: {
-      id: trade.id,
-    },
-    include: tradeInclude,
-  });
-
-  if (!updatedTrade) {
-    return res.status(404).json({ error: "Trade not found after update." });
-  }
-
-  return res.json({
-    trade: serializeTrade(updatedTrade),
-  });
 });
 
 router.post("/:tradeId/confirm", authRequired, async (req, res) => {
