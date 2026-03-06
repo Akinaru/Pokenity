@@ -745,23 +745,6 @@ private fun ClosetPokemonRow(
                                         .offset(y = spriteYOffset)
                                 )
 
-                                if (quantity > 1) {
-                                    Surface(
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier
-                                            .align(Alignment.BottomEnd)
-                                            .padding(2.dp)
-                                    ) {
-                                        Text(
-                                            text = "x$quantity",
-                                            color = MaterialTheme.colorScheme.onPrimary,
-                                            style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                        )
-                                    }
-                                }
                             }
                         }
                     }
