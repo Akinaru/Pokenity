@@ -7,6 +7,7 @@ data class Trade(
     val recipientId: String?,
     val proposer: UserProfile?,
     val recipient: UserProfile?,
+    val offeredPokemons: List<TradePokemon> = emptyList(),
     val offeredPokemon: TradePokemon?,
     val receivedPokemon: TradePokemon?,
     val requestedPokemons: List<TradePokemon> = emptyList(),

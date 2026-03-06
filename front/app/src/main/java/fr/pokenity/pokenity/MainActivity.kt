@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Image
@@ -39,7 +40,6 @@ import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -123,11 +123,13 @@ import fr.pokenity.pokenity.presentation.settings.SettingsScreen
 import fr.pokenity.pokenity.presentation.settings.SettingsViewModel
 import fr.pokenity.pokenity.presentation.social.SocialScreen
 import fr.pokenity.pokenity.presentation.social.SocialViewModel
+import fr.pokenity.pokenity.ui.components.PrimaryButton
 import fr.pokenity.pokenity.ui.components.PokemonSpriteImage
 import fr.pokenity.pokenity.ui.media.resolveCharacterMediaModel
 import fr.pokenity.pokenity.ui.theme.AppTitleFontFamily
 import fr.pokenity.pokenity.ui.theme.AppBackground
 import fr.pokenity.pokenity.ui.theme.PokenityTheme
+import fr.pokenity.pokenity.ui.theme.PrimaryButtonOrange
 
 private enum class MainDestination {
     SOCIAL,
@@ -333,7 +335,7 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier.fillMaxSize(),
                                 containerColor = Color.Transparent,
                                 topBar = {
-                                    if (selectedDestination == MainDestination.MOI) {
+                                    if (selectedDestination == MainDestination.MOI && moiScreen != MoiScreen.PROFILE) {
                                         MoiTopBar(
                                             screen = moiScreen,
                                             onBack = {
@@ -351,6 +353,13 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             ) { innerPadding ->
+                                var mainBottomBarHeightPx by remember { mutableIntStateOf(0) }
+                                val density = LocalDensity.current
+                                val mainBottomBarHeight = if (mainBottomBarHeightPx > 0) {
+                                    with(density) { mainBottomBarHeightPx.toDp() }
+                                } else {
+                                    96.dp
+                                }
                                 Box(modifier = Modifier.fillMaxSize()) {
                                     when (selectedDestination) {
                                         MainDestination.SOCIAL -> {
@@ -359,14 +368,19 @@ class MainActivity : ComponentActivity() {
                                                 pokedexUiState = pokedexUiState,
                                                 onSelectTab = socialViewModel::selectTab,
                                                 onAcceptTrade = socialViewModel::showAcceptDialog,
-                                                onAcceptTradeWithItem = socialViewModel::acceptTrade,
+                                                onConfirmAccept = socialViewModel::acceptTrade,
                                                 onDismissAcceptDialog = socialViewModel::dismissAcceptDialog,
+                                                onToggleOfferedSelection = socialViewModel::toggleOfferedSelection,
+                                                onToggleGivenItem = socialViewModel::toggleGivenItem,
+                                                onUpdateGivenQuantity = socialViewModel::updateGivenQuantity,
                                                 onConfirmTrade = socialViewModel::confirmTrade,
                                                 onCancelTrade = socialViewModel::cancelTrade,
                                                 onDeclineTrade = socialViewModel::declineTrade,
                                                 onRefreshMyTrades = socialViewModel::loadMyTrades,
                                                 onSelectInventoryItem = socialViewModel::selectInventoryItem,
+                                                onUpdateOfferedQuantity = socialViewModel::updateOfferedQuantity,
                                                 onAddRequestedPokemon = socialViewModel::addRequestedPokemon,
+                                                onUpdateRequestedQuantity = socialViewModel::updateRequestedQuantity,
                                                 onRemoveRequestedPokemonAt = socialViewModel::removeRequestedPokemonAt,
                                                 onOpenInventorySelector = socialViewModel::openInventorySelector,
                                                 onCloseInventorySelector = socialViewModel::closeInventorySelector,
@@ -388,7 +402,9 @@ class MainActivity : ComponentActivity() {
                                                 onClearHabitatFilter = pokedexViewModel::clearHabitatFilter,
                                                 onClearRegionFilter = pokedexViewModel::clearRegionFilter,
                                                 onClearShapeFilter = pokedexViewModel::clearShapeFilter,
-                                                modifier = Modifier.padding(innerPadding)
+                                                modifier = Modifier
+                                                    .padding(innerPadding)
+                                                    .padding(bottom = mainBottomBarHeight)
                                             )
                                         }
 
@@ -417,6 +433,7 @@ class MainActivity : ComponentActivity() {
                                                 MoiScreen.PROFILE -> {
                                                     MoiProfileScreen(
                                                         accountUiState = accountUiState,
+                                                        totalPokemonCount = pokedexUiState.totalPokemonCount,
                                                         onPokemonClick = { id ->
                                                             PokemonBrowseState.setList(
                                                                 accountUiState.pokemonCollection
@@ -475,11 +492,30 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
 
+                                    if (selectedDestination == MainDestination.MOI && moiScreen == MoiScreen.PROFILE) {
+                                        MoiTopBar(
+                                            screen = moiScreen,
+                                            onBack = {
+                                                moiScreen = when (moiScreen) {
+                                                    MoiScreen.PROFILE -> MoiScreen.PROFILE
+                                                    MoiScreen.SETTINGS -> MoiScreen.PROFILE
+                                                    MoiScreen.PREFERENCE -> MoiScreen.SETTINGS
+                                                    MoiScreen.COMPTE -> MoiScreen.SETTINGS
+                                                }
+                                            },
+                                            onOpenSettings = {
+                                                moiScreen = MoiScreen.SETTINGS
+                                            }
+                                        )
+                                    }
+
                                     MainBottomBar(
                                         selectedDestination = selectedDestination,
                                         onSelected = onMainDestinationSelected,
                                         isDarkTheme = isDarkTheme,
-                                        modifier = Modifier.align(Alignment.BottomCenter)
+                                        modifier = Modifier
+                                            .align(Alignment.BottomCenter)
+                                            .onSizeChanged { mainBottomBarHeightPx = it.height }
                                     )
                                 }
                             }
@@ -583,7 +619,8 @@ class MainActivity : ComponentActivity() {
                                         onClearShapeFilter = pokedexViewModel::clearShapeFilter,
                                         collectionMode = true,
                                         ownedQuantities = accountUiState.pokemonCollection,
-                                        showOwnershipFilter = false,
+                                        showOwnershipFilter = true,
+                                        bottomContentPadding = 220.dp,
                                         totalPokemonCount = pokedexUiState.totalPokemonCount,
                                         modifier = Modifier.padding(innerPadding)
                                     )
@@ -874,7 +911,7 @@ private fun MoiTopBar(
 
         MoiScreen.SETTINGS -> {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text("Parametres") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
@@ -1148,23 +1185,19 @@ private fun SettingsMenuScreen(
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Text(
-            text = "Parametres",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
-        HorizontalDivider()
-        OutlinedButton(
+        PrimaryButton(
             onClick = onOpenPreference,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp)
+            shape = RoundedCornerShape(0.dp),
+            border = BorderStroke(3.dp, PrimaryButtonOrange)
         ) {
             Text("Preference")
         }
-        OutlinedButton(
+        PrimaryButton(
             onClick = onOpenCompte,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp)
+            shape = RoundedCornerShape(0.dp),
+            border = BorderStroke(3.dp, PrimaryButtonOrange)
         ) {
             Text("Compte")
         }
@@ -1174,6 +1207,7 @@ private fun SettingsMenuScreen(
 @Composable
 private fun MoiProfileScreen(
     accountUiState: AccountUiState,
+    totalPokemonCount: Int?,
     onPokemonClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -1193,7 +1227,7 @@ private fun MoiProfileScreen(
         columns = GridCells.Fixed(3),
         state = gridState,
         modifier = modifier.fillMaxSize(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 136.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 220.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
@@ -1205,12 +1239,24 @@ private fun MoiProfileScreen(
 
         item(span = { GridItemSpan(maxLineSpan) }) {
             Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                Text(
-                    text = "Collection: ${ownedPokemon.size} Pokemon",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "Collection: ${ownedPokemon.size} Pokemon",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    totalPokemonCount?.takeIf { it > 0 }?.let { total ->
+                        Text(
+                            text = "/$total",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                        )
+                    }
+                }
             }
         }
 
@@ -1286,7 +1332,8 @@ private fun ProfileClosetRow(
         val size = backgroundPainter.intrinsicSize
         if (size.isSpecified && size.height > 0f) size.width / size.height else 1f
     }
-    val spriteYOffset = if (backgroundRes == R.drawable.closet_top) 12.dp else 4.dp
+    val spriteYOffset = if (backgroundRes == R.drawable.closet_top) 38.dp else 4.dp
+    val badgeYOffset = if (backgroundRes == R.drawable.closet_top) 50.dp else 0.dp
 
     Box(
         modifier = Modifier
@@ -1339,7 +1386,7 @@ private fun ProfileClosetRow(
                                 Box(
                                     modifier = Modifier
                                         .align(Alignment.TopEnd)
-                                        .padding(2.dp)
+                                        .padding(top = 2.dp + badgeYOffset, end = 2.dp)
                                 ) {
                                     Image(
                                         painter = painterResource(id = R.drawable.badge_duplicate),
@@ -1348,7 +1395,7 @@ private fun ProfileClosetRow(
                                         contentScale = ContentScale.Fit
                                     )
                                     Text(
-                                        text = quantity.toString(),
+                                        text = "x$quantity",
                                         color = Color.Black,
                                         style = MaterialTheme.typography.labelLarge.copy(
                                             fontFamily = AppTitleFontFamily,
@@ -1420,83 +1467,97 @@ private fun MoiHeaderCard(uiState: AccountUiState) {
     val levelProgress = remember(uiState.user?.xp) {
         computeLevelProgress((uiState.user?.xp ?: 0).coerceAtLeast(0))
     }
+    val statsTextColor = Color(0xFF415E74)
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
-        color = Color(0x33180707)
+        color = Color.Transparent
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            val avatarUrl = uiState.user?.characterAvatarUrl ?: uiState.user?.characterImageUrl
-            val mediaModel = resolveCharacterMediaModel(avatarUrl)
-            Box(
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Image(
+                painter = painterResource(id = R.drawable.card_box),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+
+            Column(
                 modifier = Modifier
-                    .size(160.dp)
-                    .clip(CircleShape)
-                    .background(Color(0x22180707))
-                    .border(2.dp, Color.White.copy(alpha = 0.55f), CircleShape),
-                contentAlignment = Alignment.Center
+                    .align(Alignment.Center)
+                    .fillMaxWidth(0.84f)
+                    .padding(vertical = 14.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                if (mediaModel != null) {
-                    AsyncImage(
-                        model = mediaModel,
-                        contentDescription = "Avatar",
-                        modifier = Modifier.fillMaxSize()
+                val avatarUrl = uiState.user?.characterAvatarUrl ?: uiState.user?.characterImageUrl
+                val mediaModel = resolveCharacterMediaModel(avatarUrl)
+                Box(
+                    modifier = Modifier
+                        .size(128.dp)
+                        .clip(CircleShape)
+                        .background(Color(0x22180707))
+                        .border(2.dp, Color.White.copy(alpha = 0.55f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (mediaModel != null) {
+                        AsyncImage(
+                            model = mediaModel,
+                            contentDescription = "Avatar",
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Filled.AccountCircle,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.8f),
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Niv. ${levelProgress.currentLevel}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = statsTextColor
                     )
-                } else {
-                    Icon(
-                        imageVector = Icons.Filled.AccountCircle,
-                        contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.8f),
-                        modifier = Modifier.fillMaxSize()
+                    Text(
+                        text = "Niv. ${levelProgress.nextLevel}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = statsTextColor
                     )
                 }
-            }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.82f)
+                        .height(12.dp)
+                        .background(statsTextColor.copy(alpha = 0.22f))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(levelProgress.progressFraction.coerceIn(0f, 1f))
+                            .fillMaxHeight()
+                            .background(MaterialTheme.colorScheme.primary)
+                    )
+                }
+
                 Text(
-                    text = "Niv. ${levelProgress.currentLevel}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    text = "${levelProgress.xpInCurrentLevel}/${levelProgress.xpForNextLevel} XP",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = statsTextColor
                 )
-                Text(
-                    text = "Niv. ${levelProgress.nextLevel}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
 
-            LinearProgressIndicator(
-                progress = { levelProgress.progressFraction },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(10.dp)
-                    .clip(RoundedCornerShape(999.dp)),
-                trackColor = Color.White.copy(alpha = 0.18f),
-                color = MaterialTheme.colorScheme.primary,
-                gapSize = 0.dp
-            )
-
-            Text(
-                text = "${levelProgress.xpInCurrentLevel}/${levelProgress.xpForNextLevel} XP",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-            )
-
-            if (uiState.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                }
             }
         }
     }
@@ -1718,7 +1779,7 @@ private fun FooterSocialButton(
 ) {
     Box(
         modifier = Modifier
-            .size(52.dp)
+            .size(84.dp)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
