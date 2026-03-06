@@ -53,6 +53,7 @@ import fr.pokenity.pokenity.R
 import fr.pokenity.pokenity.presentation.auth.AuthAccentYellow
 import fr.pokenity.pokenity.ui.components.PokemonSpriteImage
 import fr.pokenity.pokenity.ui.media.resolveCharacterMediaModel
+import fr.pokenity.pokenity.ui.theme.AppTitleFontFamily
 import fr.pokenity.pokenity.ui.theme.MistWhite
 import fr.pokenity.pokenity.ui.theme.PrimaryButtonOrange
 
@@ -332,19 +333,31 @@ private fun AccountClosetRow(
                                 )
 
                                 if (quantity > 1) {
-                                    Surface(
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = MaterialTheme.colorScheme.primary,
+                                    Box(
                                         modifier = Modifier
-                                            .align(Alignment.BottomEnd)
+                                            .align(Alignment.TopEnd)
                                             .padding(2.dp)
                                     ) {
+                                        Image(
+                                            painter = painterResource(id = R.drawable.badge_duplicate),
+                                            contentDescription = "Duplicate badge",
+                                            modifier = Modifier.size(40.dp),
+                                            contentScale = ContentScale.Fit
+                                        )
                                         Text(
-                                            text = "x$quantity",
-                                            color = MaterialTheme.colorScheme.onPrimary,
-                                            style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            text = quantity.toString(),
+                                            color = Color.Black,
+                                            style = MaterialTheme.typography.labelLarge.copy(
+                                                fontFamily = AppTitleFontFamily,
+                                                fontSize = 18.sp,
+                                                shadow = androidx.compose.ui.graphics.Shadow(
+                                                    color = Color.White,
+                                                    offset = androidx.compose.ui.geometry.Offset(0f, 0f),
+                                                    blurRadius = 4f
+                                                )
+                                            ),
+                                            fontWeight = FontWeight.ExtraBold,
+                                            modifier = Modifier.align(Alignment.Center)
                                         )
                                     }
                                 }
