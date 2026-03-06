@@ -16,9 +16,11 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -55,10 +57,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
@@ -72,6 +76,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -79,6 +84,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import coil.compose.AsyncImage
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import fr.pokenity.data.core.AppThemeMode
 import fr.pokenity.data.core.AppThemeState
 import fr.pokenity.data.core.AuthSessionState
@@ -119,6 +125,7 @@ import fr.pokenity.pokenity.presentation.social.SocialScreen
 import fr.pokenity.pokenity.presentation.social.SocialViewModel
 import fr.pokenity.pokenity.ui.components.PokemonSpriteImage
 import fr.pokenity.pokenity.ui.media.resolveCharacterMediaModel
+import fr.pokenity.pokenity.ui.theme.AppTitleFontFamily
 import fr.pokenity.pokenity.ui.theme.AppBackground
 import fr.pokenity.pokenity.ui.theme.PokenityTheme
 
@@ -174,6 +181,8 @@ class MainActivity : ComponentActivity() {
             val boxListUiState by boxListViewModel.uiState.collectAsState()
             val boxDetailUiState by boxDetailViewModel.uiState.collectAsState()
             val themeMode by AppThemeState.themeMode.collectAsState()
+            val navSpriteType by PokemonImageSettings.imageType.collectAsState()
+            val navShinyEnabled by PokemonImageSettings.isShiny.collectAsState()
 
             val systemDark = isSystemInDarkTheme()
             val isDarkTheme = when (themeMode) {
@@ -479,6 +488,7 @@ class MainActivity : ComponentActivity() {
                                     MainBottomBar(
                                         selectedDestination = selectedDestination,
                                         onSelected = onMainDestinationSelected,
+                                        isDarkTheme = isDarkTheme,
                                         modifier = Modifier
                                             .align(Alignment.BottomCenter)
                                             .onSizeChanged { mainBottomBarHeightPx = it.height }
@@ -524,6 +534,7 @@ class MainActivity : ComponentActivity() {
                                     MainBottomBar(
                                         selectedDestination = selectedDestination,
                                         onSelected = onMainDestinationSelected,
+                                        isDarkTheme = isDarkTheme,
                                         modifier = Modifier.align(Alignment.BottomCenter)
                                     )
                                 }
@@ -544,7 +555,19 @@ class MainActivity : ComponentActivity() {
                                                 )
                                             }
                                         },
-                                        colors = TopAppBarDefaults.topAppBarColors()
+                                        actions = {
+                                            ShinyToggleTopBarAction(
+                                                isShinyEnabled = navShinyEnabled,
+                                                isEnabled = navSpriteType.supportsShiny,
+                                                onToggle = { PokemonImageSettings.toggleShiny() }
+                                            )
+                                        },
+                                        colors = TopAppBarDefaults.topAppBarColors(
+                                            containerColor = Color(0xFF1B4167),
+                                            titleContentColor = Color.White,
+                                            navigationIconContentColor = Color.White,
+                                            actionIconContentColor = Color.White
+                                        )
                                     )
                                 }
                             ) { innerPadding ->
@@ -579,6 +602,7 @@ class MainActivity : ComponentActivity() {
                                     MainBottomBar(
                                         selectedDestination = selectedDestination,
                                         onSelected = onMainDestinationSelected,
+                                        isDarkTheme = isDarkTheme,
                                         modifier = Modifier.align(Alignment.BottomCenter)
                                     )
                                 }
@@ -615,6 +639,7 @@ class MainActivity : ComponentActivity() {
                                     MainBottomBar(
                                         selectedDestination = selectedDestination,
                                         onSelected = onMainDestinationSelected,
+                                        isDarkTheme = isDarkTheme,
                                         modifier = Modifier.align(Alignment.BottomCenter)
                                     )
                                 }
@@ -669,6 +694,7 @@ class MainActivity : ComponentActivity() {
                                     if (!isDrawOpen) {
                                         MainBottomBar(
                                             selectedDestination = selectedDestination,
+                                            isDarkTheme = isDarkTheme,
                                             onSelected = onMainDestinationSelected,
                                             modifier = Modifier
                                                 .align(Alignment.BottomCenter)
@@ -716,6 +742,7 @@ class MainActivity : ComponentActivity() {
                                     MainBottomBar(
                                         selectedDestination = selectedDestination,
                                         onSelected = onMainDestinationSelected,
+                                        isDarkTheme = isDarkTheme,
                                         modifier = Modifier.align(Alignment.BottomCenter)
                                     )
                                 }
@@ -745,6 +772,7 @@ class MainActivity : ComponentActivity() {
                                     MainBottomBar(
                                         selectedDestination = selectedDestination,
                                         onSelected = onMainDestinationSelected,
+                                        isDarkTheme = isDarkTheme,
                                         modifier = Modifier.align(Alignment.BottomCenter)
                                     )
                                 }
@@ -779,6 +807,7 @@ class MainActivity : ComponentActivity() {
                                     MainBottomBar(
                                         selectedDestination = selectedDestination,
                                         onSelected = onMainDestinationSelected,
+                                        isDarkTheme = isDarkTheme,
                                         modifier = Modifier.align(Alignment.BottomCenter)
                                     )
                                 }
@@ -819,6 +848,7 @@ class MainActivity : ComponentActivity() {
                                     MainBottomBar(
                                         selectedDestination = selectedDestination,
                                         onSelected = onMainDestinationSelected,
+                                        isDarkTheme = isDarkTheme,
                                         modifier = Modifier.align(Alignment.BottomCenter)
                                     )
                                 }
@@ -1166,6 +1196,7 @@ private fun MoiProfileScreen(
             .asSequence()
             .filter { (_, quantity) -> quantity > 0 }
             .sortedBy { (pokemonId, _) -> pokemonId }
+            .map { (pokemonId, quantity) -> pokemonId to quantity }
             .toList()
     }
     val gridState = rememberLazyGridState()
@@ -1173,51 +1204,181 @@ private fun MoiProfileScreen(
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
         state = gridState,
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 16.dp),
+        modifier = modifier.fillMaxSize(),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 136.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
-            MoiHeaderCard(uiState = accountUiState)
+            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                MoiHeaderCard(uiState = accountUiState)
+            }
         }
 
         item(span = { GridItemSpan(maxLineSpan) }) {
-            Text(
-                text = "Collection: ${ownedPokemon.size} Pokemon",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
+            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                Text(
+                    text = "Collection: ${ownedPokemon.size} Pokemon",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
         }
 
         if (ownedPokemon.isEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    color = Color(0x33180707)
-                ) {
-                    Text(
-                        text = "Aucun Pokemon possede pour le moment.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(14.dp)
-                    )
+                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color(0x33180707)
+                    ) {
+                        Text(
+                            text = "Aucun Pokemon possede pour le moment.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(14.dp)
+                        )
+                    }
                 }
             }
         } else {
-            items(
-                items = ownedPokemon,
-                key = { (pokemonId, _) -> pokemonId }
-            ) { (pokemonId, quantity) ->
-                OwnedPokemonCard(
-                    pokemonId = pokemonId,
-                    quantity = quantity,
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                ProfileClosetCollection(
+                    ownedPokemon = ownedPokemon,
                     spriteType = spriteType,
                     shinyEnabled = shinyEnabled,
-                    onClick = { onPokemonClick(pokemonId) }
+                    onPokemonClick = onPokemonClick
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProfileClosetCollection(
+    ownedPokemon: List<Pair<Int, Int>>,
+    spriteType: PokemonImageType,
+    shinyEnabled: Boolean,
+    onPokemonClick: (Int) -> Unit
+) {
+    val rows = remember(ownedPokemon) { ownedPokemon.chunked(3) }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(0.dp)
+    ) {
+        rows.forEachIndexed { rowIndex, row ->
+            val backgroundRes = when {
+                rowIndex == 0 -> R.drawable.closet_top
+                rowIndex == rows.lastIndex -> R.drawable.closet_bottom
+                else -> R.drawable.closet_middle
+            }
+            ProfileClosetRow(
+                row = row,
+                backgroundRes = backgroundRes,
+                spriteType = spriteType,
+                shinyEnabled = shinyEnabled,
+                onPokemonClick = onPokemonClick
+            )
+        }
+    }
+}
+
+@Composable
+private fun ProfileClosetRow(
+    row: List<Pair<Int, Int>>,
+    backgroundRes: Int,
+    spriteType: PokemonImageType,
+    shinyEnabled: Boolean,
+    onPokemonClick: (Int) -> Unit
+) {
+    val backgroundPainter = painterResource(id = backgroundRes)
+    val backgroundRatio = remember(backgroundPainter) {
+        val size = backgroundPainter.intrinsicSize
+        if (size.isSpecified && size.height > 0f) size.width / size.height else 1f
+    }
+    val spriteYOffset = if (backgroundRes == R.drawable.closet_top) 12.dp else 4.dp
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(backgroundRatio)
+    ) {
+        Image(
+            painter = backgroundPainter,
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.FillWidth
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 30.dp, vertical = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            repeat(3) { slotIndex ->
+                val pokemonEntry = row.getOrNull(slotIndex)
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (pokemonEntry != null) {
+                        val pokemonId = pokemonEntry.first
+                        val quantity = pokemonEntry.second
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable { onPokemonClick(pokemonId) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            PokemonSpriteImage(
+                                pokemonId = pokemonId,
+                                contentDescription = "Pokemon #$pokemonId",
+                                imageType = spriteType,
+                                shiny = shinyEnabled,
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier
+                                    .size(76.dp)
+                                    .offset(y = spriteYOffset)
+                            )
+
+                            if (quantity > 1) {
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(2.dp)
+                                ) {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.badge_duplicate),
+                                        contentDescription = "Duplicate badge",
+                                        modifier = Modifier.size(40.dp),
+                                        contentScale = ContentScale.Fit
+                                    )
+                                    Text(
+                                        text = quantity.toString(),
+                                        color = Color.Black,
+                                        style = MaterialTheme.typography.labelLarge.copy(
+                                            fontFamily = AppTitleFontFamily,
+                                            fontSize = 18.sp,
+                                            shadow = androidx.compose.ui.graphics.Shadow(
+                                                color = Color.White,
+                                                offset = androidx.compose.ui.geometry.Offset(0f, 0f),
+                                                blurRadius = 4f
+                                            )
+                                        ),
+                                        fontWeight = FontWeight.ExtraBold,
+                                        modifier = Modifier.align(Alignment.Center)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -1318,12 +1479,14 @@ private fun MoiHeaderCard(uiState: AccountUiState) {
                 Text(
                     text = "Niv. ${levelProgress.currentLevel}",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "Niv. ${levelProgress.nextLevel}",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
@@ -1441,12 +1604,73 @@ private fun ComparePickerScreen(
 }
 
 @Composable
+private fun ShinyToggleTopBarAction(
+    isShinyEnabled: Boolean,
+    isEnabled: Boolean,
+    onToggle: () -> Unit
+) {
+    val frames = remember {
+        intArrayOf(
+            R.drawable.shiny_1,
+            R.drawable.shiny_2,
+            R.drawable.shiny_3,
+            R.drawable.shiny_4,
+            R.drawable.shiny_5
+        )
+    }
+    var frameIndex by remember { mutableIntStateOf(if (isShinyEnabled) 4 else 0) }
+    var isAnimating by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(isShinyEnabled, isAnimating) {
+        if (!isAnimating) {
+            frameIndex = if (isShinyEnabled) 4 else 0
+        }
+    }
+
+    Image(
+        painter = painterResource(id = frames[frameIndex]),
+        contentDescription = if (isShinyEnabled) "Shiny ON" else "Shiny OFF",
+        modifier = Modifier
+            .padding(end = 8.dp)
+            .size(width = 112.dp, height = 40.dp)
+            .alpha(if (isEnabled) 1f else 0.45f)
+            .clickable(
+                enabled = isEnabled && !isAnimating,
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) {
+                coroutineScope.launch {
+                    isAnimating = true
+                    if (isShinyEnabled) {
+                        for (index in 3 downTo 0) {
+                            frameIndex = index
+                            delay(55)
+                        }
+                    } else {
+                        for (index in 1..4) {
+                            frameIndex = index
+                            delay(55)
+                        }
+                    }
+                    onToggle()
+                    isAnimating = false
+                }
+            },
+        contentScale = ContentScale.Fit
+    )
+}
+
+@Composable
 private fun MainBottomBar(
     selectedDestination: MainDestination,
     onSelected: (MainDestination) -> Unit,
+    isDarkTheme: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val footerPainter = painterResource(id = R.drawable.footer)
+    val footerPainter = painterResource(
+        id = if (isDarkTheme) R.drawable.footer else R.drawable.footer_white
+    )
     val footerAspectRatio = remember(footerPainter) {
         val intrinsicSize = footerPainter.intrinsicSize
         if (intrinsicSize.isSpecified && intrinsicSize.height > 0f) {
@@ -1478,10 +1702,9 @@ private fun MainBottomBar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            FooterIconButton(
+            FooterSocialButton(
                 isSelected = selectedDestination == MainDestination.SOCIAL,
                 onClick = { onSelected(MainDestination.SOCIAL) },
-                imageVector = Icons.Filled.CatchingPokemon,
                 contentDescription = "Social"
             )
             FooterAccueilButton(
@@ -1496,6 +1719,34 @@ private fun MainBottomBar(
                 contentDescription = "Moi"
             )
         }
+    }
+}
+
+@Composable
+private fun FooterSocialButton(
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    contentDescription: String
+) {
+    Box(
+        modifier = Modifier
+            .size(52.dp)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            painter = painterResource(
+                id = if (isSelected) R.drawable.social_on else R.drawable.social_off
+            ),
+            contentDescription = contentDescription,
+            modifier = Modifier
+                .size(50.dp)
+                .offset(y = 26.dp),
+            contentScale = ContentScale.Fit
+        )
     }
 }
 

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import fr.pokenity.data.core.AppContainer
+import fr.pokenity.data.model.BoxOpenDrawItem
 import fr.pokenity.data.model.BoxOpenResult
 import fr.pokenity.pokenity.domain.usecase.GetBoxByIdUseCase
 import fr.pokenity.pokenity.domain.usecase.OpenBoxUseCase
@@ -98,7 +99,11 @@ class BoxDetailViewModel(
                         listOf(reward)
                     }
 
-                    val flashSequence = buildFlashSequence(pool, reward)
+                    val flashSequence = if (openResult.drawSequence.isNotEmpty()) {
+                        openResult.drawSequence.map { it.toUi() }
+                    } else {
+                        buildFlashSequence(pool, reward)
+                    }
                     val previousSpinRequestId = _uiState.value.spinRequestId
 
                     _uiState.value = _uiState.value.copy(
@@ -177,19 +182,13 @@ class BoxDetailViewModel(
         val flashesBeforeReward = 30 + Random.nextInt(from = 0, until = 10)
         val flashes = ArrayList<BoxPokemonUi>(flashesBeforeReward + 1)
         var lastResourceId: Int? = null
-        val isShinyDraw = reward.isShiny
+
         repeat(flashesBeforeReward) {
             val next = pickWeightedItem(
                 items = pool,
                 avoidResourceId = lastResourceId
             )
-            val shouldForceShiny = isShinyDraw &&
-                next.resourceType.equals("POKEMON", ignoreCase = true)
-            flashes += if (shouldForceShiny) {
-                next.copy(isShiny = true)
-            } else {
-                next.copy(isShiny = false)
-            }
+            flashes += next
             lastResourceId = next.resourceId
         }
         flashes += reward
@@ -248,6 +247,16 @@ class BoxDetailViewModel(
             resourceName = reward.resourceName,
             dropRate = reward.dropRate,
             isShiny = reward.isShiny
+        )
+    }
+
+    private fun BoxOpenDrawItem.toUi(): BoxPokemonUi {
+        return BoxPokemonUi(
+            resourceType = resourceType,
+            resourceId = resourceId,
+            resourceName = resourceName,
+            dropRate = dropRate,
+            isShiny = isShiny
         )
     }
 

@@ -2,6 +2,7 @@ package fr.pokenity.data.repository
 
 import fr.pokenity.data.core.AuthSessionState
 import fr.pokenity.data.model.BoxOpenBox
+import fr.pokenity.data.model.BoxOpenDrawItem
 import fr.pokenity.data.model.BoxOpenHistory
 import fr.pokenity.data.model.BoxOpenInventoryItem
 import fr.pokenity.data.model.BoxOpenResult
@@ -80,6 +81,15 @@ class BoxRepositoryImpl internal constructor(
                 isShiny = resolvedShiny,
                 dropRate = rewardDto.dropRate ?: 0.0
             ),
+            drawSequence = (drawSequence ?: emptyList()).map { drawItem ->
+                BoxOpenDrawItem(
+                    resourceType = drawItem.resourceType ?: "pokemon",
+                    resourceId = drawItem.resourceId ?: 0,
+                    resourceName = drawItem.resourceName ?: "pokemon",
+                    isShiny = drawItem.isShiny ?: false,
+                    dropRate = drawItem.dropRate ?: 0.0
+                )
+            },
             inventoryItem = inventoryItem?.let { inventory ->
                 BoxOpenInventoryItem(
                     id = inventory.id ?: "",

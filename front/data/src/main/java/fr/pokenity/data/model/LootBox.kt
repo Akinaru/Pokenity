@@ -23,6 +23,7 @@ data class LootBoxEntry(
 data class BoxOpenResult(
     val box: BoxOpenBox,
     val reward: BoxOpenReward,
+    val drawSequence: List<BoxOpenDrawItem>,
     val inventoryItem: BoxOpenInventoryItem?,
     val boxOpening: BoxOpenHistory?,
     val user: BoxOpenUser?
@@ -35,6 +36,14 @@ data class BoxOpenBox(
 )
 
 data class BoxOpenReward(
+    val resourceType: String,
+    val resourceId: Int,
+    val resourceName: String,
+    val isShiny: Boolean,
+    val dropRate: Double
+)
+
+data class BoxOpenDrawItem(
     val resourceType: String,
     val resourceId: Int,
     val resourceName: String,

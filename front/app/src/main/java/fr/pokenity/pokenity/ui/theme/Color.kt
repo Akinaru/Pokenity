@@ -8,7 +8,7 @@ val PokeBlue = Color(0xFF3B4CCA)
 val PokeWhite = Color(0xFFF5F7FA)
 val Slate = Color(0xFF1F2937)
 val SoftGray = Color(0xFF6B7280)
-val MistWhite = Color(0xFFD0EAFD)
+val MistWhite = Color(0xFFFFFFFF)
 val DarkInk = Color(0xFF180707)
 
 val PrimaryButtonYellow = Color(0xFFFFCC18)

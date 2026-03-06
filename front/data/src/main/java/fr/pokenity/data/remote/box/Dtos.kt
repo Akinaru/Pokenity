@@ -13,6 +13,7 @@ internal data class BoxResponseDto(
 internal data class OpenBoxResponseDto(
     @SerializedName("box") val box: OpenBoxInfoDto?,
     @SerializedName("reward") val reward: OpenBoxRewardDto?,
+    @SerializedName("drawSequence") val drawSequence: List<OpenBoxDrawItemDto>? = null,
     @SerializedName("inventoryItem") val inventoryItem: OpenBoxInventoryItemDto?,
     @SerializedName("boxOpening") val boxOpening: OpenBoxHistoryDto?,
     @SerializedName("user") val user: OpenBoxUserDto?
@@ -50,6 +51,14 @@ internal data class OpenBoxRewardDto(
     @SerializedName("resourceName") val resourceName: String? = null,
     @SerializedName("isShiny") val isShiny: Boolean? = null,
     @SerializedName("dropRate") val dropRate: Double? = null
+)
+
+internal data class OpenBoxDrawItemDto(
+    @SerializedName("resourceType") val resourceType: String? = null,
+    @SerializedName("resourceId") val resourceId: Int? = null,
+    @SerializedName("resourceName") val resourceName: String? = null,
+    @SerializedName("dropRate") val dropRate: Double? = null,
+    @SerializedName("isShiny") val isShiny: Boolean? = null
 )
 
 internal data class OpenBoxInventoryItemDto(
