@@ -60,6 +60,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
@@ -68,6 +69,7 @@ import fr.pokenity.data.core.PokemonVisualPresets
 import fr.pokenity.pokenity.R
 import fr.pokenity.pokenity.ui.components.PrimaryButton
 import fr.pokenity.pokenity.ui.components.PokemonSpriteImage
+import fr.pokenity.pokenity.ui.theme.AppTitleFontFamily
 import kotlinx.coroutines.delay
 import java.util.Locale
 import kotlin.math.pow
@@ -455,6 +457,7 @@ private fun BoxClosetRow(
     row: List<BoxPokemonUi>,
     backgroundRes: Int
 ) {
+    val context = LocalContext.current
     val backgroundPainter = painterResource(id = backgroundRes)
     val backgroundRatio = remember(backgroundPainter) {
         val size = backgroundPainter.intrinsicSize
@@ -495,6 +498,14 @@ private fun BoxClosetRow(
                         contentAlignment = Alignment.Center
                     ) {
                         if (pokemon != null) {
+                            val rarity = rarityStyle(pokemon.dropRate)
+                            val badgeResId = remember(rarity.badgeDrawableName) {
+                                context.resources.getIdentifier(
+                                    rarity.badgeDrawableName,
+                                    "drawable",
+                                    context.packageName
+                                )
+                            }
                             Box(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
@@ -512,19 +523,36 @@ private fun BoxClosetRow(
                                         .offset(y = spriteYOffset)
                                 )
 
-                                Surface(
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = MaterialTheme.colorScheme.primary,
+                                Box(
                                     modifier = Modifier
                                         .align(Alignment.BottomEnd)
                                         .padding(2.dp)
                                 ) {
+                                    Image(
+                                        painter = painterResource(
+                                            id = if (badgeResId != 0) badgeResId else R.drawable.badge_duplicate
+                                        ),
+                                        contentDescription = "Badge probabilite",
+                                        modifier = Modifier.size(40.dp),
+                                        contentScale = ContentScale.Fit
+                                    )
                                     Text(
-                                        text = "${"%.2f".format(pokemon.dropRate)}%",
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        text = formatDropRatePercent(pokemon.dropRate),
+                                        color = Color.Black,
+                                        style = MaterialTheme.typography.labelMedium.copy(
+                                            fontFamily = AppTitleFontFamily,
+                                            fontSize = 12.sp,
+                                            shadow = androidx.compose.ui.graphics.Shadow(
+                                                color = Color.White,
+                                                offset = androidx.compose.ui.geometry.Offset(0f, 0f),
+                                                blurRadius = 4f
+                                            )
+                                        ),
+                                        fontWeight = FontWeight.ExtraBold,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier
+                                            .align(Alignment.Center)
+                                            .padding(horizontal = 2.dp)
                                     )
                                 }
                             }
@@ -906,7 +934,7 @@ private fun BoxPokemonTile(
                         modifier = Modifier.fillMaxWidth()
                     )
                     Text(
-                        text = "${"%.2f".format(pokemon.dropRate)}%",
+                        text = formatDropRatePercent(pokemon.dropRate),
                         style = MaterialTheme.typography.labelSmall,
                         color = Color(0xFF111111),
                         textAlign = TextAlign.Center,
@@ -922,26 +950,33 @@ private fun rarityStyle(dropRate: Double): RarityStyle {
     return when {
         dropRate <= 1.5 -> RarityStyle(
             backgroundDrawableName = "card_bg_legendary",
-            descBackgroundDrawableName = "desc_bg_legendary"
+            descBackgroundDrawableName = "desc_bg_legendary",
+            badgeDrawableName = "badge_legendary"
         )
         dropRate <= 4.0 -> RarityStyle(
             backgroundDrawableName = "card_bg_epic",
-            descBackgroundDrawableName = "desc_bg_epic"
+            descBackgroundDrawableName = "desc_bg_epic",
+            badgeDrawableName = "badge_epic"
         )
         dropRate <= 8.0 -> RarityStyle(
             backgroundDrawableName = "card_bg_rare",
-            descBackgroundDrawableName = "desc_bg_rare"
+            descBackgroundDrawableName = "desc_bg_rare",
+            badgeDrawableName = "badge_rare"
         )
         dropRate <= 16.0 -> RarityStyle(
             backgroundDrawableName = "card_bg_uncommon",
-            descBackgroundDrawableName = "desc_bg_uncommon"
+            descBackgroundDrawableName = "desc_bg_uncommon",
+            badgeDrawableName = "badge_uncommon"
         )
         else -> RarityStyle(
             backgroundDrawableName = "card_bg_common",
-            descBackgroundDrawableName = "desc_bg_common"
+            descBackgroundDrawableName = "desc_bg_common",
+            badgeDrawableName = "badge_common"
         )
     }
 }
+
+private fun formatDropRatePercent(dropRate: Double): String = "${dropRate.roundToInt()}%"
 
 private fun cyclicIndex(index: Int, size: Int): Int {
     if (size <= 0) return 0
@@ -951,7 +986,8 @@ private fun cyclicIndex(index: Int, size: Int): Int {
 
 private data class RarityStyle(
     val backgroundDrawableName: String,
-    val descBackgroundDrawableName: String
+    val descBackgroundDrawableName: String,
+    val badgeDrawableName: String
 )
 
 private fun String.prettyPokemonName(): String {
