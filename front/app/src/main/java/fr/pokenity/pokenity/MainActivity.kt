@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -69,6 +71,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
@@ -1071,14 +1074,6 @@ private fun HomeScreen(
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold
         )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End
-        ) {
-            OutlinedButton(onClick = onOpenAllBoxes) {
-                Text("Voir toutes les boxes")
-            }
-        }
 
         when {
             uiState.isLoading -> {
@@ -1127,51 +1122,90 @@ private fun HomeScreen(
                         onClick = { onOpenBox(box.id) }
                     )
                 }
+                PrimaryButton(
+                    onClick = onOpenAllBoxes,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(0.dp)
+                ) {
+                    Text(
+                        text = "Voir toutes les boxes",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontFamily = AppTitleFontFamily
+                        )
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun HomeBoxCard(
     box: LootBox,
     onClick: () -> Unit
 ) {
-    Surface(
+    val pokemonEntries = remember(box.entries) {
+        box.entries.filter { entry ->
+            entry.resourceType.equals("pokemon", ignoreCase = true)
+        }
+    }
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(14.dp),
-        tonalElevation = 1.dp
+            .clickable(onClick = onClick)
     ) {
+        Image(
+            painter = painterResource(id = R.drawable.boxes_card),
+            contentDescription = null,
+            modifier = Modifier.fillMaxWidth(),
+            contentScale = ContentScale.FillWidth
+        )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             AsyncImage(
                 model = box.pokeballImage,
                 contentDescription = box.name,
-                modifier = Modifier.size(46.dp)
+                modifier = Modifier.size(62.dp),
+                contentScale = ContentScale.Fit,
+                filterQuality = FilterQuality.None
             )
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(top = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 Text(
                     text = box.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
                 )
-                Text(
-                    text = "${box.entries.size} drops",
-                    style = MaterialTheme.typography.bodySmall
-                )
+                if (pokemonEntries.isNotEmpty()) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        pokemonEntries.forEach { entry ->
+                            AsyncImage(
+                                model = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${entry.resourceId}.png",
+                                contentDescription = entry.resourceName,
+                                modifier = Modifier.size(24.dp),
+                                contentScale = ContentScale.Fit,
+                                filterQuality = FilterQuality.None
+                            )
+                        }
+                    }
+                }
             }
-            Text(
-                text = "${"%.2f".format(box.totalDropRate)}%",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
         }
     }
 }

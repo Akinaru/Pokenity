@@ -25,7 +25,7 @@ class HomeViewModel(
     fun loadLatestBoxes() {
         _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
         viewModelScope.launch(Dispatchers.IO) {
-            runCatching { getLatestBoxesUseCase(limit = 2) }
+            runCatching { getLatestBoxesUseCase(limit = 3) }
                 .onSuccess { boxes ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
