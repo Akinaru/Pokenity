@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -81,6 +82,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavType
@@ -430,6 +432,7 @@ class MainActivity : ComponentActivity() {
                                                 onOpenBox = { boxId ->
                                                     navController.navigate("box-detail/$boxId")
                                                 },
+                                                bottomInset = mainBottomBarHeight,
                                                 modifier = Modifier.padding(innerPadding)
                                             )
                                         }
@@ -977,6 +980,7 @@ private fun HomeScreen(
     onOpenMapExplorer: () -> Unit,
     onOpenAllBoxes: () -> Unit,
     onOpenBox: (String) -> Unit,
+    bottomInset: Dp = 0.dp,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -1136,6 +1140,7 @@ private fun HomeScreen(
                 }
             }
         }
+        Spacer(modifier = Modifier.height(bottomInset))
     }
 }
 
@@ -1172,14 +1177,14 @@ private fun HomeBoxCard(
             AsyncImage(
                 model = box.pokeballImage,
                 contentDescription = box.name,
-                modifier = Modifier.size(62.dp),
+                modifier = Modifier.size(68.dp),
                 contentScale = ContentScale.Fit,
                 filterQuality = FilterQuality.None
             )
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(top = 14.dp),
+                    .padding(top = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
@@ -1190,7 +1195,9 @@ private fun HomeBoxCard(
                 )
                 if (pokemonEntries.isNotEmpty()) {
                     FlowRow(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 3.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
@@ -1198,7 +1205,7 @@ private fun HomeBoxCard(
                             AsyncImage(
                                 model = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${entry.resourceId}.png",
                                 contentDescription = entry.resourceName,
-                                modifier = Modifier.size(24.dp),
+                                modifier = Modifier.size(26.dp),
                                 contentScale = ContentScale.Fit,
                                 filterQuality = FilterQuality.None
                             )

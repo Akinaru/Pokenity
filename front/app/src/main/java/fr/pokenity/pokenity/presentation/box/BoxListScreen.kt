@@ -89,14 +89,14 @@ fun BoxListScreen(
                             AsyncImage(
                                 model = box.pokeballImage,
                                 contentDescription = box.name,
-                                modifier = Modifier.size(62.dp),
+                                modifier = Modifier.size(68.dp),
                                 contentScale = ContentScale.Fit,
                                 filterQuality = FilterQuality.None
                             )
                             Column(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .padding(top = 14.dp),
+                                    .padding(top = 24.dp),
                                 verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Text(
@@ -106,7 +106,9 @@ fun BoxListScreen(
                                 )
                                 if (pokemonEntries.isNotEmpty()) {
                                     FlowRow(
-                                        modifier = Modifier.fillMaxWidth(),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 3.dp),
                                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                                         verticalArrangement = Arrangement.spacedBy(2.dp)
                                     ) {
@@ -114,7 +116,7 @@ fun BoxListScreen(
                                             AsyncImage(
                                                 model = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${entry.resourceId}.png",
                                                 contentDescription = entry.resourceName,
-                                                modifier = Modifier.size(24.dp),
+                                                modifier = Modifier.size(26.dp),
                                                 contentScale = ContentScale.Fit,
                                                 filterQuality = FilterQuality.None
                                             )
