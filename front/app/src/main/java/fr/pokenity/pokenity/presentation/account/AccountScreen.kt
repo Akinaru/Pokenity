@@ -167,7 +167,10 @@ fun AccountScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp)
                 ) {
-                    Text("Retour au Welcome", fontWeight = FontWeight.Bold)
+                    Text(
+                        fr.pokenity.pokenity.ui.i18n.uiText("Back to welcome"),
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
@@ -192,7 +195,7 @@ private fun AccountAvatar(
         if (mediaModel != null) {
             AsyncImage(
                 model = mediaModel,
-                contentDescription = "$label avatar",
+                contentDescription = "${fr.pokenity.pokenity.ui.i18n.uiText("Avatar")} $label",
                 modifier = Modifier.fillMaxSize()
             )
         } else {

@@ -1,7 +1,9 @@
 package fr.pokenity.pokenity
 
+import android.app.LocaleManager
 import android.media.MediaPlayer
 import android.os.Bundle
+import android.os.LocaleList
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -95,6 +97,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import fr.pokenity.data.core.AppThemeMode
 import fr.pokenity.data.core.AppThemeState
+import fr.pokenity.data.core.AppUiLanguageState
 import fr.pokenity.data.core.AuthSessionState
 import fr.pokenity.data.core.PokemonBrowseState
 import fr.pokenity.data.core.PokemonImageSettings
@@ -191,8 +194,14 @@ class MainActivity : ComponentActivity() {
             val boxListUiState by boxListViewModel.uiState.collectAsState()
             val boxDetailUiState by boxDetailViewModel.uiState.collectAsState()
             val themeMode by AppThemeState.themeMode.collectAsState()
+            val uiLanguage by AppUiLanguageState.selectedLanguage.collectAsState()
             val navSpriteType by PokemonImageSettings.imageType.collectAsState()
             val navShinyEnabled by PokemonImageSettings.isShiny.collectAsState()
+
+            LaunchedEffect(uiLanguage) {
+                val localeManager = getSystemService(LocaleManager::class.java)
+                localeManager.applicationLocales = LocaleList.forLanguageTags(uiLanguage.code)
+            }
 
             val systemDark = isSystemInDarkTheme()
             val isDarkTheme = when (themeMode) {
@@ -470,6 +479,7 @@ class MainActivity : ComponentActivity() {
                                                     SettingsScreen(
                                                         uiState = settingsUiState,
                                                         onRetry = settingsViewModel::loadLanguages,
+                                                        onUiLanguageSelected = settingsViewModel::onUiLanguageSelected,
                                                         onLanguageSelected = settingsViewModel::onLanguageSelected,
                                                         onImageTypeSelected = settingsViewModel::onImageTypeSelected,
                                                         onThemeModeSelected = settingsViewModel::onThemeModeSelected,
@@ -535,12 +545,12 @@ class MainActivity : ComponentActivity() {
                                 containerColor = Color.Transparent,
                                 topBar = {
                                     TopAppBar(
-                                        title = { Text("World Map Explorer") },
+                                        title = { Text(fr.pokenity.pokenity.ui.i18n.uiText("World Map Explorer")) },
                                         navigationIcon = {
                                             IconButton(onClick = { navController.popBackStack() }) {
                                                 Icon(
                                                     Icons.AutoMirrored.Filled.ArrowBack,
-                                                    contentDescription = "Retour"
+                                                    contentDescription = fr.pokenity.pokenity.ui.i18n.uiText("Retour")
                                                 )
                                             }
                                         },
@@ -579,12 +589,12 @@ class MainActivity : ComponentActivity() {
                                 containerColor = Color.Transparent,
                                 topBar = {
                                     TopAppBar(
-                                        title = { Text("Pokedex") },
+                                        title = { Text(fr.pokenity.pokenity.ui.i18n.uiText("Pokedex")) },
                                         navigationIcon = {
                                             IconButton(onClick = { navController.popBackStack() }) {
                                                 Icon(
                                                     Icons.AutoMirrored.Filled.ArrowBack,
-                                                    contentDescription = "Retour"
+                                                    contentDescription = fr.pokenity.pokenity.ui.i18n.uiText("Retour")
                                                 )
                                             }
                                         },
@@ -648,12 +658,12 @@ class MainActivity : ComponentActivity() {
                                 containerColor = Color.Transparent,
                                 topBar = {
                                     TopAppBar(
-                                        title = { Text("Toutes les boxes") },
+                                        title = { Text(fr.pokenity.pokenity.ui.i18n.uiText("Toutes les boxes")) },
                                         navigationIcon = {
                                             IconButton(onClick = { navController.popBackStack() }) {
                                                 Icon(
                                                     Icons.AutoMirrored.Filled.ArrowBack,
-                                                    contentDescription = "Retour"
+                                                    contentDescription = fr.pokenity.pokenity.ui.i18n.uiText("Retour")
                                                 )
                                             }
                                         },
@@ -707,7 +717,7 @@ class MainActivity : ComponentActivity() {
                                             IconButton(onClick = { navController.popBackStack() }) {
                                                 Icon(
                                                     Icons.AutoMirrored.Filled.ArrowBack,
-                                                    contentDescription = "Retour"
+                                                    contentDescription = fr.pokenity.pokenity.ui.i18n.uiText("Retour")
                                                 )
                                             }
                                         },
@@ -908,7 +918,7 @@ private fun MoiTopBar(
                 title = { },
                 actions = {
                     IconButton(onClick = onOpenSettings) {
-                        Icon(Icons.Filled.Settings, contentDescription = "Settings")
+                        Icon(Icons.Filled.Settings, contentDescription = fr.pokenity.pokenity.ui.i18n.uiText("Settings"))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -920,10 +930,10 @@ private fun MoiTopBar(
 
         MoiScreen.SETTINGS -> {
             TopAppBar(
-                title = { Text("Parametres") },
+                title = { Text(fr.pokenity.pokenity.ui.i18n.uiText("Parametres")) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = fr.pokenity.pokenity.ui.i18n.uiText("Retour"))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors()
@@ -932,10 +942,10 @@ private fun MoiTopBar(
 
         MoiScreen.PREFERENCE -> {
             TopAppBar(
-                title = { Text("Preference") },
+                title = { Text(fr.pokenity.pokenity.ui.i18n.uiText("Preference")) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = fr.pokenity.pokenity.ui.i18n.uiText("Retour"))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors()
@@ -944,10 +954,10 @@ private fun MoiTopBar(
 
         MoiScreen.COMPTE -> {
             TopAppBar(
-                title = { Text("Compte") },
+                title = { Text(fr.pokenity.pokenity.ui.i18n.uiText("Compte")) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = fr.pokenity.pokenity.ui.i18n.uiText("Retour"))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors()
@@ -1029,7 +1039,7 @@ private fun HomeScreen(
                 }
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = "Ouvrir"
+                    contentDescription = fr.pokenity.pokenity.ui.i18n.uiText("Ouvrir")
                 )
             }
         }
@@ -1068,7 +1078,7 @@ private fun HomeScreen(
                 }
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = "Ouvrir"
+                    contentDescription = fr.pokenity.pokenity.ui.i18n.uiText("Ouvrir")
                 )
             }
         }
@@ -1106,7 +1116,7 @@ private fun HomeScreen(
                             style = MaterialTheme.typography.bodyMedium
                         )
                         OutlinedButton(onClick = onRetry) {
-                            Text("Reessayer")
+                            Text(fr.pokenity.pokenity.ui.i18n.uiText("Reessayer"))
                         }
                     }
                 }
@@ -1235,7 +1245,7 @@ private fun SettingsMenuScreen(
             shape = RoundedCornerShape(0.dp),
             border = BorderStroke(3.dp, PrimaryButtonOrange)
         ) {
-            Text("Preference")
+            Text(fr.pokenity.pokenity.ui.i18n.uiText("Preference"))
         }
         PrimaryButton(
             onClick = onOpenCompte,
@@ -1243,7 +1253,7 @@ private fun SettingsMenuScreen(
             shape = RoundedCornerShape(0.dp),
             border = BorderStroke(3.dp, PrimaryButtonOrange)
         ) {
-            Text("Compte")
+            Text(fr.pokenity.pokenity.ui.i18n.uiText("Compte"))
         }
     }
 }
@@ -1417,7 +1427,7 @@ private fun ProfileClosetRow(
                         ) {
                             PokemonSpriteImage(
                                 pokemonId = pokemonId,
-                                contentDescription = "Pokemon #$pokemonId",
+                                contentDescription = "${fr.pokenity.pokenity.ui.i18n.uiText("Pokemon")} #$pokemonId",
                                 imageType = spriteType,
                                 shiny = shinyEnabled,
                                 contentScale = ContentScale.Fit,
@@ -1434,7 +1444,7 @@ private fun ProfileClosetRow(
                                 ) {
                                     Image(
                                         painter = painterResource(id = R.drawable.badge_duplicate),
-                                        contentDescription = "Duplicate badge",
+                                        contentDescription = fr.pokenity.pokenity.ui.i18n.uiText("Duplicate badge"),
                                         modifier = Modifier.size(40.dp),
                                         contentScale = ContentScale.Fit
                                     )
@@ -1487,7 +1497,7 @@ private fun OwnedPokemonCard(
         ) {
             PokemonSpriteImage(
                 pokemonId = pokemonId,
-                contentDescription = "Pokemon #$pokemonId",
+                contentDescription = "${fr.pokenity.pokenity.ui.i18n.uiText("Pokemon")} #$pokemonId",
                 imageType = spriteType,
                 shiny = shinyEnabled,
                 modifier = Modifier.size(64.dp)
@@ -1547,7 +1557,7 @@ private fun MoiHeaderCard(uiState: AccountUiState) {
                     if (mediaModel != null) {
                         AsyncImage(
                             model = mediaModel,
-                            contentDescription = "Avatar",
+                            contentDescription = fr.pokenity.pokenity.ui.i18n.uiText("Avatar"),
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {
@@ -1663,10 +1673,10 @@ private fun ComparePickerScreen(
         containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
-                title = { Text("Choisir un Pokemon") },
+                title = { Text(fr.pokenity.pokenity.ui.i18n.uiText("Choisir un Pokemon")) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = fr.pokenity.pokenity.ui.i18n.uiText("Retour"))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors()
@@ -1825,18 +1835,18 @@ private fun MainBottomBar(
             FooterSocialButton(
                 isSelected = selectedDestination == MainDestination.SOCIAL,
                 onClick = { onSelected(MainDestination.SOCIAL) },
-                contentDescription = "Social"
+                contentDescription = fr.pokenity.pokenity.ui.i18n.uiText("Social")
             )
             FooterAccueilButton(
                 isSelected = selectedDestination == MainDestination.ACCUEIL,
                 onClick = { onSelected(MainDestination.ACCUEIL) },
-                contentDescription = "Accueil"
+                contentDescription = fr.pokenity.pokenity.ui.i18n.uiText("Accueil")
             )
             FooterIconButton(
                 isSelected = selectedDestination == MainDestination.MOI,
                 onClick = { onSelected(MainDestination.MOI) },
                 imageVector = Icons.Filled.AccountCircle,
-                contentDescription = "Moi"
+                contentDescription = fr.pokenity.pokenity.ui.i18n.uiText("Moi")
             )
         }
     }

@@ -90,7 +90,7 @@ fun OpenTradesScreen(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 PrimaryButton(onClick = onRefresh) {
-                    Text("Rafraichir")
+                    Text(fr.pokenity.pokenity.ui.i18n.uiText("Rafraichir"))
                 }
             }
         }
@@ -379,7 +379,10 @@ private fun AcceptTradeDialog(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Annuler", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            fr.pokenity.pokenity.ui.i18n.uiText("Annuler"),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     }
                     PrimaryButton(
                         onClick = onConfirm,
@@ -387,7 +390,10 @@ private fun AcceptTradeDialog(
                         shape = RoundedCornerShape(10.dp),
                         enabled = canConfirm
                     ) {
-                        Text("Confirmer", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            fr.pokenity.pokenity.ui.i18n.uiText("Confirmer"),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     }
                 }
             }

@@ -166,7 +166,7 @@ fun ProposeTradeScreen(
                             fontWeight = FontWeight.Bold
                         )
                         TextButton(onClick = { onSelectInventoryItem(null) }) {
-                            Text("Retirer tout")
+                            Text(fr.pokenity.pokenity.ui.i18n.uiText("Retirer tout"))
                         }
                     }
                     selectedItems.forEach { selectedItem ->
@@ -222,7 +222,7 @@ fun ProposeTradeScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Filled.Close,
-                                    contentDescription = "Retirer",
+                                    contentDescription = fr.pokenity.pokenity.ui.i18n.uiText("Retirer"),
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -320,7 +320,7 @@ fun ProposeTradeScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Filled.Close,
-                                    contentDescription = "Retirer",
+                                    contentDescription = fr.pokenity.pokenity.ui.i18n.uiText("Retirer"),
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -405,7 +405,7 @@ fun ProposeTradeScreen(
             if (uiState.isLoading) {
                 CircularProgressIndicator(modifier = Modifier.size(20.dp))
             } else {
-                Text("Proposer l'echange")
+                Text(fr.pokenity.pokenity.ui.i18n.uiText("Proposer l'echange"))
             }
         }
     }
@@ -454,7 +454,7 @@ private fun InventorySelectorScreen(
                         fontWeight = FontWeight.Bold
                     )
                     IconButton(onClick = onClose) {
-                        Icon(imageVector = Icons.Filled.Close, contentDescription = "Fermer")
+                        Icon(imageVector = Icons.Filled.Close, contentDescription = fr.pokenity.pokenity.ui.i18n.uiText("Fermer"))
                     }
                 }
 
@@ -463,7 +463,7 @@ private fun InventorySelectorScreen(
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    placeholder = { Text("Rechercher...") },
+                    placeholder = { Text(fr.pokenity.pokenity.ui.i18n.uiText("Rechercher...")) },
                     singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -557,10 +557,10 @@ private fun InventorySelectorScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     TextButton(onClick = onClose, modifier = Modifier.weight(1f)) {
-                        Text("Annuler")
+                        Text(fr.pokenity.pokenity.ui.i18n.uiText("Annuler"))
                     }
                     PrimaryButton(onClick = onClose, modifier = Modifier.weight(1f)) {
-                        Text("Valider (${selectedItems.size}/5)")
+                        Text("${fr.pokenity.pokenity.ui.i18n.uiText("Valider")} (${selectedItems.size}/5)")
                     }
                 }
             }
@@ -642,7 +642,7 @@ private fun PokedexSelectorScreen(
                         fontWeight = FontWeight.Bold
                     )
                     IconButton(onClick = onClose) {
-                        Icon(imageVector = Icons.Filled.Close, contentDescription = "Fermer")
+                        Icon(imageVector = Icons.Filled.Close, contentDescription = fr.pokenity.pokenity.ui.i18n.uiText("Fermer"))
                     }
                 }
 
@@ -676,7 +676,7 @@ private fun PokedexSelectorScreen(
                                 trailingIcon = {
                                     Icon(
                                         imageVector = Icons.Filled.Close,
-                                        contentDescription = "Retirer",
+                                        contentDescription = fr.pokenity.pokenity.ui.i18n.uiText("Retirer"),
                                         modifier = Modifier.size(16.dp)
                                     )
                                 },
@@ -704,7 +704,7 @@ private fun PokedexSelectorScreen(
                         OutlinedTextField(
                             value = searchQuery,
                             onValueChange = { searchQuery = it },
-                            placeholder = { Text("Rechercher...") },
+                            placeholder = { Text(fr.pokenity.pokenity.ui.i18n.uiText("Rechercher...")) },
                             singleLine = true,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -867,14 +867,14 @@ private fun PokedexSelectorScreen(
                         onClick = onClose,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Annuler")
+                        Text(fr.pokenity.pokenity.ui.i18n.uiText("Annuler"))
                     }
                     PrimaryButton(
                         onClick = onClose,
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("Valider (${uiState.selectedRequestedPokemons.size})")
+                        Text("${fr.pokenity.pokenity.ui.i18n.uiText("Valider")} (${uiState.selectedRequestedPokemons.size})")
                     }
                 }
             }

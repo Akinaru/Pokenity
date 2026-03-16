@@ -913,7 +913,7 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
         Text(text = message, style = MaterialTheme.typography.bodyLarge)
         Spacer(modifier = Modifier.height(12.dp))
         PrimaryButton(onClick = onRetry) {
-            Text("Reessayer")
+            Text(fr.pokenity.pokenity.ui.i18n.uiText("Reessayer"))
         }
     }
 }

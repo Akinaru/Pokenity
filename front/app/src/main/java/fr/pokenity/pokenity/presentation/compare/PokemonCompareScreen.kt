@@ -104,7 +104,7 @@ fun PokemonCompareScreen(
                 ) {
                     Text(uiState.errorMessage, style = MaterialTheme.typography.bodyLarge)
                     Spacer(modifier = Modifier.height(12.dp))
-                    PrimaryButton(onClick = onRetry) { Text("Reessayer") }
+                    PrimaryButton(onClick = onRetry) { Text(fr.pokenity.pokenity.ui.i18n.uiText("Reessayer")) }
                 }
             }
 
@@ -128,9 +128,13 @@ fun PokemonCompareScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             IconButton(onClick = onBack) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = fr.pokenity.pokenity.ui.i18n.uiText("Retour"))
                             }
-                            Text("Comparateur", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            Text(
+                                fr.pokenity.pokenity.ui.i18n.uiText("Comparateur"),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
                             OutlinedButton(onClick = onOpenSelector) {
                                 Text(if (compared == null) "Choisir" else "Changer")
                             }
@@ -171,7 +175,7 @@ fun PokemonCompareScreen(
                                             modifier = Modifier.size(96.dp)
                                         )
                                         Text(base.name, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-                                        OutlinedButton(onClick = { onOpenPokemonDetail(base.id) }) { Text("Voir fiche") }
+                                        OutlinedButton(onClick = { onOpenPokemonDetail(base.id) }) { Text(fr.pokenity.pokenity.ui.i18n.uiText("Voir fiche")) }
                                     }
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Column(
@@ -188,7 +192,7 @@ fun PokemonCompareScreen(
                                                 modifier = Modifier.size(96.dp)
                                             )
                                             Text(compared.name, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-                                            OutlinedButton(onClick = { onOpenPokemonDetail(compared.id) }) { Text("Voir fiche") }
+                                            OutlinedButton(onClick = { onOpenPokemonDetail(compared.id) }) { Text(fr.pokenity.pokenity.ui.i18n.uiText("Voir fiche")) }
                                         } else {
                                             Box(
                                                 modifier = Modifier
@@ -199,7 +203,10 @@ fun PokemonCompareScreen(
                                             ) {
                                                 Text("?", style = MaterialTheme.typography.headlineMedium)
                                             }
-                                            Text("Aucun Pokemon", textAlign = TextAlign.Center)
+                                            Text(
+                                                fr.pokenity.pokenity.ui.i18n.uiText("Aucun Pokemon"),
+                                                textAlign = TextAlign.Center
+                                            )
                                         }
                                     }
                                 }
@@ -232,7 +239,11 @@ fun PokemonCompareScreen(
                                 .padding(horizontal = 16.dp)
                         ) {
                             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text("Stats", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                Text(
+                                    fr.pokenity.pokenity.ui.i18n.uiText("Stats"),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
                                 base.stats.forEach { stat ->
                                     val rightValue = compared?.stats?.firstOrNull { it.name == stat.name }?.baseStat ?: 0
                                     StatCompareBarRow(
@@ -255,7 +266,7 @@ fun PokemonCompareScreen(
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp)
                             ) {
-                                Text("Selectionner un Pokemon a comparer")
+                                Text(fr.pokenity.pokenity.ui.i18n.uiText("Selectionner un Pokemon a comparer"))
                             }
                         }
                     }

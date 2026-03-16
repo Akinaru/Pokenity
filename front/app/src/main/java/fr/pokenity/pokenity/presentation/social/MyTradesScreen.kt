@@ -61,7 +61,7 @@ fun MyTradesScreen(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 PrimaryButton(onClick = onRefresh) {
-                    Text("Rafraichir")
+                    Text(fr.pokenity.pokenity.ui.i18n.uiText("Rafraichir"))
                 }
             }
         }
@@ -168,14 +168,14 @@ private fun TradeActions(
                             contentColor = MaterialTheme.colorScheme.error
                         )
                     ) {
-                        Text("Refuser")
+                        Text(fr.pokenity.pokenity.ui.i18n.uiText("Refuser"))
                     }
                     PrimaryButton(
                         onClick = onConfirm,
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(10.dp)
                     ) {
-                        Text("Confirmer")
+                        Text(fr.pokenity.pokenity.ui.i18n.uiText("Confirmer"))
                     }
                 }
             }
@@ -192,7 +192,7 @@ private fun TradeActions(
                         contentColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("Annuler")
+                    Text(fr.pokenity.pokenity.ui.i18n.uiText("Annuler"))
                 }
             } else {
                 Spacer(modifier = Modifier.height(10.dp))
@@ -204,7 +204,7 @@ private fun TradeActions(
                         contentColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("Refuser")
+                    Text(fr.pokenity.pokenity.ui.i18n.uiText("Refuser"))
                 }
             }
         }

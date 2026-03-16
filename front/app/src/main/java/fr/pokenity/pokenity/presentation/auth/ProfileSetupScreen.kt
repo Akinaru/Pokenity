@@ -54,7 +54,7 @@ fun ProfileSetupScreen(
                 onClick = onNext,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Suivant")
+                Text(fr.pokenity.pokenity.ui.i18n.uiText("Suivant"))
             }
         }
     }

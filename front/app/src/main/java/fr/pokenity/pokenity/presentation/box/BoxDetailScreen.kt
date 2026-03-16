@@ -106,14 +106,14 @@ fun BoxDetailScreen(
             ) {
                 Text(uiState.errorMessage)
                 OutlinedButton(onClick = onRetry, modifier = Modifier.padding(top = 10.dp)) {
-                    Text("Reessayer")
+                    Text(fr.pokenity.pokenity.ui.i18n.uiText("Reessayer"))
                 }
             }
         }
 
         uiState.box == null -> {
             Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Box introuvable.")
+                Text(fr.pokenity.pokenity.ui.i18n.uiText("Box introuvable."))
             }
         }
 
@@ -351,7 +351,7 @@ private fun RewardResultDialog(
                             if (shinyBadgeResId != 0) {
                                 Image(
                                     painter = painterResource(id = shinyBadgeResId),
-                                    contentDescription = "Badge shiny",
+                                    contentDescription = fr.pokenity.pokenity.ui.i18n.uiText("Badge shiny"),
                                     contentScale = ContentScale.Fit,
                                     modifier = Modifier
                                         .fillMaxWidth(0.42f)
@@ -532,7 +532,7 @@ private fun BoxClosetRow(
                                         painter = painterResource(
                                             id = if (badgeResId != 0) badgeResId else R.drawable.badge_duplicate
                                         ),
-                                        contentDescription = "Badge probabilite",
+                                        contentDescription = fr.pokenity.pokenity.ui.i18n.uiText("Badge probabilite"),
                                         modifier = Modifier.size(40.dp),
                                         contentScale = ContentScale.Fit
                                     )

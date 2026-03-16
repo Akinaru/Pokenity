@@ -104,13 +104,13 @@ fun MapScreen(
                     }
 
                     if (uiState.selectedRegion != null) {
-                        item { OutlinedButton(onClick = onBackToRegions) { Text("Changer de region") } }
+                        item { OutlinedButton(onClick = onBackToRegions) { Text(fr.pokenity.pokenity.ui.i18n.uiText("Changer de region")) } }
                     }
                     if (uiState.selectedLocation != null) {
-                        item { OutlinedButton(onClick = onBackToLocations) { Text("Changer de location") } }
+                        item { OutlinedButton(onClick = onBackToLocations) { Text(fr.pokenity.pokenity.ui.i18n.uiText("Changer de location")) } }
                     }
                     if (uiState.selectedArea != null) {
-                        item { OutlinedButton(onClick = onBackToAreas) { Text("Changer de zone") } }
+                        item { OutlinedButton(onClick = onBackToAreas) { Text(fr.pokenity.pokenity.ui.i18n.uiText("Changer de zone")) } }
                     }
 
                     when {
@@ -405,7 +405,7 @@ private fun InteractiveRegionMap(
                     scale = 1f
                     offsetX = 0f
                     offsetY = 0f
-                }) { Text("Reset") }
+                }) { Text(fr.pokenity.pokenity.ui.i18n.uiText("Reset")) }
             }
         }
     }
@@ -502,6 +502,6 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
     ) {
         Text(text = message, style = MaterialTheme.typography.bodyLarge)
         Spacer(modifier = Modifier.height(12.dp))
-        PrimaryButton(onClick = onRetry) { Text("Reessayer") }
+        PrimaryButton(onClick = onRetry) { Text(fr.pokenity.pokenity.ui.i18n.uiText("Reessayer")) }
     }
 }

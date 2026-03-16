@@ -167,7 +167,7 @@ fun PokemonDetailScreen(
                     Text(text = uiState.errorMessage, style = MaterialTheme.typography.bodyLarge)
                     Spacer(modifier = Modifier.height(12.dp))
                     PrimaryButton(onClick = onRetry) {
-                        Text("Reessayer")
+                        Text(fr.pokenity.pokenity.ui.i18n.uiText("Reessayer"))
                     }
                 }
             }
@@ -269,7 +269,7 @@ private fun DetailHeader(
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Retour",
+                contentDescription = fr.pokenity.pokenity.ui.i18n.uiText("Retour"),
                 tint = MaterialTheme.colorScheme.onSurface
             )
         }
@@ -488,7 +488,7 @@ private fun AboutTabContent(
         horizontalArrangement = Arrangement.End
     ) {
         OutlinedButton(onClick = { onOpenComparator(pokemon.id) }) {
-            Text("Comparer ce Pokemon")
+            Text(fr.pokenity.pokenity.ui.i18n.uiText("Comparer ce Pokemon"))
         }
     }
 }
@@ -1103,7 +1103,7 @@ private fun GallerySection(
                     )
                     AsyncImage(
                         model = shinyImageUrl,
-                        contentDescription = "$pokemonName Shiny",
+                        contentDescription = "$pokemonName ${fr.pokenity.pokenity.ui.i18n.uiText("Shiny")}",
                         contentScale = ContentScale.Fit,
                         modifier = Modifier.size(140.dp)
                     )

@@ -95,7 +95,7 @@ private fun UserCard(
             if (mediaModel != null) {
                 AsyncImage(
                     model = mediaModel,
-                    contentDescription = "Avatar de ${user.username}",
+                    contentDescription = "${fr.pokenity.pokenity.ui.i18n.uiText("Avatar")} ${user.username}",
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
@@ -116,7 +116,7 @@ private fun UserCard(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = user.character?.name ?: "Dresseur",
+                    text = user.character?.name ?: fr.pokenity.pokenity.ui.i18n.uiText("Dresseur"),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

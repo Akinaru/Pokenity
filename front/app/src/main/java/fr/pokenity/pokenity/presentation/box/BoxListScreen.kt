@@ -54,7 +54,7 @@ fun BoxListScreen(
             ) {
                 Text(uiState.errorMessage)
                 OutlinedButton(onClick = onRetry, modifier = Modifier.padding(top = 10.dp)) {
-                    Text("Reessayer")
+                    Text(fr.pokenity.pokenity.ui.i18n.uiText("Reessayer"))
                 }
             }
         }

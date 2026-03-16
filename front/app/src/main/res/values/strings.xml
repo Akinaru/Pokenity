@@ -1,3 +1,16 @@
 <resources>
     <string name="app_name">Pokenity</string>
+    <string name="common_retry">Reessayer</string>
+
+    <string name="settings_title">Parametres</string>
+    <string name="settings_app_language_title">Langue de l\'application</string>
+    <string name="settings_language_french">Francais</string>
+    <string name="settings_language_english">English</string>
+    <string name="settings_theme_title">Theme</string>
+    <string name="settings_theme_system">Appareil</string>
+    <string name="settings_theme_light">Clair</string>
+    <string name="settings_theme_dark">Sombre</string>
+    <string name="settings_pokeapi_language_title">Langue des donnees PokeAPI</string>
+    <string name="settings_choose_language">Choisir une langue</string>
+    <string name="settings_image_type_title">Type d\'image Pokemon</string>
 </resources>
